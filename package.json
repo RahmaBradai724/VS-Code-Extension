@@ -1,0 +1,110 @@
+{
+  "name": "channel-config-manager",
+  "displayName": "Channel Configuration Manager",
+  "description": "Manage hardware and logical channel configurations, generate config.yaml, and validate with AI.",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "channelConfig.openDashboard",
+        "title": "Open Configuration Dashboard",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.manageLogicalChannels",
+        "title": "Manage Logical Channels",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.manageHardwareChannels",
+        "title": "Manage Hardware Channels",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.manageMappings",
+        "title": "Manage Mappings",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.generateConfig",
+        "title": "Generate config.yaml",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.importConfig",
+        "title": "Import Configuration File",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.exportConfig",
+        "title": "Export Configuration File",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.visualizeDiagram",
+        "title": "Visualize Hardware Diagram",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.configureFramework",
+        "title": "Configure Framework Parameters",
+        "category": "Channel Config"
+      },
+      {
+        "command": "channelConfig.runAIValidation",
+        "title": "Run AI Validation",
+        "category": "Channel Config"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "channelConfigExplorer",
+          "title": "Channel Config Manager",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "channelConfigExplorer": [
+        {
+          "icon": "resources/icon.svg",
+          "type": "webview",
+          "id": "channelConfig.mainView",
+          "name": "Configuration Manager"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.20.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^8.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.2.1",
+    "js-yaml": "^4.1.0",
+    "pg": "^8.20.0"
+  }
+}
