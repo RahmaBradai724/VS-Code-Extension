@@ -1,12 +1,19 @@
+import { ChildEntity, Column } from 'typeorm';
 import { LogicalChannel } from './channel';
 import { LogicalChannelCategory } from './enums';
 
 // ─────────────────────────────────────────────
 //  FlexRay Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.FLEXRAY)
 export class FlexRayChannel extends LogicalChannel {
+  @Column({ nullable: true })
   optionStr?: string;
+
+  @Column({ nullable: true })
   genlId?: string;
+
+  @Column({ nullable: true })
   optionId?: string;
 
   constructor(id: string, name: string) {
@@ -25,16 +32,36 @@ export class FlexRayChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Serial Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.SERIAL)
 export class SerialChannel extends LogicalChannel {
+  @Column()
   portName: string = '';
+
+  @Column()
   dataClass: string = '';
+
+  @Column()
   query: string = '';
+
+  @Column()
   dataBits: number = 8;
+
+  @Column()
   baudRate: number = 9600;
+
+  @Column()
   stopBits: string = '1';
+
+  @Column()
   parity: string = 'None';
+
+  @Column()
   bufferedData: number = 0;
+
+  @Column()
   dataAcquisitionMode: string = '';
+
+  @Column({ nullable: true })
   serialChannelAdditionalOptions?: boolean;
 
   constructor(id: string, name: string) {
@@ -64,8 +91,12 @@ export class SerialChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  CAN Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.CAN)
 export class CANChannel extends LogicalChannel {
+  @Column({ nullable: true })
   dbcChannel?: number;
+
+  @Column({ nullable: true })
   connectionMode?: string;
 
   constructor(id: string, name: string) {
@@ -84,16 +115,36 @@ export class CANChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IO Input Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.IOINPUT)
 export class IOInputChannel extends LogicalChannel {
+  @Column()
   ioChannel: number = 0;
+
+  @Column()
   measurementAttribute: string = '';
+
+  @Column()
   controlState: boolean = false;
+
+  @Column()
   loSideRelay: boolean = false;
+
+  @Column()
   infoStatus: boolean = false;
+
+  @Column()
   dataChannelName: string = '';
+
+  @Column({ type: 'jsonb', nullable: true })
   measurementConfig?: object;
+
+  @Column({ type: 'jsonb', default: [] })
   subscriptionDetails: object[] = [];
+
+  @Column()
   openMinTimeMs: number = 0;
+
+  @Column({ type: 'jsonb', nullable: true })
   subscriptionConfig?: object;
 
   constructor(id: string, name: string) {
@@ -112,18 +163,42 @@ export class IOInputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IO Output Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.IOOUTPUT)
 export class IOOutputChannel extends LogicalChannel {
+  @Column()
   ioChannel: number = 0;
+
+  @Column()
   measurementAttribute: string = '';
+
+  @Column()
   timeControlMode: boolean = false;
+
+  @Column()
   timeControlInterval: string = '';
+
+  @Column()
   openWorkTime: boolean = false;
+
+  @Column({ type: 'jsonb', nullable: true })
   measurementConfig?: object;
+
+  @Column({ type: 'jsonb', default: [] })
   packetProcessingConfig: object[] = [];
+
+  @Column()
   endlaue: string = '';
+
+  @Column()
   channelType: string = '';
+
+  @Column({ type: 'jsonb', default: [] })
   ports: object[] = [];
+
+  @Column()
   portMinTimeMs: number = 0;
+
+  @Column({ type: 'jsonb', nullable: true })
   subscriptionConfig?: object;;
 
   constructor(id: string, name: string) {
@@ -142,10 +217,18 @@ export class IOOutputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  LIN Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.LIN)
 export class LINChannel extends LogicalChannel {
+  @Column()
   openSession: number = 0;
+
+  @Column()
   loggingName: string = '';
+
+  @Column()
   loggingType: LogicalChannelCategory = LogicalChannelCategory.LIN;
+
+  @Column({ type: 'jsonb', default: [] })
   dbList: string[] = [];
 
   constructor(id: string, name: string) {
@@ -164,9 +247,15 @@ export class LINChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IPS Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.IDSERIAL)
 export class IPSChannel extends LogicalChannel {
+  @Column()
   openSession: number = 0;
+
+  @Column()
   openInterface: string = '';
+
+  @Column()
   openSessionFields: string = '';
 
   constructor(id: string, name: string) {
@@ -185,7 +274,9 @@ export class IPSChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Bridge Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.BRIDGE)
 export class BridgeChannel extends LogicalChannel {
+  @Column({ type: 'jsonb', nullable: true })
   hlcChannel?: HardwareChannel_Ref;
 
   constructor(id: string, name: string) {
@@ -210,8 +301,12 @@ export interface HardwareChannel_Ref {
 // ─────────────────────────────────────────────
 //  Analog Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.ANALOG)
 export class AnalogChannel extends LogicalChannel {
+  @Column({ nullable: true })
   sensorType?: string;
+
+  @Column({ nullable: true })
   controlId?: string;
 
   constructor(id: string, name: string) {
@@ -230,22 +325,54 @@ export class AnalogChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Ethernet Logical Channel
 // ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.ETHERNET)
 export class EthernetChannel extends LogicalChannel {
+  @Column()
   friendlyName: string = '';
+
+  @Column()
   bufferSize: number = 0;
+
+  @Column()
   timeout: number = 0;
+
+  @Column()
   timeframeName: string = '';
+
+  @Column()
   timeframePrecision: string = '';
+
+  @Column()
   timeframeSource: string = '';
+
+  @Column()
   timestampBound: number = 0;
+
+  @Column()
   snapshotLength: number = 0;
+
+  @Column()
   defSaveMode: number = 0;
+
+  @Column()
   defDataSupportTimeStamp: boolean = false;
+
+  @Column()
   sendDataLoggerMeta: boolean = false;
+
+  @Column()
   dataLoggerType: string = '';
+
+  @Column()
   packetProcessingConfig: boolean = false;
+
+  @Column()
   differentHandlerForIuluAndR: boolean = false;
+
+  @Column()
   useFlexRayBaudRate: boolean = false;
+
+  @Column({ nullable: true })
   captureType?: string;
 
   constructor(id: string, name: string) {

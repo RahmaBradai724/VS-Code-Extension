@@ -1,13 +1,29 @@
+import { Entity, PrimaryColumn, Column, TableInheritance, ChildEntity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { PublisherMode, TimestampPrecision } from './enums';
+import { Configuration } from './configuration';
 
 // ─────────────────────────────────────────────
 //  Tracer Models
 // ─────────────────────────────────────────────
 
+@Entity('tracers')
+@TableInheritance({ column: { type: 'varchar', name: 'type' } })
 export abstract class Tracer {
+  @PrimaryGeneratedColumn()
+  id_internal!: number; // For internal DB primary key if id is not unique across types
+
+  @Column()
   id: string;
+
+  @Column()
   name: string;
+
+  @Column({ nullable: true })
   loggingType?: string;
+
+  @ManyToOne(() => Configuration, (c) => c.frameworkConfig)
+  @JoinColumn({ name: 'config_id' })
+  configuration?: Configuration;
 
   constructor(id: string, name: string) {
     this.id = id;
@@ -18,8 +34,12 @@ export abstract class Tracer {
   abstract toJSON(): object;
 }
 
+@ChildEntity('PCAP')
 export class PCAPTracer extends Tracer {
+  @Column()
   loggingFilePath: string = '';
+
+  @Column({ nullable: true })
   loggingFileLong?: string;
 
   constructor(id: string, name: string) {
@@ -36,9 +56,15 @@ export class PCAPTracer extends Tracer {
   }
 }
 
+@ChildEntity('ABCF')
 export class ABCFTracer extends Tracer {
+  @Column()
   base: string = '';
+
+  @Column({ nullable: true })
   loggingFileLong?: string;
+
+  @Column({ type: 'varchar', nullable: true })
   timestampPrecision?: TimestampPrecision;
 
   constructor(id: string, name: string) {
@@ -59,8 +85,13 @@ export class ABCFTracer extends Tracer {
 //  Publisher Config
 // ─────────────────────────────────────────────
 export class PublisherConfig {
+  @Column()
   publisherType: string = PublisherMode.SingleThreaded;
+
+  @Column({ nullable: true })
   topicCancel?: string;
+
+  @Column({ type: 'jsonb', default: [] })
   channelGroups: string[][] = [];
 
   toYAML(): object {
@@ -76,11 +107,22 @@ export class PublisherConfig {
 //  Ethernet Config
 // ─────────────────────────────────────────────
 export class EthernetConfig {
+  @Column({ nullable: true })
   autoDetectEthSettings?: boolean;
+
+  @Column({ nullable: true })
   maxDataCols?: string;
+
+  @Column({ nullable: true })
   protocol?: string;
+
+  @Column({ nullable: true })
   build?: string;
+
+  @Column({ nullable: true })
   appLayerPort?: number;
+
+  @Column({ type: 'jsonb', nullable: true })
   appLayerPorts?: number[];
 
   toYAML(): object {
@@ -96,10 +138,19 @@ export class EthernetConfig {
 //  Diagnostics Config
 // ─────────────────────────────────────────────
 export class DiagnosticsConfig {
+  @Column()
   ecuAddress: string = '';
+
+  @Column()
   testerAddress: string = '';
+
+  @Column()
   protocol: string = '';
+
+  @Column()
   build: string = '';
+
+  @Column({ nullable: true })
   rai?: string;
 
   toYAML(): object {
@@ -114,14 +165,33 @@ export class DiagnosticsConfig {
 // ─────────────────────────────────────────────
 //  Framework Config
 // ─────────────────────────────────────────────
+@Entity('framework_configs')
 export class FrameworkConfig {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'jsonb', default: {} })
   keys: Map<string, string> = new Map();
+
+  @Column({ type: 'jsonb', default: {} })
   channels: Map<string, string[]> = new Map();
+
+  @Column(() => PublisherConfig)
   publisher: PublisherConfig = new PublisherConfig();
+
+  @Column(() => DiagnosticsConfig)
   diagnostics: DiagnosticsConfig = new DiagnosticsConfig();
+
+  @Column(() => EthernetConfig)
   ethernet: EthernetConfig = new EthernetConfig();
+
+  @OneToMany(() => Tracer, (t) => t.configuration)
   tracing: Tracer[] = [];
+
+  @Column()
   serverUrls: string = '';
+
+  @Column({ type: 'jsonb', default: {} })
   channelListMapping: Map<string, string[]> = new Map();
 
   toYAML(): object {

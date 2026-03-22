@@ -1,26 +1,34 @@
+import { Entity, PrimaryColumn, Column } from 'typeorm';
+
 /**
  * Represents a user of the Configuration Management System.
  */
+@Entity('users')
 export class User {
-  userId: string;
+  @PrimaryColumn()
+  id: string; // Stored as string in the model for consistency with Extension APIs
+
+  @Column()
   name: string;
+
+  @Column()
   email: string;
 
-  constructor(userId: string, name: string, email: string) {
-    this.userId = userId;
+  constructor(id: string, name: string, email: string) {
+    this.id = id;
     this.name = name;
     this.email = email;
   }
 
   toJSON(): object {
     return {
-      userId: this.userId,
+      id: this.id,
       name: this.name,
       email: this.email,
     };
   }
 
   static fromJSON(data: any): User {
-    return new User(data.userId, data.name, data.email);
+    return new User(data.id || data.userId, data.name, data.email);
   }
 }

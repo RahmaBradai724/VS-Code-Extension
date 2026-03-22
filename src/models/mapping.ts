@@ -1,20 +1,46 @@
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { LogicalChannelCategory, HardwareChannelCategory } from './enums';
+import { Configuration } from './configuration';
 
 /**
  * Represents a mapping between a logical channel and a hardware channel.
  */
+@Entity('mappings')
 export class Mapping {
+  @PrimaryColumn()
   mappingId: string;
+
+  @Column()
   configurationId: string;
+
+  @Column()
   logicalChannelId: string;
+
+  @Column()
   logicalChannelName: string;
+
+  @Column()
   hardwareChannelId: string;
+
+  @Column({ nullable: true })
   hardwareChannelName?: string;
+
+  @Column({ nullable: true })
   comment?: string;
+
+  @Column()
   createdAt: string;
+
   // Protocol compatibility metadata (stored for validation)
+  @Column({ type: 'varchar', nullable: true })
   logicalChannelType?: LogicalChannelCategory;
+
+  @Column({ type: 'varchar', nullable: true })
   hardwareChannelType?: HardwareChannelCategory;
+
+  @ManyToOne(() => Configuration, (c) => c.mappings)
+  @JoinColumn({ name: 'configurationId' })
+  configuration?: Configuration;
 
   constructor(
     mappingId: string,
