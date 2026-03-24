@@ -17,7 +17,7 @@ class StorageService {
     }
     saveConfiguration(config) {
         const all = this.getAllConfigurations();
-        const idx = all.findIndex((c) => c.configId === config.configId);
+        const idx = all.findIndex((c) => c.id === config.id);
         const serialized = config.toJSON();
         if (idx >= 0) {
             all[idx] = serialized;
@@ -27,12 +27,12 @@ class StorageService {
         }
         this.context.globalState.update(STORAGE_KEY_CONFIGS, all);
     }
-    deleteConfiguration(configId) {
-        const all = this.getAllConfigurations().filter((c) => c.configId !== configId);
+    deleteConfiguration(id) {
+        const all = this.getAllConfigurations().filter((c) => (c.id || c.configId) !== id);
         this.context.globalState.update(STORAGE_KEY_CONFIGS, all);
     }
-    getConfigurationById(configId) {
-        return this.getAllConfigurations().find((c) => c.configId === configId);
+    getConfigurationById(id) {
+        return this.getAllConfigurations().find((c) => (c.id || c.configId) === id);
     }
     // ─── User ─────────────────────────────────────────────────────────────
     getCurrentUser() {

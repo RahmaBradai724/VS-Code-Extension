@@ -107,23 +107,16 @@ export async function testDatabaseConnection(): Promise<boolean> {
 /**
  * Save configuration
  */
-export async function saveConfigurationToDb(configName: string, configData: string): Promise<void> {
-    await initializeDatabase();
-    const query = `
-        INSERT INTO configurations (name, data, created_at)
-        VALUES ($1, $2, NOW())
-        RETURNING id;
-    `;
-
-    const values = [configName, configData];
-
-    try {
-        const res = await pool.query(query, values);
-        console.log('Saved configuration with ID:', res.rows[0].id);
-    } catch (err: any) {
-        console.error('Error executing query', err);
-        vscode.window.showErrorMessage(`Failed to save configuration: ${err.message}`);
-    }
+export async function saveConfigurationToDb(configId: string, name: string, userId: string, data: string) {
+  const client = await pool.connect();
+  try {
+    const query = 'INSERT INTO configurations (config_id, name, user_id, config_data) VALUES ($1, $2, $3, $4) ON CONFLICT (config_id) DO UPDATE SET name = $2, user_id = $3, config_data = $4, updated_at = CURRENT_TIMESTAMP';
+    const values = [configId, name, userId, data];
+    await client.query(query, values);
+    console.log(`Configuration ${name} saved to DB.`);
+  } finally {
+    client.release();
+  }
 }
 
 /**

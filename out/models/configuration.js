@@ -19,12 +19,12 @@ const user_1 = require("./user");
  * Top-level configuration entity.
  */
 let Configuration = class Configuration {
-    constructor(configId, name, userId) {
+    constructor(id, name, userId) {
         this.logicalChannels = [];
         this.hardwareChannels = [];
         this.mappings = [];
         this.frameworkConfig = new frameworkConfig_1.FrameworkConfig();
-        this.configId = configId;
+        this.id = id;
         this.name = name;
         this.userId = userId;
         this.createdAt = new Date().toISOString();
@@ -35,7 +35,7 @@ let Configuration = class Configuration {
     }
     toJSON() {
         return {
-            configId: this.configId,
+            id: this.id,
             name: this.name,
             userId: this.userId,
             createdAt: this.createdAt,
@@ -51,7 +51,7 @@ exports.Configuration = Configuration;
 __decorate([
     (0, typeorm_1.PrimaryColumn)(),
     __metadata("design:type", String)
-], Configuration.prototype, "configId", void 0);
+], Configuration.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

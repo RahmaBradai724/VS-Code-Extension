@@ -10,7 +10,7 @@ import { User } from './user';
 @Entity('configurations')
 export class Configuration {
   @PrimaryColumn()
-  configId: string;
+  id: string;
 
   @Column()
   name: string;
@@ -41,8 +41,8 @@ export class Configuration {
   @JoinColumn({ name: 'userId' })
   user?: User;
 
-  constructor(configId: string, name: string, userId: string) {
-    this.configId = configId;
+  constructor(id: string, name: string, userId: string) {
+    this.id = id;
     this.name = name;
     this.userId = userId;
     this.createdAt = new Date().toISOString();
@@ -55,7 +55,7 @@ export class Configuration {
 
   toJSON(): object {
     return {
-      configId: this.configId,
+      id: this.id,
       name: this.name,
       userId: this.userId,
       createdAt: this.createdAt,

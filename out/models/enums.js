@@ -21,6 +21,7 @@ var LogicalChannelCategory;
     LogicalChannelCategory["BRIDGE"] = "BRIDGE";
     LogicalChannelCategory["ANALOG"] = "ANALOG";
     LogicalChannelCategory["TE_ANALOG"] = "TE_ANALOG";
+    LogicalChannelCategory["PS"] = "PS";
 })(LogicalChannelCategory || (exports.LogicalChannelCategory = LogicalChannelCategory = {}));
 var HardwareChannelCategory;
 (function (HardwareChannelCategory) {
@@ -32,6 +33,8 @@ var HardwareChannelCategory;
     HardwareChannelCategory["ANALOG_DEVICE"] = "ANALOG_DEVICE";
     HardwareChannelCategory["HID_LOAD"] = "HID_LOAD";
     HardwareChannelCategory["TE_ANALOG"] = "TE_ANALOG";
+    HardwareChannelCategory["CM_INTERFACE"] = "CM_INTERFACE";
+    HardwareChannelCategory["HH_LOAD"] = "HH_LOAD";
 })(HardwareChannelCategory || (exports.HardwareChannelCategory = HardwareChannelCategory = {}));
 var CaptureType;
 (function (CaptureType) {

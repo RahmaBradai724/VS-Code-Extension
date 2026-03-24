@@ -11,6 +11,32 @@ export class ChannelManager {
   // Map of channelId → set of mapping IDs that use it
   private channelMappingIndex: Map<string, Set<string>> = new Map();
 
+  // ─── UML Aligned Methods ──────────────────────────────────────────────
+  
+  addChannel(channel: LogicalChannel | HardwareChannel): void {
+    if (channel instanceof LogicalChannel) {
+      this.addLogicalChannel(channel);
+    } else {
+      this.addHardwareChannel(channel);
+    }
+  }
+
+  updateChannel(id: string, updates: Partial<LogicalChannel | HardwareChannel>): LogicalChannel | HardwareChannel {
+    if (this.logicalChannels.has(id)) {
+      return this.updateLogicalChannel(id, updates as Partial<LogicalChannel>);
+    } else {
+      return this.updateHardwareChannel(id, updates as Partial<HardwareChannel>);
+    }
+  }
+
+  deleteChannel(id: string): void {
+    if (this.logicalChannels.has(id)) {
+      this.deleteLogicalChannel(id);
+    } else {
+      this.deleteHardwareChannel(id);
+    }
+  }
+
   // ─── Logical Channels ─────────────────────────────────────────────────
 
   addLogicalChannel(channel: LogicalChannel): void {

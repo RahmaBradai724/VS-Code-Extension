@@ -18,6 +18,7 @@ export enum LogicalChannelCategory {
   BRIDGE = 'BRIDGE',
   ANALOG = 'ANALOG',
   TE_ANALOG = 'TE_ANALOG',
+  PS = 'PS',
 }
 
 export enum HardwareChannelCategory {
@@ -29,6 +30,8 @@ export enum HardwareChannelCategory {
   ANALOG_DEVICE = 'ANALOG_DEVICE',
   HID_LOAD = 'HID_LOAD',
   TE_ANALOG = 'TE_ANALOG',
+  CM_INTERFACE = 'CM_INTERFACE',
+  HH_LOAD = 'HH_LOAD',
 }
 
 export enum CaptureType {

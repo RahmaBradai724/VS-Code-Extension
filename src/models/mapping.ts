@@ -11,6 +11,9 @@ export class Mapping {
   mappingId: string;
 
   @Column()
+  frameworkConfigId: string;
+
+  @Column()
   configurationId: string;
 
   @Column()
@@ -48,12 +51,14 @@ export class Mapping {
     logicalChannelId: string,
     logicalChannelName: string,
     hardwareChannelId: string,
+    frameworkConfigId: string,
   ) {
     this.mappingId = mappingId;
     this.configurationId = configurationId;
     this.logicalChannelId = logicalChannelId;
     this.logicalChannelName = logicalChannelName;
     this.hardwareChannelId = hardwareChannelId;
+    this.frameworkConfigId = frameworkConfigId;
     this.createdAt = new Date().toISOString();
   }
 
@@ -71,6 +76,7 @@ export class Mapping {
       logicalChannelId: this.logicalChannelId,
       logicalChannelName: this.logicalChannelName,
       hardwareChannelId: this.hardwareChannelId,
+      frameworkConfigId: this.frameworkConfigId,
       hardwareChannelName: this.hardwareChannelName,
       comment: this.comment,
       createdAt: this.createdAt,
@@ -83,6 +89,7 @@ export class Mapping {
     const m = new Mapping(
       data.mappingId, data.configurationId,
       data.logicalChannelId, data.logicalChannelName, data.hardwareChannelId,
+      data.frameworkConfigId,
     );
     m.hardwareChannelName = data.hardwareChannelName;
     m.comment = data.comment;

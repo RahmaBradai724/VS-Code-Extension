@@ -62,7 +62,8 @@ export class MappingManager {
     }
 
     const mappingId = `mapping_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const mapping = new Mapping(mappingId, configurationId, logicalChannelId, logical.name, hardwareChannelId);
+    const frameworkConfigId = "default"; // Placeholder or should be passed
+    const mapping = new Mapping(mappingId, configurationId, logicalChannelId, logical.name, hardwareChannelId, frameworkConfigId);
     mapping.hardwareChannelName = hardware.name;
     mapping.logicalChannelType = logical.type;
     mapping.hardwareChannelType = hardware.type;
@@ -141,6 +142,25 @@ export class MappingManager {
 
   private isLogicalChannelAlreadyMapped(logicalId: string): boolean {
     return Array.from(this.mappings.values()).some(m => m.logicalChannelId === logicalId);
+  }
+
+  // ─── UML Aligned Methods ──────────────────────────────────────────────
+
+  generate(configurationId: string): Mapping[] {
+    return this.getMappingsByConfigId(configurationId);
+  }
+
+  generateAsYaml(configurationId: string): string {
+    // This typically requires a ConfigGenerator instance
+    return ""; // Placeholder or delegate if possible
+  }
+
+  generateAsJson(configurationId: string): string {
+    return JSON.stringify(this.generate(configurationId), null, 2);
+  }
+
+  Add(mapping: Mapping): void {
+    this.mappings.set(mapping.mappingId, mapping);
   }
 
   // ─── Hydration ────────────────────────────────────────────────────────

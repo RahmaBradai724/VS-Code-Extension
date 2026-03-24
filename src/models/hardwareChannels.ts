@@ -1,6 +1,6 @@
 import { ChildEntity, Column } from 'typeorm';
 import { HardwareChannel } from './channel';
-import { HardwareChannelCategory } from './enums';
+import { HardwareChannelCategory, CaptureType } from './enums';
 
 // ─────────────────────────────────────────────
 //  LIN Card Hardware Channel
@@ -45,19 +45,28 @@ export class SerialPort extends HardwareChannel {
   portName: string = '';
 
   @Column()
+  baudRate: number = 9600;
+
+  @Column()
   parity: string = 'None';
 
   @Column()
-  query: string = '';
+  dataBits: number = 8;
 
-  @Column({ nullable: true })
-  stopBit?: string;
+  @Column()
+  stopBits: string = '1';
 
-  @Column({ nullable: true })
-  flowRts?: number;
+  @Column()
+  flowControl: string = 'None';
 
-  @Column({ nullable: true })
-  receiveAllMessageDsBit?: number;
+  @Column()
+  messageTerminator: string = '';
+
+  @Column()
+  separationTimes: number = 0;
+
+  @Column()
+  maxReceivedDataSize: number = 0;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.SERIAL_PORT);
@@ -68,11 +77,19 @@ export class SerialPort extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, portName: this.portName, parity: this.parity };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      portName: this.portName, baudRate: this.baudRate,
+      parity: this.parity, dataBits: this.dataBits,
+      stopBits: this.stopBits, flowControl: this.flowControl,
+      messageTerminator: this.messageTerminator,
+      separationTimes: this.separationTimes,
+      maxReceivedDataSize: this.maxReceivedDataSize
+    };
   }
 
   toJSON(): object {
-    return { ...this };
+    return this.toYAML();
   }
 }
 
@@ -81,20 +98,17 @@ export class SerialPort extends HardwareChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(HardwareChannelCategory.HID_RELAY)
 export class HIDRelay extends HardwareChannel {
-  @Column()
-  relayId: number = 0;
-
-  @Column()
-  relayChannelName: string = '';
+  @Column({ nullable: true })
+  vendorId?: string;
 
   @Column({ nullable: true })
-  relayType?: string;
+  productId?: string;
 
   @Column({ nullable: true })
-  relayNum?: number;
+  deviceSerial?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  return_Map?: Map<string, string>;
+  relays?: object;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.HID_RELAY);
@@ -105,11 +119,15 @@ export class HIDRelay extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, relayId: this.relayId };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      vendorId: this.vendorId, productId: this.productId,
+      deviceSerial: this.deviceSerial, relays: this.relays
+    };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, relayId: this.relayId, relayChannelName: this.relayChannelName };
+    return this.toYAML();
   }
 }
 
@@ -118,23 +136,17 @@ export class HIDRelay extends HardwareChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(HardwareChannelCategory.RELAY_BOARD)
 export class RelayBoard extends HardwareChannel {
-  @Column()
-  ioChannel: number = 0;
-
-  @Column()
-  relayChannelName: string = '';
-
   @Column({ nullable: true })
   relayCount?: number;
 
   @Column({ nullable: true })
-  relayChannelCount?: number;
+  canChannelName?: string;
 
   @Column({ nullable: true })
-  dmerId?: number;
+  boardId?: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  Mapping?: Map<string, string>;
+  relays?: object;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.RELAY_BOARD);
@@ -145,11 +157,15 @@ export class RelayBoard extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, ioChannel: this.ioChannel };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      relayCount: this.relayCount, canChannelName: this.canChannelName,
+      boardId: this.boardId, relays: this.relays
+    };
   }
 
   toJSON(): object {
-    return { ...this };
+    return this.toYAML();
   }
 }
 
@@ -165,40 +181,49 @@ export class EthernetAdapter extends HardwareChannel {
   ipAddress: string = '';
 
   @Column()
-  memberName: string = '';
+  friendlyName: string = '';
+
+  @Column()
+  interface: string = '';
 
   @Column()
   bufferSize: number = 0;
 
   @Column()
+  bpFilter: string = '';
+
+  @Column()
   timeout: number = 0;
 
   @Column()
-  immutableMode: boolean = false;
+  timeStampPrecision: string = '';
+
+  @Column()
+  timeStampSource: string = '';
+
+  @Column()
+  immediateMode: boolean = false;
 
   @Column()
   snapshotLength: number = 0;
 
   @Column()
-  pcapModeMode: boolean = false;
-
-  @Column({ type: 'jsonb', default: [] })
-  timeframes: object[] = [];
+  pcapDeviceMode: string = '';
 
   @Column()
-  immediateDataReadMode: boolean = false;
+  useDataLoggerTimeStamp: boolean = false;
+
+  @Column()
+  removeDataLoggerMetaData: boolean = false;
 
   @Column()
   dataLoggerType: string = '';
 
   @Column()
-  packetProcessingConfig: boolean = false;
+  packetProcessingActive: boolean = false;
 
   @Column()
-  goodChildLength: boolean = false;
-
-  @Column()
-  positionIdentificationActive: boolean = false;
+  packetIdentificationActive: boolean = false;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.ETHERNET_ADAPTER);
@@ -212,12 +237,21 @@ export class EthernetAdapter extends HardwareChannel {
     return {
       id: this.id, name: this.name, type: this.type,
       macAddress: this.macAddress, ipAddress: this.ipAddress,
-      bufferSize: this.bufferSize, snapshotLength: this.snapshotLength,
+      friendlyName: this.friendlyName, interface: this.interface,
+      bufferSize: this.bufferSize, bpFilter: this.bpFilter,
+      timeout: this.timeout, timeStampPrecision: this.timeStampPrecision,
+      timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
+      snapshotLength: this.snapshotLength, pcapDeviceMode: this.pcapDeviceMode,
+      useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
+      removeDataLoggerMetaData: this.removeDataLoggerMetaData,
+      dataLoggerType: this.dataLoggerType,
+      packetProcessingActive: this.packetProcessingActive,
+      packetIdentificationActive: this.packetIdentificationActive
     };
   }
 
   toJSON(): object {
-    return { ...this };
+    return this.toYAML();
   }
 }
 
@@ -225,15 +259,42 @@ export class EthernetAdapter extends HardwareChannel {
 //  IO Analog Hardware Channel
 // ─────────────────────────────────────────────
 @ChildEntity(HardwareChannelCategory.ANALOG_DEVICE)
-export class IOAnalog extends HardwareChannel {
+export class AnalogDevice extends HardwareChannel {
   @Column({ nullable: true })
-  sensorType?: string;
+  channels?: number;
 
   @Column({ nullable: true })
-  controlId?: string;
+  resolution?: number;
 
   @Column({ nullable: true })
-  portId?: number;
+  measurementAttribute?: string;
+
+  @Column({ nullable: true })
+  hwChannel?: number;
+
+  @Column({ nullable: true })
+  inContactState?: boolean;
+
+  @Column({ nullable: true })
+  gndContactState?: boolean;
+
+  @Column({ nullable: true })
+  vbatContactState?: boolean;
+
+  @Column({ nullable: true })
+  staticChannel?: boolean;
+
+  @Column({ nullable: true })
+  initValue?: string;
+
+  @Column({ nullable: true })
+  function?: string;
+
+  @Column({ nullable: true })
+  channelType?: string;
+
+  @Column({ nullable: true })
+  pwmWindowTime?: number;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.ANALOG_DEVICE);
@@ -244,11 +305,50 @@ export class IOAnalog extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      channels: this.channels, resolution: this.resolution,
+      measurementAttribute: this.measurementAttribute, hwChannel: this.hwChannel,
+      inContactState: this.inContactState, gndContactState: this.gndContactState,
+      vbatContactState: this.vbatContactState, staticChannel: this.staticChannel,
+      initValue: this.initValue, function: this.function,
+      channelType: this.channelType, pwmWindowTime: this.pwmWindowTime
+    };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType, portId: this.portId };
+    return this.toYAML();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  TEAnalog Hardware Channel
+// ─────────────────────────────────────────────
+@ChildEntity(HardwareChannelCategory.TE_ANALOG)
+export class TEAnalog extends HardwareChannel {
+  @Column({ nullable: true })
+  sensorType?: string;
+
+  @Column({ nullable: true })
+  hwChannel?: number;
+
+  @Column({ nullable: true })
+  deviceId?: number;
+
+  constructor(id: string, name: string) {
+    super(id, name, HardwareChannelCategory.TE_ANALOG);
+  }
+
+  canDelete(mappingIds: string[]): boolean {
+    return !mappingIds.includes(this.id);
+  }
+
+  toYAML(): object {
+    return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType, hwChannel: this.hwChannel, deviceId: this.deviceId };
+  }
+
+  toJSON(): object {
+    return this.toYAML();
   }
 }
 
@@ -308,5 +408,88 @@ export class CIBInterface extends HardwareChannel {
 
   toJSON(): object {
     return { id: this.id, name: this.name, type: this.type, bitRate: this.bitRate, hwChannel: this.hwChannel };
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CMInterface Hardware Channel
+// ─────────────────────────────────────────────
+@ChildEntity(HardwareChannelCategory.CM_INTERFACE)
+export class CMInterface extends HardwareChannel {
+  @Column({ nullable: true })
+  interfaceName?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  captureType?: CaptureType;
+
+  @Column({ nullable: true })
+  bitrate?: number;
+
+  @Column({ nullable: true })
+  hwChannel?: number;
+
+  constructor(id: string, name: string) {
+    super(id, name, HardwareChannelCategory.CM_INTERFACE);
+  }
+
+  canDelete(mappingIds: string[]): boolean {
+    return !mappingIds.includes(this.id);
+  }
+
+  toYAML(): object {
+    return {
+      id: this.id, name: this.name, type: this.type,
+      interfaceName: this.interfaceName, captureType: this.captureType,
+      bitrate: this.bitrate, hwChannel: this.hwChannel
+    };
+  }
+
+  toJSON(): object {
+    return this.toYAML();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  HHLoad Hardware Channel
+// ─────────────────────────────────────────────
+@ChildEntity(HardwareChannelCategory.HH_LOAD)
+export class HHLoad extends HardwareChannel {
+  @Column({ type: 'float', nullable: true })
+  maxLoad?: number;
+
+  @Column({ nullable: true })
+  deviceId?: number;
+
+  @Column({ nullable: true })
+  portName?: string;
+
+  @Column({ nullable: true })
+  bitRate?: number;
+
+  @Column({ nullable: true })
+  loadType?: string; // Using loadType to avoid conflict with 'type' from base class
+
+  @Column({ type: 'jsonb', nullable: true })
+  channels?: object;
+
+  constructor(id: string, name: string) {
+    super(id, name, HardwareChannelCategory.HH_LOAD);
+  }
+
+  canDelete(mappingIds: string[]): boolean {
+    return !mappingIds.includes(this.id);
+  }
+
+  toYAML(): object {
+    return {
+      id: this.id, name: this.name, type: this.type,
+      maxLoad: this.maxLoad, deviceId: this.deviceId,
+      portName: this.portName, bitRate: this.bitRate,
+      loadType: this.loadType, channels: this.channels
+    };
+  }
+
+  toJSON(): object {
+    return this.toYAML();
   }
 }

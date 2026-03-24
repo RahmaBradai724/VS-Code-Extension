@@ -6,7 +6,7 @@ import { Entity, PrimaryColumn, Column } from 'typeorm';
 @Entity('users')
 export class User {
   @PrimaryColumn()
-  id: string; // Stored as string in the model for consistency with Extension APIs
+  userId: string; // Stored as string in the model for consistency with Extension APIs
 
   @Column()
   name: string;
@@ -14,21 +14,33 @@ export class User {
   @Column()
   email: string;
 
-  constructor(id: string, name: string, email: string) {
-    this.id = id;
+  constructor(userId: string, name: string, email: string) {
+    this.userId = userId;
     this.name = name;
     this.email = email;
   }
 
+  getUserId(): string { return this.userId; }
+  getName(): string { return this.name; }
+  getEmail(): string { return this.email; }
+
+  createConfiguration(id: string, name: string): void {
+    // Implementation would go here
+  }
+
+  manageConfiguration(config: any): void {
+    // Implementation would go here
+  }
+
   toJSON(): object {
     return {
-      id: this.id,
+      userId: this.userId,
       name: this.name,
       email: this.email,
     };
   }
 
   static fromJSON(data: any): User {
-    return new User(data.id || data.userId, data.name, data.email);
+    return new User(data.userId || data.id, data.name, data.email);
   }
 }

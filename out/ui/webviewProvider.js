@@ -41,6 +41,10 @@ const mappingManager_1 = require("../services/mappingManager");
 const storageService_1 = require("../services/storageService");
 const configGenerator_1 = require("../services/configGenerator");
 const aiValidator_1 = require("../ai/aiValidator");
+const databaseService_1 = require("../services/databaseService");
+const logicalChannels_1 = require("../models/logicalChannels");
+const hardwareChannels_1 = require("../models/hardwareChannels");
+const enums_1 = require("../models/enums");
 /**
  * WebviewProvider hosts the main Configuration Manager UI
  * in a VS Code sidebar/tab webview.
@@ -72,9 +76,9 @@ class WebviewProvider {
                 break;
             case 'createConfiguration': {
                 const id = `config_${Date.now()}`;
-                const config = new models_1.Configuration(id, message.name, message.userId || 'anonymous');
-                this.storageService.saveConfiguration(config);
-                webview.postMessage({ command: 'configurationCreated', data: config.toJSON() });
+                this.currentConfig = new models_1.Configuration(id, message.name, message.userId || 'anonymous');
+                this._saveCurrentConfig();
+                webview.postMessage({ command: 'configurationCreated', data: this.currentConfig.toJSON() });
                 break;
             }
             case 'deleteConfiguration': {
@@ -85,18 +89,64 @@ class WebviewProvider {
             case 'loadConfiguration': {
                 const raw = this.storageService.getConfigurationById(message.configId);
                 if (raw) {
-                    this.currentConfig = new models_1.Configuration(raw.configId, raw.name, raw.userId);
+                    this.currentConfig = new models_1.Configuration(raw.id || raw.configId, raw.name, raw.userId);
                     this.currentConfig.logicalChannels = raw.logicalChannels || [];
                     this.currentConfig.hardwareChannels = raw.hardwareChannels || [];
                     this.currentConfig.mappings = raw.mappings || [];
+                    this.currentConfig.frameworkConfig = raw.frameworkConfig || {};
                 }
                 webview.postMessage({ command: 'configurationLoaded', data: raw });
                 break;
             }
             case 'addLogicalChannel': {
                 try {
-                    this.channelManager.addLogicalChannel(message.channel);
-                    webview.postMessage({ command: 'success', action: 'addLogicalChannel', data: message.channel });
+                    if (!this.currentConfig) {
+                        throw new Error('No configuration loaded.');
+                    }
+                    const raw = message.channel;
+                    let channel;
+                    switch (raw.type) {
+                        case enums_1.LogicalChannelCategory.CAN:
+                            channel = new logicalChannels_1.CANChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.CAN_FD:
+                            channel = new logicalChannels_1.CANFDChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.LIN:
+                            channel = new logicalChannels_1.LINChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.FLEXRAY:
+                            channel = new logicalChannels_1.FlexRayChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.ETHERNET:
+                            channel = new logicalChannels_1.EthernetChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.SERIAL:
+                            channel = new logicalChannels_1.SerialChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.IOINPUT:
+                            channel = new logicalChannels_1.IOInputChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.IOOUTPUT:
+                            channel = new logicalChannels_1.IOOutputChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.BRIDGE:
+                            channel = new logicalChannels_1.BridgeChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.ANALOG:
+                            channel = new logicalChannels_1.AnalogChannel(raw.id, raw.name);
+                            break;
+                        case enums_1.LogicalChannelCategory.PS:
+                            channel = new logicalChannels_1.PSChannel(raw.id, raw.name);
+                            break;
+                        default: throw new Error(`Unsupported logical channel type: ${raw.type}`);
+                    }
+                    Object.assign(channel, raw);
+                    this.channelManager.addLogicalChannel(channel);
+                    this.currentConfig.logicalChannels.push(channel);
+                    // Persist
+                    this._saveCurrentConfig();
+                    webview.postMessage({ command: 'success', action: 'addLogicalChannel', data: channel.toJSON() });
                 }
                 catch (e) {
                     webview.postMessage({ command: 'error', message: e.message });
@@ -105,7 +155,12 @@ class WebviewProvider {
             }
             case 'deleteLogicalChannel': {
                 try {
+                    if (!this.currentConfig) {
+                        throw new Error('No configuration loaded.');
+                    }
                     this.channelManager.deleteLogicalChannel(message.channelId);
+                    this.currentConfig.logicalChannels = this.currentConfig.logicalChannels.filter(c => c.id !== message.channelId);
+                    this._saveCurrentConfig();
                     webview.postMessage({ command: 'success', action: 'deleteLogicalChannel', id: message.channelId });
                 }
                 catch (e) {
@@ -115,8 +170,46 @@ class WebviewProvider {
             }
             case 'addHardwareChannel': {
                 try {
-                    this.channelManager.addHardwareChannel(message.channel);
-                    webview.postMessage({ command: 'success', action: 'addHardwareChannel', data: message.channel });
+                    if (!this.currentConfig) {
+                        throw new Error('No configuration loaded.');
+                    }
+                    const raw = message.channel;
+                    let channel;
+                    switch (raw.type) {
+                        case enums_1.HardwareChannelCategory.CAN_INTERFACE:
+                            channel = new hardwareChannels_1.CANInterface(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.ETHERNET_ADAPTER:
+                            channel = new hardwareChannels_1.EthernetAdapter(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.SERIAL_PORT:
+                            channel = new hardwareChannels_1.SerialPort(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.RELAY_BOARD:
+                            channel = new hardwareChannels_1.RelayBoard(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.HID_RELAY:
+                            channel = new hardwareChannels_1.HIDRelay(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.ANALOG_DEVICE:
+                            channel = new hardwareChannels_1.AnalogDevice(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.TE_ANALOG:
+                            channel = new hardwareChannels_1.TEAnalog(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.CM_INTERFACE:
+                            channel = new hardwareChannels_1.CMInterface(raw.id, raw.name);
+                            break;
+                        case enums_1.HardwareChannelCategory.HH_LOAD:
+                            channel = new hardwareChannels_1.HHLoad(raw.id, raw.name);
+                            break;
+                        default: throw new Error(`Unsupported hardware channel type: ${raw.type}`);
+                    }
+                    Object.assign(channel, raw);
+                    this.channelManager.addHardwareChannel(channel);
+                    this.currentConfig.hardwareChannels.push(channel);
+                    this._saveCurrentConfig();
+                    webview.postMessage({ command: 'success', action: 'addHardwareChannel', data: channel.toJSON() });
                 }
                 catch (e) {
                     webview.postMessage({ command: 'error', message: e.message });
@@ -125,7 +218,12 @@ class WebviewProvider {
             }
             case 'deleteHardwareChannel': {
                 try {
+                    if (!this.currentConfig) {
+                        throw new Error('No configuration loaded.');
+                    }
                     this.channelManager.deleteHardwareChannel(message.channelId);
+                    this.currentConfig.hardwareChannels = this.currentConfig.hardwareChannels.filter(c => c.id !== message.channelId);
+                    this._saveCurrentConfig();
                     webview.postMessage({ command: 'success', action: 'deleteHardwareChannel', id: message.channelId });
                 }
                 catch (e) {
@@ -135,7 +233,12 @@ class WebviewProvider {
             }
             case 'addMapping': {
                 try {
+                    if (!this.currentConfig) {
+                        throw new Error('No configuration loaded.');
+                    }
                     const mapping = this.mappingManager.addMapping(message.logicalChannelId, message.hardwareChannelId, message.configurationId);
+                    this.currentConfig.mappings.push(mapping);
+                    this._saveCurrentConfig();
                     webview.postMessage({ command: 'success', action: 'addMapping', data: mapping.toJSON() });
                 }
                 catch (e) {
@@ -145,7 +248,12 @@ class WebviewProvider {
             }
             case 'removeMapping': {
                 try {
+                    if (!this.currentConfig) {
+                        throw new Error('No configuration loaded.');
+                    }
                     this.mappingManager.removeMapping(message.mappingId);
+                    this.currentConfig.mappings = this.currentConfig.mappings.filter(m => m.mappingId !== message.mappingId);
+                    this._saveCurrentConfig();
                     webview.postMessage({ command: 'success', action: 'removeMapping', id: message.mappingId });
                 }
                 catch (e) {
@@ -182,14 +290,14 @@ class WebviewProvider {
                 try {
                     const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
                     const yamlContent = generator.generate();
-                    const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.configId);
+                    const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
                     const result = await this.aiValidator.runAIValidation(this.currentConfig, mappings, yamlContent);
                     webview.postMessage({ command: 'aiValidationResult', data: result });
                 }
                 catch (e) {
                     // Run local only
-                    const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig?.configId || '');
-                    const result = this.aiValidator.runLocalValidation(this.currentConfig, mappings);
+                    const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig?.id || '');
+                    const result = this.aiValidator.validate(this.currentConfig, mappings);
                     webview.postMessage({ command: 'aiValidationResult', data: result });
                 }
                 break;
@@ -202,6 +310,12 @@ class WebviewProvider {
                 }
                 break;
             }
+        }
+    }
+    async _saveCurrentConfig() {
+        if (this.currentConfig) {
+            this.storageService.saveConfiguration(this.currentConfig);
+            await (0, databaseService_1.saveConfigurationToDb)(this.currentConfig.id, this.currentConfig.name, this.currentConfig.userId, JSON.stringify(this.currentConfig.toJSON()));
         }
     }
     _getHtmlForWebview(webview) {
@@ -243,6 +357,7 @@ class WebviewProvider {
     button {
       padding: 5px 12px; background: var(--accent); color: var(--accent-fg); border: none;
       border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     button:hover { opacity: 0.85; }
     button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
@@ -270,13 +385,13 @@ class WebviewProvider {
   <h2>⚙️ Channel Config Manager</h2>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab(event, 'configs')">Configurations</button>
-    <button class="tab" onclick="showTab(event, 'logical')">Logical Channels</button>
-    <button class="tab" onclick="showTab(event, 'hardware')">Hardware Channels</button>
-    <button class="tab" onclick="showTab(event, 'mappings')">Mappings</button>
-    <button class="tab" onclick="showTab(event, 'framework')">Framework</button>
-    <button class="tab" onclick="showTab(event, 'generate')">Generate</button>
-    <button class="tab" onclick="showTab(event, 'diagram')">Diagram</button>
+    <button class="tab active" data-tab="configs">Configurations</button>
+    <button class="tab" data-tab="logical">Logical Channels</button>
+    <button class="tab" data-tab="hardware">Hardware Channels</button>
+    <button class="tab" data-tab="mappings">Mappings</button>
+    <button class="tab" data-tab="framework">Framework</button>
+    <button class="tab" data-tab="generate">Generate</button>
+    <button class="tab" data-tab="diagram">Diagram</button>
   </div>
 
   <!-- CONFIGURATIONS PANEL -->
@@ -287,8 +402,8 @@ class WebviewProvider {
       <input id="new-config-name" type="text" placeholder="e.g. ECU_Config_v1" />
     </div>
     <div class="btn-row">
-      <button onclick="createConfiguration()">+ Create</button>
-      <button class="secondary" onclick="importConfig()">↑ Import YAML</button>
+      <button id="btn-create-config">+ Create</button>
+      <button id="btn-import-config" class="secondary">↑ Import YAML</button>
     </div>
     <div id="config-list" style="margin-top:12px"><p class="list-empty">No configurations yet.</p></div>
   </div>
@@ -317,7 +432,22 @@ class WebviewProvider {
           <option value="TE_ANALOG">TE_ANALOG</option>
         </select>
       </div>
-      <button onclick="addLogicalChannel()">+ Add Channel</button>
+      <div class="form-group">
+        <label>Logging Name</label>
+        <input id="lc-logging-name" type="text" placeholder="e.g. Logging_1" />
+      </div>
+      <div class="form-group">
+        <label>Tracer Name</label>
+        <input id="lc-tracer-name" type="text" placeholder="e.g. Tracer_1" />
+      </div>
+      <div class="form-group">
+        <label>Aliases (comma separated)</label>
+        <input id="lc-alias" type="text" placeholder="e.g. Alias1, Alias2" />
+      </div>
+      <div id="lc-dynamic-attrs" style="border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">
+        <!-- Dynamic fields go here -->
+      </div>
+      <button id="btn-add-logical" style="margin-top: 10px;">+ Add Channel</button>
     </div>
     <div id="lc-list"><p class="list-empty">No logical channels defined.</p></div>
   </div>
@@ -342,7 +472,7 @@ class WebviewProvider {
           <option value="TE_ANALOG">TE Analog</option>
         </select>
       </div>
-      <button onclick="addHardwareChannel()">+ Add Hardware</button>
+      <button id="btn-add-hardware">+ Add Hardware</button>
     </div>
     <div id="hw-list"><p class="list-empty">No hardware channels defined.</p></div>
   </div>
@@ -359,7 +489,7 @@ class WebviewProvider {
         <label>Hardware Channel</label>
         <select id="map-hardware"><option value="">-- Select --</option></select>
       </div>
-      <button onclick="addMapping()">+ Create Mapping</button>
+      <button id="btn-add-mapping">+ Create Mapping</button>
     </div>
     <div id="map-list"><p class="list-empty">No mappings defined.</p></div>
   </div>
@@ -381,9 +511,9 @@ class WebviewProvider {
       </div>
       <h3 style="margin-top:10px">Tracers</h3>
       <div style="display:flex;gap:8px">
-        <select id="tracer-type"><option value="PCAP">PCAP Tracer</option><option value="ABCF">ABCF Tracer</option></select>
+        <select id="tracer-type"><option value="PCAP">PCAP Tracer</option><option value="ASCII">ASCII Tracer</option></select>
         <input id="tracer-name" type="text" placeholder="Tracer name" style="margin:0"/>
-        <button onclick="addTracer()" style="white-space:nowrap">+ Add</button>
+        <button id="btn-add-tracer" style="white-space:nowrap">+ Add</button>
       </div>
       <div id="tracer-list" style="margin-top:8px"><p class="list-empty">No tracers.</p></div>
     </div>
@@ -393,8 +523,8 @@ class WebviewProvider {
   <div id="panel-generate" class="panel">
     <h3>Generate &amp; Validate</h3>
     <div class="btn-row">
-      <button onclick="generateConfig()">⚡ Generate config.yaml</button>
-      <button onclick="runAIValidation()">🤖 Run AI Validation</button>
+      <button id="btn-generate-config">⚡ Generate config.yaml</button>
+      <button id="btn-run-ai-validation">🤖 Run AI Validation</button>
     </div>
     <div id="generate-messages" style="margin-top:12px"></div>
     <div id="yaml-preview" style="margin-top:12px;display:none">
@@ -412,7 +542,7 @@ class WebviewProvider {
   <!-- DIAGRAM PANEL -->
   <div id="panel-diagram" class="panel">
     <h3>Hardware Diagram</h3>
-    <button onclick="renderDiagram()" style="margin-bottom:10px">🔄 Refresh Diagram</button>
+    <button id="btn-refresh-diagram" style="margin-bottom:10px">🔄 Refresh Diagram</button>
     <div id="diagram-container"></div>
   </div>
 
@@ -429,23 +559,33 @@ class WebviewProvider {
     };
 
     // ── Tab navigation ──────────────────────────────────────────────────
-    function showTab(event, name) {
-      const panel = document.getElementById('panel-' + name);
-      if (!panel) {
-        console.error('Panel not found:', 'panel-' + name);
-        return;
-      }
+    function showTab(tabName) {
+      const panel = document.getElementById('panel-' + tabName);
+      if (!panel) return;
+
+      // Update panels
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      
       panel.classList.add('active');
-      if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
-      }
+
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(t => {
+        if (t.dataset.tab === tabName) {
+          t.classList.add('active');
+        } else {
+          t.classList.remove('active');
+        }
+      });
       
-      if (name === 'mappings') { refreshMappingDropdowns(); }
-      if (name === 'diagram') { renderDiagram(); }
+      if (tabName === 'mappings') { refreshMappingDropdowns(); }
+      if (tabName === 'diagram') { renderDiagram(); }
     }
+
+    // Initialize tab listeners
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        showTab(tab.dataset.tab);
+      });
+    });
 
     // ── Message from extension ──────────────────────────────────────────
     window.addEventListener('message', event => {
@@ -466,7 +606,7 @@ class WebviewProvider {
           break;
         case 'configurationLoaded':
           if (msg.data) {
-            state.selectedConfigId = msg.data.configId;
+            state.selectedConfigId = msg.data.id || msg.data.configId;
             state.logicalChannels = msg.data.logicalChannels || [];
             state.hardwareChannels = msg.data.hardwareChannels || [];
             state.mappings = msg.data.mappings || [];
@@ -519,42 +659,105 @@ class WebviewProvider {
       }
     }
 
-    // ── Configuration actions ───────────────────────────────────────────
-    function createConfiguration() {
+    // ── Setup Click Listeners ───────────────────────────────────────────
+    document.getElementById('btn-create-config').addEventListener('click', () => {
       const name = document.getElementById('new-config-name').value.trim();
       if (!name) { showGlobal('Please enter a configuration name.', 'error'); return; }
       vscode.postMessage({ command: 'createConfiguration', name });
       document.getElementById('new-config-name').value = '';
-    }
+    });
 
-    function loadConfig(configId) {
-      vscode.postMessage({ command: 'loadConfiguration', configId });
-    }
-
-    function deleteConfig(configId) {
-      vscode.postMessage({ command: 'deleteConfiguration', configId });
-    }
-
-    function importConfig() {
+    document.getElementById('btn-import-config').addEventListener('click', () => {
       vscode.postMessage({ command: 'importConfig' });
-    }
+    });
 
-    // ── Channel actions ─────────────────────────────────────────────────
-    function addLogicalChannel() {
+    document.getElementById('btn-add-logical').addEventListener('click', () => {
       const name = document.getElementById('lc-name').value.trim();
       const type = document.getElementById('lc-type').value;
+      const loggingName = document.getElementById('lc-logging-name').value.trim();
+      const tracerName = document.getElementById('lc-tracer-name').value.trim();
+      const aliasRaw = document.getElementById('lc-alias').value.trim();
+      
       if (!name) { showGlobal('Enter a channel name.', 'error'); return; }
       if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
-      const id = 'lc_' + Date.now();
-      vscode.postMessage({ command: 'addLogicalChannel', channel: { id, name, type } });
+      
+      const channelData = {
+        id: 'lc_' + Date.now(),
+        name,
+        type,
+        loggingName: loggingName || undefined,
+        tracerName: tracerName || undefined,
+        alias: aliasRaw ? aliasRaw.split(',').map(a => a.trim()) : undefined,
+      };
+
+      // Collect dynamic attributes
+      const dynamicContainer = document.getElementById('lc-dynamic-attrs');
+      const inputs = dynamicContainer.querySelectorAll('input, select');
+      inputs.forEach(input => {
+        if (input.value) {
+          let val = input.value;
+          if (input.type === 'number') val = parseFloat(val);
+          if (input.type === 'checkbox') val = input.checked;
+          channelData[input.id.replace('lc-attr-', '')] = val;
+        }
+      });
+
+      vscode.postMessage({ command: 'addLogicalChannel', channel: channelData });
+      
+      // Clear fields
       document.getElementById('lc-name').value = '';
+      document.getElementById('lc-logging-name').value = '';
+      document.getElementById('lc-tracer-name').value = '';
+      document.getElementById('lc-alias').value = '';
+      dynamicContainer.innerHTML = '';
+    });
+
+    document.getElementById('lc-type').addEventListener('change', (e) => {
+      renderDynamicLogicalFields(e.target.value);
+    });
+
+    function renderDynamicLogicalFields(type) {
+      const container = document.getElementById('lc-dynamic-attrs');
+      container.innerHTML = '';
+      let html = '';
+
+      if (type === 'CAN' || type === 'CAN-FD') {
+        html += \`
+          <div class="form-group">
+            <label>Hardware Channel (Index)</label>
+            <input id="lc-attr-hwChannel" type="number" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Operation Mode</label>
+            <select id="lc-attr-operationMode">
+              <option value="Normal">Normal</option>
+              <option value="ListenOnly">Listen Only</option>
+            </select>
+          </div>
+        \`;
+      } else if (type === 'FLEXRAY') {
+        html += \`
+          <div class="form-group"><label>HW Channel</label><input id="lc-attr-hwChannel" type="number" /></div>
+          <div class="form-group"><label>Key Slot</label><input id="lc-attr-keySlot" type="number" /></div>
+          <div class="form-group"><label>Node Type</label><input id="lc-attr-nodeType" type="text" /></div>
+          <div class="form-group"><label>Wake Up Cluster</label><input id="lc-attr-wakeUpCluster" type="checkbox" style="width:auto"/></div>
+        \`;
+      } else if (type === 'LIN') {
+        html += \`
+          <div class="form-group"><label>HW Channel</label><input id="lc-attr-hwChannel" type="number" /></div>
+          <div class="form-group"><label>Protocol</label><input id="lc-attr-protocol" type="text" placeholder="e.g. 2.1" /></div>
+        \`;
+      } else if (type === 'ETHERNET') {
+        html += \`
+          <div class="form-group"><label>Friendly Name</label><input id="lc-attr-friendlyName" type="text" /></div>
+          <div class="form-group"><label>Buffer Size</label><input id="lc-attr-bufferSize" type="number" /></div>
+        \`;
+      }
+
+      container.innerHTML = html;
     }
 
-    function deleteLogicalChannel(id) {
-      vscode.postMessage({ command: 'deleteLogicalChannel', channelId: id });
-    }
-
-    function addHardwareChannel() {
+    document.getElementById('btn-add-hardware').addEventListener('click', () => {
       const name = document.getElementById('hw-name').value.trim();
       const type = document.getElementById('hw-type').value;
       if (!name) { showGlobal('Enter a hardware channel name.', 'error'); return; }
@@ -562,37 +765,17 @@ class WebviewProvider {
       const id = 'hw_' + Date.now();
       vscode.postMessage({ command: 'addHardwareChannel', channel: { id, name, type } });
       document.getElementById('hw-name').value = '';
-    }
+    });
 
-    function deleteHardwareChannel(id) {
-      vscode.postMessage({ command: 'deleteHardwareChannel', channelId: id });
-    }
-
-    // ── Mapping actions ─────────────────────────────────────────────────
-    function addMapping() {
+    document.getElementById('btn-add-mapping').addEventListener('click', () => {
       const logicalId = document.getElementById('map-logical').value;
       const hardwareId = document.getElementById('map-hardware').value;
       if (!logicalId || !hardwareId) { showGlobal('Select both channels.', 'error'); return; }
       if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
       vscode.postMessage({ command: 'addMapping', logicalChannelId: logicalId, hardwareChannelId: hardwareId, configurationId: state.selectedConfigId });
-    }
+    });
 
-    function removeMapping(id) {
-      vscode.postMessage({ command: 'removeMapping', mappingId: id });
-    }
-
-    // ── Generate & AI ───────────────────────────────────────────────────
-    function generateConfig() {
-      vscode.postMessage({ command: 'generateConfig' });
-    }
-
-    function runAIValidation() {
-      document.getElementById('ai-results').style.display = 'none';
-      showMessage('generate-messages', 'Running AI validation...', 'info');
-      vscode.postMessage({ command: 'runAIValidation' });
-    }
-
-    function addTracer() {
+    document.getElementById('btn-add-tracer').addEventListener('click', () => {
       const type = document.getElementById('tracer-type').value;
       const name = document.getElementById('tracer-name').value.trim();
       if (!name) return;
@@ -600,24 +783,47 @@ class WebviewProvider {
       li.className = 'card';
       li.innerHTML = '<div class="card-header"><span>' + name + ' <span class="badge">' + type + '</span></span><button class="secondary" onclick="this.parentElement.parentElement.remove()">✕</button></div>';
       document.getElementById('tracer-list').appendChild(li);
-      document.querySelector('#tracer-list .list-empty') && document.querySelector('#tracer-list .list-empty').remove();
+      const empty = document.querySelector('#tracer-list .list-empty');
+      if (empty) empty.remove();
       document.getElementById('tracer-name').value = '';
-    }
+    });
 
-    // ── Render helpers ──────────────────────────────────────────────────
+    document.getElementById('btn-generate-config').addEventListener('click', () => {
+      vscode.postMessage({ command: 'generateConfig' });
+    });
+
+    document.getElementById('btn-run-ai-validation').addEventListener('click', () => {
+      document.getElementById('ai-results').style.display = 'none';
+      showMessage('generate-messages', 'Running AI validation...', 'info');
+      vscode.postMessage({ command: 'runAIValidation' });
+    });
+
+    document.getElementById('btn-refresh-diagram').addEventListener('click', () => {
+      renderDiagram();
+    });
+
+    // ── Global Render helpers ───────────────────────────────────────────
     function renderConfigList() {
       const container = document.getElementById('config-list');
       if (state.configs.length === 0) { container.innerHTML = '<p class="list-empty">No configurations yet.</p>'; return; }
       container.innerHTML = state.configs.map(c => \`
         <div class="card">
           <div class="card-header">
-            <span><strong>\${c.name}</strong> <span class="badge">\${c.configId}</span></span>
+            <span><strong>\${c.name}</strong> <span class="badge">\${c.id || c.configId}</span></span>
             <div style="display:flex;gap:6px">
-              <button onclick="loadConfig('\${c.configId}')">Load</button>
-              <button class="secondary" onclick="deleteConfig('\${c.configId}')">✕</button>
+              <button class="btn-load-config" data-id="\${c.id || c.configId}">Load</button>
+              <button class="secondary btn-delete-config" data-id="\${c.id || c.configId}">✕</button>
             </div>
           </div>
         </div>\`).join('');
+      
+      // Add listeners to dynamic buttons
+      container.querySelectorAll('.btn-load-config').forEach(b => b.addEventListener('click', () => {
+        vscode.postMessage({ command: 'loadConfiguration', configId: b.dataset.id });
+      }));
+      container.querySelectorAll('.btn-delete-config').forEach(b => b.addEventListener('click', () => {
+        vscode.postMessage({ command: 'deleteConfiguration', configId: b.dataset.id });
+      }));
     }
 
     function renderLogicalList() {
@@ -627,9 +833,13 @@ class WebviewProvider {
         <div class="card">
           <div class="card-header">
             <span><strong>\${c.name}</strong> <span class="badge">\${c.type}</span></span>
-            <button class="secondary" onclick="deleteLogicalChannel('\${c.id}')">✕</button>
+            <button class="secondary btn-delete-lc" data-id="\${c.id}">✕</button>
           </div>
         </div>\`).join('');
+
+      container.querySelectorAll('.btn-delete-lc').forEach(b => b.addEventListener('click', () => {
+        vscode.postMessage({ command: 'deleteLogicalChannel', channelId: b.dataset.id });
+      }));
     }
 
     function renderHardwareList() {
@@ -639,9 +849,13 @@ class WebviewProvider {
         <div class="card">
           <div class="card-header">
             <span><strong>\${c.name}</strong> <span class="badge">\${c.type}</span></span>
-            <button class="secondary" onclick="deleteHardwareChannel('\${c.id}')">✕</button>
+            <button class="secondary btn-delete-hw" data-id="\${c.id}">✕</button>
           </div>
         </div>\`).join('');
+
+      container.querySelectorAll('.btn-delete-hw').forEach(b => b.addEventListener('click', () => {
+        vscode.postMessage({ command: 'deleteHardwareChannel', channelId: b.dataset.id });
+      }));
     }
 
     function renderMappingList() {
@@ -651,9 +865,13 @@ class WebviewProvider {
         <div class="card">
           <div class="card-header">
             <span>🔗 <strong>\${m.logicalChannelName}</strong> → <strong>\${m.hardwareChannelName || m.hardwareChannelId}</strong></span>
-            <button class="secondary" onclick="removeMapping('\${m.mappingId}')">✕</button>
+            <button class="secondary btn-remove-mapping" data-id="\${m.mappingId}">✕</button>
           </div>
         </div>\`).join('');
+
+      container.querySelectorAll('.btn-remove-mapping').forEach(b => b.addEventListener('click', () => {
+        vscode.postMessage({ command: 'removeMapping', mappingId: b.dataset.id });
+      }));
     }
 
     function refreshMappingDropdowns() {
@@ -679,7 +897,7 @@ class WebviewProvider {
       container.innerHTML = '';
       const lcNodes = state.logicalChannels;
       const hwNodes = state.hardwareChannels;
-      const lcX = 20, hwX = 260;
+      const lcX = 20, hwX = 180;
       const nodeHeight = 50;
       lcNodes.forEach((lc, i) => {
         const node = document.createElement('div');

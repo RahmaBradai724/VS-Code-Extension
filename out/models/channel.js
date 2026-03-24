@@ -53,7 +53,15 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], LogicalChannel.prototype, "category", void 0);
+], LogicalChannel.prototype, "loggingName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], LogicalChannel.prototype, "tracerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
+    __metadata("design:type", Array)
+], LogicalChannel.prototype, "alias", void 0);
 exports.LogicalChannel = LogicalChannel = __decorate([
     (0, typeorm_1.Entity)('logical_channels'),
     (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'type' } }),
@@ -67,12 +75,22 @@ let HardwareChannel = class HardwareChannel extends Channel {
         super(id, name);
         this.type = type;
     }
+    getStatus() {
+        return this.status || 'Unknown';
+    }
+    setStatus(status) {
+        this.status = status;
+    }
 };
 exports.HardwareChannel = HardwareChannel;
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
 ], HardwareChannel.prototype, "type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], HardwareChannel.prototype, "status", void 0);
 exports.HardwareChannel = HardwareChannel = __decorate([
     (0, typeorm_1.Entity)('hardware_channels'),
     (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'type' } }),

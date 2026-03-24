@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChannelManager = void 0;
+const models_1 = require("../models");
 /**
  * ChannelManager handles all CRUD operations for
  * logical and hardware channels within a configuration.
@@ -11,6 +12,31 @@ class ChannelManager {
         this.hardwareChannels = new Map();
         // Map of channelId → set of mapping IDs that use it
         this.channelMappingIndex = new Map();
+    }
+    // ─── UML Aligned Methods ──────────────────────────────────────────────
+    addChannel(channel) {
+        if (channel instanceof models_1.LogicalChannel) {
+            this.addLogicalChannel(channel);
+        }
+        else {
+            this.addHardwareChannel(channel);
+        }
+    }
+    updateChannel(id, updates) {
+        if (this.logicalChannels.has(id)) {
+            return this.updateLogicalChannel(id, updates);
+        }
+        else {
+            return this.updateHardwareChannel(id, updates);
+        }
+    }
+    deleteChannel(id) {
+        if (this.logicalChannels.has(id)) {
+            this.deleteLogicalChannel(id);
+        }
+        else {
+            this.deleteHardwareChannel(id);
+        }
     }
     // ─── Logical Channels ─────────────────────────────────────────────────
     addLogicalChannel(channel) {

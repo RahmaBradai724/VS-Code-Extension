@@ -60,7 +60,7 @@ class ConfigGenerator {
         if (this.config.hardwareChannels.length === 0) {
             errors.push('At least one hardware channel is required.');
         }
-        const mappings = this.mappingManager.getMappingsByConfigId(this.config.configId);
+        const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
         if (mappings.length === 0) {
             errors.push('At least one mapping must be defined.');
         }
@@ -90,9 +90,9 @@ class ConfigGenerator {
         if (errors.length > 0) {
             throw new Error(`Cannot generate config.yaml:\n${errors.map(e => `  • ${e}`).join('\n')}`);
         }
-        const mappings = this.mappingManager.getMappingsByConfigId(this.config.configId);
+        const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
         const configObj = {
-            configId: this.config.configId,
+            id: this.config.id,
             name: this.config.name,
             // Logical channels section
             channels: this.config.logicalChannels.reduce((acc, ch) => {
@@ -118,9 +118,9 @@ class ConfigGenerator {
      * Returns the raw object (useful for preview/display).
      */
     generateAsObject() {
-        const mappings = this.mappingManager.getMappingsByConfigId(this.config.configId);
+        const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
         return {
-            configId: this.config.configId,
+            id: this.config.id,
             name: this.config.name,
             channels: this.config.logicalChannels.reduce((acc, ch) => {
                 acc[ch.name] = ch.toYAML();

@@ -16,27 +16,36 @@ const typeorm_1 = require("typeorm");
  * Represents a user of the Configuration Management System.
  */
 let User = User_1 = class User {
-    constructor(id, name, email) {
-        this.id = id;
+    constructor(userId, name, email) {
+        this.userId = userId;
         this.name = name;
         this.email = email;
     }
+    getUserId() { return this.userId; }
+    getName() { return this.name; }
+    getEmail() { return this.email; }
+    createConfiguration(id, name) {
+        // Implementation would go here
+    }
+    manageConfiguration(config) {
+        // Implementation would go here
+    }
     toJSON() {
         return {
-            id: this.id,
+            userId: this.userId,
             name: this.name,
             email: this.email,
         };
     }
     static fromJSON(data) {
-        return new User_1(data.id || data.userId, data.name, data.email);
+        return new User_1(data.userId || data.id, data.name, data.email);
     }
 };
 exports.User = User;
 __decorate([
     (0, typeorm_1.PrimaryColumn)(),
     __metadata("design:type", String)
-], User.prototype, "id", void 0);
+], User.prototype, "userId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

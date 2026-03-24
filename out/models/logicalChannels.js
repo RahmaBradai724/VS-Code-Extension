@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EthernetChannel = exports.AnalogChannel = exports.BridgeChannel = exports.IPSChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = void 0;
+exports.EthernetChannel = exports.PSChannel = exports.AnalogChannel = exports.BridgeChannel = exports.IPSChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANFDChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = void 0;
 const typeorm_1 = require("typeorm");
 const channel_1 = require("./channel");
 const enums_1 = require("./enums");
@@ -21,25 +21,39 @@ let FlexRayChannel = class FlexRayChannel extends channel_1.LogicalChannel {
         super(id, name, enums_1.LogicalChannelCategory.FLEXRAY);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, optionStr: this.optionStr };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            hwChannel: this.hwChannel, keySlot: this.keySlot,
+            nodeType: this.nodeType, wakeUpCluster: this.wakeUpCluster,
+            operationMode: this.operationMode
+        };
     }
     toJSON() {
-        return { ...this.toYAML(), optionId: this.optionId };
+        return this.toYAML();
     }
 };
 exports.FlexRayChannel = FlexRayChannel;
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], FlexRayChannel.prototype, "optionStr", void 0);
+    __metadata("design:type", Number)
+], FlexRayChannel.prototype, "hwChannel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], FlexRayChannel.prototype, "keySlot", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], FlexRayChannel.prototype, "genlId", void 0);
+], FlexRayChannel.prototype, "nodeType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], FlexRayChannel.prototype, "wakeUpCluster", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], FlexRayChannel.prototype, "optionId", void 0);
+], FlexRayChannel.prototype, "operationMode", void 0);
 exports.FlexRayChannel = FlexRayChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.FLEXRAY),
     __metadata("design:paramtypes", [String, String])
@@ -51,31 +65,30 @@ let SerialChannel = class SerialChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.SERIAL);
         this.portName = '';
-        this.dataClass = '';
-        this.query = '';
-        this.dataBits = 8;
         this.baudRate = 9600;
-        this.stopBits = '1';
         this.parity = 'None';
-        this.bufferedData = 0;
-        this.dataAcquisitionMode = '';
+        this.dataBits = 8;
+        this.stopBits = '1';
+        this.flowControl = 'None';
+        this.messageTerminator = '';
+        this.maxReceivedDataSize = 0;
+        this.separationTimeMs = 0;
     }
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             portName: this.portName, baudRate: this.baudRate,
-            dataBits: this.dataBits, stopBits: this.stopBits, parity: this.parity,
+            parity: this.parity, dataBits: this.dataBits,
+            stopBits: this.stopBits, flowControl: this.flowControl,
+            messageTerminator: this.messageTerminator,
+            maxReceivedDataSize: this.maxReceivedDataSize,
+            separationTimeMs: this.separationTimeMs,
+            serialChannelActivationOptional: this.serialChannelActivationOptional,
         };
     }
     toJSON() {
-        return {
-            id: this.id, name: this.name, type: this.type,
-            portName: this.portName, dataClass: this.dataClass, query: this.query,
-            dataBits: this.dataBits, baudRate: this.baudRate, stopBits: this.stopBits,
-            parity: this.parity, bufferedData: this.bufferedData,
-            dataAcquisitionMode: this.dataAcquisitionMode,
-            serialChannelAdditionalOptions: this.serialChannelAdditionalOptions,
-        };
+        return this.toYAML();
     }
 };
 exports.SerialChannel = SerialChannel;
@@ -85,24 +98,8 @@ __decorate([
 ], SerialChannel.prototype, "portName", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], SerialChannel.prototype, "dataClass", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], SerialChannel.prototype, "query", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], SerialChannel.prototype, "dataBits", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
 ], SerialChannel.prototype, "baudRate", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], SerialChannel.prototype, "stopBits", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -110,15 +107,31 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], SerialChannel.prototype, "bufferedData", void 0);
+], SerialChannel.prototype, "dataBits", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], SerialChannel.prototype, "dataAcquisitionMode", void 0);
+], SerialChannel.prototype, "stopBits", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], SerialChannel.prototype, "flowControl", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], SerialChannel.prototype, "messageTerminator", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], SerialChannel.prototype, "maxReceivedDataSize", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], SerialChannel.prototype, "separationTimeMs", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
-], SerialChannel.prototype, "serialChannelAdditionalOptions", void 0);
+], SerialChannel.prototype, "serialChannelActivationOptional", void 0);
 exports.SerialChannel = SerialChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.SERIAL),
     __metadata("design:paramtypes", [String, String])
@@ -131,84 +144,128 @@ let CANChannel = class CANChannel extends channel_1.LogicalChannel {
         super(id, name, enums_1.LogicalChannelCategory.CAN);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, dbcChannel: this.dbcChannel };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            hwChannel: this.hwChannel, operationMode: this.operationMode
+        };
     }
     toJSON() {
-        return { ...this.toYAML(), connectionMode: this.connectionMode };
+        return this.toYAML();
     }
 };
 exports.CANChannel = CANChannel;
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], CANChannel.prototype, "dbcChannel", void 0);
+], CANChannel.prototype, "hwChannel", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], CANChannel.prototype, "connectionMode", void 0);
+], CANChannel.prototype, "operationMode", void 0);
 exports.CANChannel = CANChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.CAN),
     __metadata("design:paramtypes", [String, String])
 ], CANChannel);
+// ─────────────────────────────────────────────
+//  CAN FD Logical Channel
+// ─────────────────────────────────────────────
+let CANFDChannel = class CANFDChannel extends channel_1.LogicalChannel {
+    constructor(id, name) {
+        super(id, name, enums_1.LogicalChannelCategory.CAN_FD);
+    }
+    toYAML() {
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            hwChannel: this.hwChannel, operationMode: this.operationMode
+        };
+    }
+    toJSON() {
+        return this.toYAML();
+    }
+};
+exports.CANFDChannel = CANFDChannel;
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], CANFDChannel.prototype, "hwChannel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], CANFDChannel.prototype, "operationMode", void 0);
+exports.CANFDChannel = CANFDChannel = __decorate([
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.CAN_FD),
+    __metadata("design:paramtypes", [String, String])
+], CANFDChannel);
 // ─────────────────────────────────────────────
 //  IO Input Logical Channel
 // ─────────────────────────────────────────────
 let IOInputChannel = class IOInputChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOINPUT);
-        this.ioChannel = 0;
-        this.measurementAttribute = '';
-        this.controlState = false;
-        this.loSideRelay = false;
-        this.infoStatus = false;
-        this.dataChannelName = '';
-        this.subscriptionDetails = [];
-        this.openMinTimeMs = 0;
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, ioChannel: this.ioChannel };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
+            function: this.function, lineContactState: this.lineContactState,
+            gndContactState: this.gndContactState, batContactState: this.batContactState,
+            staticChannel: this.staticChannel, initValue: this.initValue,
+            channelType: this.channelType, measurementConfig: this.measurementConfig,
+            pwmWindowTime: this.pwmWindowTime, subscriptionConfig: this.subscriptionConfig
+        };
     }
     toJSON() {
-        return { ...this, ...this.toYAML() };
+        return this.toYAML();
     }
 };
 exports.IOInputChannel = IOInputChannel;
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], IOInputChannel.prototype, "ioChannel", void 0);
+], IOInputChannel.prototype, "hwChannel", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], IOInputChannel.prototype, "measurementAttribute", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "controlState", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "loSideRelay", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "infoStatus", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], IOInputChannel.prototype, "dataChannelName", void 0);
+], IOInputChannel.prototype, "function", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOInputChannel.prototype, "lineContactState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOInputChannel.prototype, "gndContactState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOInputChannel.prototype, "batContactState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOInputChannel.prototype, "staticChannel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], IOInputChannel.prototype, "initValue", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], IOInputChannel.prototype, "channelType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
-    __metadata("design:type", Object)
+    __metadata("design:type", Array)
 ], IOInputChannel.prototype, "measurementConfig", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
-    __metadata("design:type", Array)
-], IOInputChannel.prototype, "subscriptionDetails", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], IOInputChannel.prototype, "openMinTimeMs", void 0);
+], IOInputChannel.prototype, "pwmWindowTime", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)
@@ -221,72 +278,70 @@ exports.IOInputChannel = IOInputChannel = __decorate([
 //  IO Output Logical Channel
 // ─────────────────────────────────────────────
 let IOOutputChannel = class IOOutputChannel extends channel_1.LogicalChannel {
-    ;
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOOUTPUT);
-        this.ioChannel = 0;
-        this.measurementAttribute = '';
-        this.timeControlMode = false;
-        this.timeControlInterval = '';
-        this.openWorkTime = false;
-        this.packetProcessingConfig = [];
-        this.endlaue = '';
-        this.channelType = '';
-        this.ports = [];
-        this.portMinTimeMs = 0;
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, ioChannel: this.ioChannel };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
+            function: this.function, lineContactState: this.lineContactState,
+            gndContactState: this.gndContactState, batContactState: this.batContactState,
+            staticChannel: this.staticChannel, initValue: this.initValue,
+            channelType: this.channelType, measurementConfig: this.measurementConfig,
+            pwmWindowTime: this.pwmWindowTime, subscriptionConfig: this.subscriptionConfig
+        };
     }
     toJSON() {
-        return { ...this, ...this.toYAML() };
+        return this.toYAML();
     }
 };
 exports.IOOutputChannel = IOOutputChannel;
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], IOOutputChannel.prototype, "ioChannel", void 0);
+], IOOutputChannel.prototype, "hwChannel", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], IOOutputChannel.prototype, "measurementAttribute", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], IOOutputChannel.prototype, "timeControlMode", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], IOOutputChannel.prototype, "timeControlInterval", void 0);
+], IOOutputChannel.prototype, "function", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
-], IOOutputChannel.prototype, "openWorkTime", void 0);
+], IOOutputChannel.prototype, "lineContactState", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
-    __metadata("design:type", Object)
-], IOOutputChannel.prototype, "measurementConfig", void 0);
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOOutputChannel.prototype, "gndContactState", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
-    __metadata("design:type", Array)
-], IOOutputChannel.prototype, "packetProcessingConfig", void 0);
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOOutputChannel.prototype, "batContactState", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], IOOutputChannel.prototype, "staticChannel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], IOOutputChannel.prototype, "endlaue", void 0);
+], IOOutputChannel.prototype, "initValue", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], IOOutputChannel.prototype, "channelType", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Array)
-], IOOutputChannel.prototype, "ports", void 0);
+], IOOutputChannel.prototype, "measurementConfig", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], IOOutputChannel.prototype, "portMinTimeMs", void 0);
+], IOOutputChannel.prototype, "pwmWindowTime", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)
@@ -301,35 +356,32 @@ exports.IOOutputChannel = IOOutputChannel = __decorate([
 let LINChannel = class LINChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.LIN);
-        this.openSession = 0;
-        this.loggingName = '';
-        this.loggingType = enums_1.LogicalChannelCategory.LIN;
-        this.dbList = [];
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            protocol: this.protocol, hwChannel: this.hwChannel,
+            operationMode: this.operationMode
+        };
     }
     toJSON() {
-        return { ...this.toYAML(), loggingName: this.loggingName, dbList: this.dbList };
+        return this.toYAML();
     }
 };
 exports.LINChannel = LINChannel;
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], LINChannel.prototype, "protocol", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], LINChannel.prototype, "openSession", void 0);
+], LINChannel.prototype, "hwChannel", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], LINChannel.prototype, "loggingName", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], LINChannel.prototype, "loggingType", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
-    __metadata("design:type", Array)
-], LINChannel.prototype, "dbList", void 0);
+], LINChannel.prototype, "operationMode", void 0);
 exports.LINChannel = LINChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.LIN),
     __metadata("design:paramtypes", [String, String])
@@ -345,7 +397,11 @@ let IPSChannel = class IPSChannel extends channel_1.LogicalChannel {
         this.openSessionFields = '';
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, openSession: this.openSession };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            openSession: this.openSession
+        };
     }
     toJSON() {
         return { ...this.toYAML(), openInterface: this.openInterface };
@@ -376,17 +432,31 @@ let BridgeChannel = class BridgeChannel extends channel_1.LogicalChannel {
         super(id, name, enums_1.LogicalChannelCategory.BRIDGE);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            physicalAdapter: this.physicalAdapter,
+            tunTapAdapterList: this.tunTapAdapterList,
+            manipulatePackets: this.manipulatePackets
+        };
     }
     toJSON() {
-        return { ...this.toYAML(), hlcChannel: this.hlcChannel };
+        return this.toYAML();
     }
 };
 exports.BridgeChannel = BridgeChannel;
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], BridgeChannel.prototype, "physicalAdapter", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
-    __metadata("design:type", Object)
-], BridgeChannel.prototype, "hlcChannel", void 0);
+    __metadata("design:type", Array)
+], BridgeChannel.prototype, "tunTapAdapterList", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], BridgeChannel.prototype, "manipulatePackets", void 0);
 exports.BridgeChannel = BridgeChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.BRIDGE),
     __metadata("design:paramtypes", [String, String])
@@ -399,123 +469,125 @@ let AnalogChannel = class AnalogChannel extends channel_1.LogicalChannel {
         super(id, name, enums_1.LogicalChannelCategory.ANALOG);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType };
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            hwChannel: this.hwChannel, deviceId: this.deviceId
+        };
     }
     toJSON() {
-        return { ...this.toYAML(), controlId: this.controlId };
+        return this.toYAML();
     }
 };
 exports.AnalogChannel = AnalogChannel;
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], AnalogChannel.prototype, "sensorType", void 0);
+    __metadata("design:type", Number)
+], AnalogChannel.prototype, "hwChannel", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], AnalogChannel.prototype, "controlId", void 0);
+    __metadata("design:type", Number)
+], AnalogChannel.prototype, "deviceId", void 0);
 exports.AnalogChannel = AnalogChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.ANALOG),
     __metadata("design:paramtypes", [String, String])
 ], AnalogChannel);
+// ─────────────────────────────────────────────
+//  PS Logical Channel
+// ─────────────────────────────────────────────
+let PSChannel = class PSChannel extends channel_1.LogicalChannel {
+    constructor(id, name) {
+        super(id, name, enums_1.LogicalChannelCategory.PS);
+    }
+    toYAML() {
+        return {
+            id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
+        };
+    }
+    toJSON() {
+        return this.toYAML();
+    }
+};
+exports.PSChannel = PSChannel;
+exports.PSChannel = PSChannel = __decorate([
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.PS),
+    __metadata("design:paramtypes", [String, String])
+], PSChannel);
 // ─────────────────────────────────────────────
 //  Ethernet Logical Channel
 // ─────────────────────────────────────────────
 let EthernetChannel = class EthernetChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.ETHERNET);
-        this.friendlyName = '';
-        this.bufferSize = 0;
-        this.timeout = 0;
-        this.timeframeName = '';
-        this.timeframePrecision = '';
-        this.timeframeSource = '';
-        this.timestampBound = 0;
-        this.snapshotLength = 0;
-        this.defSaveMode = 0;
-        this.defDataSupportTimeStamp = false;
-        this.sendDataLoggerMeta = false;
-        this.dataLoggerType = '';
-        this.packetProcessingConfig = false;
-        this.differentHandlerForIuluAndR = false;
-        this.useFlexRayBaudRate = false;
     }
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type,
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-            snapshotLength: this.snapshotLength, captureType: this.captureType,
+            pblFilter: this.pblFilter, timeout: this.timeout,
+            timeStampPrecision: this.timeStampPrecision,
+            timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
+            snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,
+            useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
+            removedDataLoggerMetaData: this.removedDataLoggerMetaData,
+            dataLoggerType: this.dataLoggerType
         };
     }
     toJSON() {
-        return { ...this };
+        return this.toYAML();
     }
 };
 exports.EthernetChannel = EthernetChannel;
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], EthernetChannel.prototype, "friendlyName", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], EthernetChannel.prototype, "bufferSize", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], EthernetChannel.prototype, "pblFilter", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], EthernetChannel.prototype, "timeout", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], EthernetChannel.prototype, "timeframeName", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "timeframePrecision", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "timeframeSource", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], EthernetChannel.prototype, "timestampBound", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], EthernetChannel.prototype, "snapshotLength", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], EthernetChannel.prototype, "defSaveMode", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "defDataSupportTimeStamp", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "sendDataLoggerMeta", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "dataLoggerType", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "packetProcessingConfig", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "differentHandlerForIuluAndR", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "useFlexRayBaudRate", void 0);
+], EthernetChannel.prototype, "timeStampPrecision", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], EthernetChannel.prototype, "captureType", void 0);
+], EthernetChannel.prototype, "timeStampSource", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "immediateMode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], EthernetChannel.prototype, "snapshotLength", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], EthernetChannel.prototype, "dapDeviceMode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "useDataLoggerTimeStamp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "removedDataLoggerMetaData", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], EthernetChannel.prototype, "dataLoggerType", void 0);
 exports.EthernetChannel = EthernetChannel = __decorate([
     (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.ETHERNET),
     __metadata("design:paramtypes", [String, String])

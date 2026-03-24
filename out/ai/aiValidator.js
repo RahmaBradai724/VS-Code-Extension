@@ -1,6 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AIValidator = void 0;
+exports.AIValidator = exports.ValidationResult = void 0;
+class ValidationResult {
+    constructor(isValid = true, errors = [], warnings = [], suggestions = []) {
+        this.isValid = true;
+        this.errors = [];
+        this.warnings = [];
+        this.suggestions = [];
+        this.isValid = isValid;
+        this.errors = errors;
+        this.warnings = warnings;
+        this.suggestions = suggestions;
+    }
+}
+exports.ValidationResult = ValidationResult;
 /**
  * AIValidator uses the Gemini API to analyze a configuration
  * and detect potential issues. It also performs local rule-based
@@ -33,9 +46,9 @@ class AIValidator {
         }
         return warnings;
     }
-    detectUnmappedLogicalChannels(config, mappings) {
+    detectInvalidType(config, mappings) {
         const warnings = [];
-        const usedLogicalIds = new Set(mappings.map(m => m.logicalChannelId));
+        const usedLogicalIds = new Set(mappings.map(m => m.hardwareChannelId));
         for (const lc of config.logicalChannels) {
             if (!usedLogicalIds.has(lc.id)) {
                 warnings.push(`Logical channel "${lc.name}" (${lc.type}) is defined but has no mapping.`);
@@ -82,7 +95,7 @@ class AIValidator {
         return errors;
     }
     // ─── Combined Local Validation ────────────────────────────────────────
-    runLocalValidation(config, mappings) {
+    validate(config, mappings) {
         const errors = [
             ...this.detectDuplicateMappings(mappings),
             ...this.detectMissingElements(config),
@@ -90,17 +103,18 @@ class AIValidator {
         ];
         const warnings = [
             ...this.detectUnusedHardware(config, mappings),
-            ...this.detectUnmappedLogicalChannels(config, mappings),
+            ...this.detectInvalidType(config, mappings),
         ];
-        return { isValid: errors.length === 0, errors, warnings, suggestions: [] };
+        return new ValidationResult(errors.length === 0, errors, warnings);
     }
     // ─── AI-Powered Validation (Gemini) ───────────────────────────────────
     async runAIValidation(config, mappings, yamlContent) {
         // First run local checks
-        const localResult = this.runLocalValidation(config, mappings);
+        const localResult = this.validate(config, mappings);
         if (!this.apiKey) {
             return {
                 ...localResult,
+                suggestions: localResult.suggestions || [],
                 warnings: [...localResult.warnings, 'AI validation skipped: no API key configured.'],
             };
         }
@@ -118,6 +132,7 @@ class AIValidator {
         catch (err) {
             return {
                 ...localResult,
+                suggestions: localResult.suggestions || [],
                 warnings: [...localResult.warnings, `AI validation failed: ${err.message}`],
             };
         }

@@ -50,7 +50,8 @@ class MappingManager {
             throw new Error(`Logical channel "${logical.name}" is already mapped to a hardware channel.`);
         }
         const mappingId = `mapping_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const mapping = new models_1.Mapping(mappingId, configurationId, logicalChannelId, logical.name, hardwareChannelId);
+        const frameworkConfigId = "default"; // Placeholder or should be passed
+        const mapping = new models_1.Mapping(mappingId, configurationId, logicalChannelId, logical.name, hardwareChannelId, frameworkConfigId);
         mapping.hardwareChannelName = hardware.name;
         mapping.logicalChannelType = logical.type;
         mapping.hardwareChannelType = hardware.type;
@@ -110,6 +111,20 @@ class MappingManager {
     }
     isLogicalChannelAlreadyMapped(logicalId) {
         return Array.from(this.mappings.values()).some(m => m.logicalChannelId === logicalId);
+    }
+    // ─── UML Aligned Methods ──────────────────────────────────────────────
+    generate(configurationId) {
+        return this.getMappingsByConfigId(configurationId);
+    }
+    generateAsYaml(configurationId) {
+        // This typically requires a ConfigGenerator instance
+        return ""; // Placeholder or delegate if possible
+    }
+    generateAsJson(configurationId) {
+        return JSON.stringify(this.generate(configurationId), null, 2);
+    }
+    Add(mapping) {
+        this.mappings.set(mapping.mappingId, mapping);
     }
     // ─── Hydration ────────────────────────────────────────────────────────
     hydrate(mappings) {

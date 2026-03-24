@@ -21,13 +21,17 @@ export abstract class Tracer {
   @Column({ nullable: true })
   loggingType?: string;
 
+  @Column({ nullable: true })
+  userId?: string;
+
   @ManyToOne(() => Configuration, (c) => c.frameworkConfig)
   @JoinColumn({ name: 'config_id' })
   configuration?: Configuration;
 
-  constructor(id: string, name: string) {
+  constructor(id: string, name: string, userId?: string) {
     this.id = id;
     this.name = name;
+    this.userId = userId;
   }
 
   abstract toYAML(): object;
@@ -56,10 +60,16 @@ export class PCAPTracer extends Tracer {
   }
 }
 
-@ChildEntity('ABCF')
-export class ABCFTracer extends Tracer {
+@ChildEntity('ASCII')
+export class ASCIITracer extends Tracer {
   @Column()
   base: string = '';
+
+  @Column()
+  internalEventLogged: boolean = false;
+
+  @Column()
+  timeStampSetting: string = '';
 
   @Column({ nullable: true })
   loggingFileLong?: string;
@@ -69,11 +79,15 @@ export class ABCFTracer extends Tracer {
 
   constructor(id: string, name: string) {
     super(id, name);
-    this.loggingType = 'ABCF';
+    this.loggingType = 'ASCII';
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: 'ABCF', base: this.base, timestampPrecision: this.timestampPrecision };
+    return {
+      id: this.id, name: this.name, type: 'ASCII',
+      base: this.base, internalEventLogged: this.internalEventLogged,
+      timeStampSetting: this.timeStampSetting, timestampPrecision: this.timestampPrecision
+    };
   }
 
   toJSON(): object {
@@ -92,14 +106,14 @@ export class PublisherConfig {
   topicCancel?: string;
 
   @Column({ type: 'jsonb', default: [] })
-  channelGroups: string[][] = [];
+  channelsGroups: string[][] = [];
 
   toYAML(): object {
-    return { type: this.publisherType, channelGroups: this.channelGroups };
+    return { type: this.publisherType, channelsGroups: this.channelsGroups };
   }
 
   toJSON(): object {
-    return { publisherType: this.publisherType, topicCancel: this.topicCancel, channelGroups: this.channelGroups };
+    return { publisherType: this.publisherType, topicCancel: this.topicCancel, channelsGroups: this.channelsGroups };
   }
 }
 
@@ -125,8 +139,24 @@ export class EthernetConfig {
   @Column({ type: 'jsonb', nullable: true })
   appLayerPorts?: number[];
 
+  @Column({ nullable: true })
+  considerOnlyEthernetTopologyEcus?: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  npduConfig?: object;
+
+  @Column({ type: 'jsonb', nullable: true })
+  someIPConfig?: object;
+
   toYAML(): object {
-    return { autoDetectEthSettings: this.autoDetectEthSettings, protocol: this.protocol, appLayerPort: this.appLayerPort };
+    return {
+      autoDetectEthSettings: this.autoDetectEthSettings,
+      protocol: this.protocol,
+      appLayerPorts: this.appLayerPorts,
+      considerOnlyEthernetTopologyEcus: this.considerOnlyEthernetTopologyEcus,
+      npduConfig: this.npduConfig,
+      someIPConfig: this.someIPConfig
+    };
   }
 
   toJSON(): object {
@@ -139,22 +169,22 @@ export class EthernetConfig {
 // ─────────────────────────────────────────────
 export class DiagnosticsConfig {
   @Column()
-  ecuAddress: string = '';
+  ecuIpAddress: string = '';
 
   @Column()
-  testerAddress: string = '';
+  testerIpAddress: string = '';
 
   @Column()
   protocol: string = '';
 
   @Column()
-  build: string = '';
+  netId: string = '';
 
   @Column({ nullable: true })
   rai?: string;
 
   toYAML(): object {
-    return { ecuAddress: this.ecuAddress, testerAddress: this.testerAddress, protocol: this.protocol };
+    return { ecuIpAddress: this.ecuIpAddress, testerIpAddress: this.testerIpAddress, protocol: this.protocol, netId: this.netId };
   }
 
   toJSON(): object {
@@ -177,42 +207,45 @@ export class FrameworkConfig {
   channels: Map<string, string[]> = new Map();
 
   @Column(() => PublisherConfig)
-  publisher: PublisherConfig = new PublisherConfig();
+  publisherConfig: PublisherConfig = new PublisherConfig();
 
   @Column(() => DiagnosticsConfig)
   diagnostics: DiagnosticsConfig = new DiagnosticsConfig();
 
   @Column(() => EthernetConfig)
-  ethernet: EthernetConfig = new EthernetConfig();
+  ethernetConfig: EthernetConfig = new EthernetConfig();
 
   @OneToMany(() => Tracer, (t) => t.configuration)
   tracing: Tracer[] = [];
 
-  @Column()
-  serverUrls: string = '';
+  @Column({ type: 'jsonb', default: [] })
+  connectedEcus: string[] = [];
+
+  @Column({ nullable: true })
+  servicePack?: string;
 
   @Column({ type: 'jsonb', default: {} })
-  channelListMapping: Map<string, string[]> = new Map();
+  channelToEcusMapping: Map<string, string[]> = new Map();
 
   toYAML(): object {
     const tracers: object[] = this.tracing.map(t => t.toYAML());
     return {
-      publisher: this.publisher.toYAML(),
+      publisher: this.publisherConfig.toYAML(),
       diagnostics: this.diagnostics.toYAML(),
-      ethernet: this.ethernet.toYAML(),
+      ethernet: this.ethernetConfig.toYAML(),
       tracing: tracers,
     };
   }
 
   toJSON(): object {
     return {
-      keys: Object.fromEntries(this.keys),
-      channels: Object.fromEntries(this.channels),
-      publisher: this.publisher.toJSON(),
+      publisherConfig: this.publisherConfig.toJSON(),
       diagnostics: this.diagnostics.toJSON(),
-      ethernet: this.ethernet.toJSON(),
+      ethernetConfig: this.ethernetConfig.toJSON(),
       tracing: this.tracing.map(t => t.toJSON()),
-      serverUrls: this.serverUrls,
+      connectedEcus: this.connectedEcus,
+      servicePack: this.servicePack,
+      channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,
     };
   }
 }

@@ -142,21 +142,16 @@ async function testDatabaseConnection() {
 /**
  * Save configuration
  */
-async function saveConfigurationToDb(configName, configData) {
-    await initializeDatabase();
-    const query = `
-        INSERT INTO configurations (name, data, created_at)
-        VALUES ($1, $2, NOW())
-        RETURNING id;
-    `;
-    const values = [configName, configData];
+async function saveConfigurationToDb(configId, name, userId, data) {
+    const client = await pool.connect();
     try {
-        const res = await pool.query(query, values);
-        console.log('Saved configuration with ID:', res.rows[0].id);
+        const query = 'INSERT INTO configurations (config_id, name, user_id, config_data) VALUES ($1, $2, $3, $4) ON CONFLICT (config_id) DO UPDATE SET name = $2, user_id = $3, config_data = $4, updated_at = CURRENT_TIMESTAMP';
+        const values = [configId, name, userId, data];
+        await client.query(query, values);
+        console.log(`Configuration ${name} saved to DB.`);
     }
-    catch (err) {
-        console.error('Error executing query', err);
-        vscode.window.showErrorMessage(`Failed to save configuration: ${err.message}`);
+    finally {
+        client.release();
     }
 }
 /**

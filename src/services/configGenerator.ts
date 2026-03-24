@@ -27,7 +27,7 @@ export class ConfigGenerator {
     if (this.config.logicalChannels.length === 0) { errors.push('At least one logical channel is required.'); }
     if (this.config.hardwareChannels.length === 0) { errors.push('At least one hardware channel is required.'); }
 
-    const mappings = this.mappingManager.getMappingsByConfigId(this.config.configId);
+    const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
     if (mappings.length === 0) { errors.push('At least one mapping must be defined.'); }
 
     // Check for duplicate logical channel names
@@ -61,10 +61,10 @@ export class ConfigGenerator {
       throw new Error(`Cannot generate config.yaml:\n${errors.map(e => `  • ${e}`).join('\n')}`);
     }
 
-    const mappings = this.mappingManager.getMappingsByConfigId(this.config.configId);
+    const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
 
     const configObj: Record<string, any> = {
-      configId: this.config.configId,
+      id: this.config.id,
       name: this.config.name,
 
       // Logical channels section
@@ -96,9 +96,9 @@ export class ConfigGenerator {
    * Returns the raw object (useful for preview/display).
    */
   generateAsObject(): object {
-    const mappings = this.mappingManager.getMappingsByConfigId(this.config.configId);
+    const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
     return {
-      configId: this.config.configId,
+      id: this.config.id,
       name: this.config.name,
       channels: this.config.logicalChannels.reduce((acc, ch) => {
         acc[ch.name] = ch.toYAML();

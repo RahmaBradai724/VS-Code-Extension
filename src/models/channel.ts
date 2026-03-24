@@ -35,7 +35,13 @@ export abstract class LogicalChannel extends Channel {
   type: LogicalChannelCategory;
 
   @Column({ nullable: true })
-  category?: string;
+  loggingName?: string;
+
+  @Column({ nullable: true })
+  tracerName?: string;
+
+  @Column({ type: 'simple-array', nullable: true })
+  alias?: string[];
 
   constructor(id: string, name: string, type: LogicalChannelCategory) {
     super(id, name);
@@ -52,9 +58,20 @@ export abstract class HardwareChannel extends Channel {
   @Column({ type: 'varchar' })
   type: HardwareChannelCategory;
 
+  @Column({ nullable: true })
+  status?: string;
+
   constructor(id: string, name: string, type: HardwareChannelCategory) {
     super(id, name);
     this.type = type;
+  }
+
+  getStatus(): string {
+    return this.status || 'Unknown';
+  }
+
+  setStatus(status: string): void {
+    this.status = status;
   }
 
   // Called before deletion — checks if mappings exist for this channel

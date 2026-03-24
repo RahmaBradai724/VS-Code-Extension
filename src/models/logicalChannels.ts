@@ -8,24 +8,36 @@ import { LogicalChannelCategory } from './enums';
 @ChildEntity(LogicalChannelCategory.FLEXRAY)
 export class FlexRayChannel extends LogicalChannel {
   @Column({ nullable: true })
-  optionStr?: string;
+  hwChannel?: number;
 
   @Column({ nullable: true })
-  genlId?: string;
+  keySlot?: number;
 
   @Column({ nullable: true })
-  optionId?: string;
+  nodeType?: string;
+
+  @Column({ nullable: true })
+  wakeUpCluster?: boolean;
+
+  @Column({ nullable: true })
+  operationMode?: string;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.FLEXRAY);
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, optionStr: this.optionStr };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      hwChannel: this.hwChannel, keySlot: this.keySlot,
+      nodeType: this.nodeType, wakeUpCluster: this.wakeUpCluster,
+      operationMode: this.operationMode
+    };
   }
 
   toJSON(): object {
-    return { ...this.toYAML(), optionId: this.optionId };
+    return this.toYAML();
   }
 }
 
@@ -38,31 +50,31 @@ export class SerialChannel extends LogicalChannel {
   portName: string = '';
 
   @Column()
-  dataClass: string = '';
-
-  @Column()
-  query: string = '';
-
-  @Column()
-  dataBits: number = 8;
-
-  @Column()
   baudRate: number = 9600;
-
-  @Column()
-  stopBits: string = '1';
 
   @Column()
   parity: string = 'None';
 
   @Column()
-  bufferedData: number = 0;
+  dataBits: number = 8;
 
   @Column()
-  dataAcquisitionMode: string = '';
+  stopBits: string = '1';
+
+  @Column()
+  flowControl: string = 'None';
+
+  @Column()
+  messageTerminator: string = '';
+
+  @Column()
+  maxReceivedDataSize: number = 0;
+
+  @Column()
+  separationTimeMs: number = 0;
 
   @Column({ nullable: true })
-  serialChannelAdditionalOptions?: boolean;
+  serialChannelActivationOptional?: boolean;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.SERIAL);
@@ -71,20 +83,19 @@ export class SerialChannel extends LogicalChannel {
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       portName: this.portName, baudRate: this.baudRate,
-      dataBits: this.dataBits, stopBits: this.stopBits, parity: this.parity,
+      parity: this.parity, dataBits: this.dataBits,
+      stopBits: this.stopBits, flowControl: this.flowControl,
+      messageTerminator: this.messageTerminator,
+      maxReceivedDataSize: this.maxReceivedDataSize,
+      separationTimeMs: this.separationTimeMs,
+      serialChannelActivationOptional: this.serialChannelActivationOptional,
     };
   }
 
   toJSON(): object {
-    return {
-      id: this.id, name: this.name, type: this.type,
-      portName: this.portName, dataClass: this.dataClass, query: this.query,
-      dataBits: this.dataBits, baudRate: this.baudRate, stopBits: this.stopBits,
-      parity: this.parity, bufferedData: this.bufferedData,
-      dataAcquisitionMode: this.dataAcquisitionMode,
-      serialChannelAdditionalOptions: this.serialChannelAdditionalOptions,
-    };
+    return this.toYAML();
   }
 }
 
@@ -94,21 +105,53 @@ export class SerialChannel extends LogicalChannel {
 @ChildEntity(LogicalChannelCategory.CAN)
 export class CANChannel extends LogicalChannel {
   @Column({ nullable: true })
-  dbcChannel?: number;
+  hwChannel?: number;
 
   @Column({ nullable: true })
-  connectionMode?: string;
+  operationMode?: string;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.CAN);
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, dbcChannel: this.dbcChannel };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      hwChannel: this.hwChannel, operationMode: this.operationMode
+    };
   }
 
   toJSON(): object {
-    return { ...this.toYAML(), connectionMode: this.connectionMode };
+    return this.toYAML();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CAN FD Logical Channel
+// ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.CAN_FD)
+export class CANFDChannel extends LogicalChannel {
+  @Column({ nullable: true })
+  hwChannel?: number;
+
+  @Column({ nullable: true })
+  operationMode?: string;
+
+  constructor(id: string, name: string) {
+    super(id, name, LogicalChannelCategory.CAN_FD);
+  }
+
+  toYAML(): object {
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      hwChannel: this.hwChannel, operationMode: this.operationMode
+    };
+  }
+
+  toJSON(): object {
+    return this.toYAML();
   }
 }
 
@@ -117,32 +160,38 @@ export class CANChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(LogicalChannelCategory.IOINPUT)
 export class IOInputChannel extends LogicalChannel {
-  @Column()
-  ioChannel: number = 0;
+  @Column({ nullable: true })
+  hwChannel?: number;
 
-  @Column()
-  measurementAttribute: string = '';
+  @Column({ nullable: true })
+  measurementAttribute?: string;
 
-  @Column()
-  controlState: boolean = false;
+  @Column({ nullable: true })
+  function?: string;
 
-  @Column()
-  loSideRelay: boolean = false;
+  @Column({ nullable: true })
+  lineContactState?: boolean;
 
-  @Column()
-  infoStatus: boolean = false;
+  @Column({ nullable: true })
+  gndContactState?: boolean;
 
-  @Column()
-  dataChannelName: string = '';
+  @Column({ nullable: true })
+  batContactState?: boolean;
+
+  @Column({ nullable: true })
+  staticChannel?: boolean;
+
+  @Column({ nullable: true })
+  initValue?: string;
+
+  @Column({ nullable: true })
+  channelType?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  measurementConfig?: object;
+  measurementConfig?: string[];
 
-  @Column({ type: 'jsonb', default: [] })
-  subscriptionDetails: object[] = [];
-
-  @Column()
-  openMinTimeMs: number = 0;
+  @Column({ nullable: true })
+  pwmWindowTime?: number;
 
   @Column({ type: 'jsonb', nullable: true })
   subscriptionConfig?: object;
@@ -152,11 +201,20 @@ export class IOInputChannel extends LogicalChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, ioChannel: this.ioChannel };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
+      function: this.function, lineContactState: this.lineContactState,
+      gndContactState: this.gndContactState, batContactState: this.batContactState,
+      staticChannel: this.staticChannel, initValue: this.initValue,
+      channelType: this.channelType, measurementConfig: this.measurementConfig,
+      pwmWindowTime: this.pwmWindowTime, subscriptionConfig: this.subscriptionConfig
+    };
   }
 
   toJSON(): object {
-    return { ...this, ...this.toYAML() };
+    return this.toYAML();
   }
 }
 
@@ -165,52 +223,61 @@ export class IOInputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(LogicalChannelCategory.IOOUTPUT)
 export class IOOutputChannel extends LogicalChannel {
-  @Column()
-  ioChannel: number = 0;
+  @Column({ nullable: true })
+  hwChannel?: number;
 
-  @Column()
-  measurementAttribute: string = '';
+  @Column({ nullable: true })
+  measurementAttribute?: string;
 
-  @Column()
-  timeControlMode: boolean = false;
+  @Column({ nullable: true })
+  function?: string;
 
-  @Column()
-  timeControlInterval: string = '';
+  @Column({ nullable: true })
+  lineContactState?: boolean;
 
-  @Column()
-  openWorkTime: boolean = false;
+  @Column({ nullable: true })
+  gndContactState?: boolean;
 
-  @Column({ type: 'jsonb', nullable: true })
-  measurementConfig?: object;
+  @Column({ nullable: true })
+  batContactState?: boolean;
 
-  @Column({ type: 'jsonb', default: [] })
-  packetProcessingConfig: object[] = [];
+  @Column({ nullable: true })
+  staticChannel?: boolean;
 
-  @Column()
-  endlaue: string = '';
+  @Column({ nullable: true })
+  initValue?: string;
 
-  @Column()
-  channelType: string = '';
-
-  @Column({ type: 'jsonb', default: [] })
-  ports: object[] = [];
-
-  @Column()
-  portMinTimeMs: number = 0;
+  @Column({ nullable: true })
+  channelType?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  subscriptionConfig?: object;;
+  measurementConfig?: string[];
+
+  @Column({ nullable: true })
+  pwmWindowTime?: number;
+
+  @Column({ type: 'jsonb', nullable: true })
+  subscriptionConfig?: object;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.IOOUTPUT);
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, ioChannel: this.ioChannel };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
+      function: this.function, lineContactState: this.lineContactState,
+      gndContactState: this.gndContactState, batContactState: this.batContactState,
+      staticChannel: this.staticChannel, initValue: this.initValue,
+      channelType: this.channelType, measurementConfig: this.measurementConfig,
+      pwmWindowTime: this.pwmWindowTime, subscriptionConfig: this.subscriptionConfig
+    };
   }
 
   toJSON(): object {
-    return { ...this, ...this.toYAML() };
+    return this.toYAML();
   }
 }
 
@@ -219,28 +286,30 @@ export class IOOutputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(LogicalChannelCategory.LIN)
 export class LINChannel extends LogicalChannel {
-  @Column()
-  openSession: number = 0;
+  @Column({ nullable: true })
+  protocol?: string;
 
-  @Column()
-  loggingName: string = '';
+  @Column({ nullable: true })
+  hwChannel?: number;
 
-  @Column()
-  loggingType: LogicalChannelCategory = LogicalChannelCategory.LIN;
-
-  @Column({ type: 'jsonb', default: [] })
-  dbList: string[] = [];
+  @Column({ nullable: true })
+  operationMode?: string;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.LIN);
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      protocol: this.protocol, hwChannel: this.hwChannel,
+      operationMode: this.operationMode
+    };
   }
 
   toJSON(): object {
-    return { ...this.toYAML(), loggingName: this.loggingName, dbList: this.dbList };
+    return this.toYAML();
   }
 }
 
@@ -263,7 +332,11 @@ export class IPSChannel extends LogicalChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, openSession: this.openSession };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      openSession: this.openSession
+    };
   }
 
   toJSON(): object {
@@ -276,19 +349,31 @@ export class IPSChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(LogicalChannelCategory.BRIDGE)
 export class BridgeChannel extends LogicalChannel {
+  @Column({ nullable: true })
+  physicalAdapter?: string;
+
   @Column({ type: 'jsonb', nullable: true })
-  hlcChannel?: HardwareChannel_Ref;
+  tunTapAdapterList?: object[];
+
+  @Column({ nullable: true })
+  manipulatePackets?: boolean;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.BRIDGE);
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      physicalAdapter: this.physicalAdapter,
+      tunTapAdapterList: this.tunTapAdapterList,
+      manipulatePackets: this.manipulatePackets
+    };
   }
 
   toJSON(): object {
-    return { ...this.toYAML(), hlcChannel: this.hlcChannel };
+    return this.toYAML();
   }
 }
 
@@ -304,21 +389,46 @@ export interface HardwareChannel_Ref {
 @ChildEntity(LogicalChannelCategory.ANALOG)
 export class AnalogChannel extends LogicalChannel {
   @Column({ nullable: true })
-  sensorType?: string;
+  hwChannel?: number;
 
   @Column({ nullable: true })
-  controlId?: string;
+  deviceId?: number;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.ANALOG);
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType };
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      hwChannel: this.hwChannel, deviceId: this.deviceId
+    };
   }
 
   toJSON(): object {
-    return { ...this.toYAML(), controlId: this.controlId };
+    return this.toYAML();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PS Logical Channel
+// ─────────────────────────────────────────────
+@ChildEntity(LogicalChannelCategory.PS)
+export class PSChannel extends LogicalChannel {
+  constructor(id: string, name: string) {
+    super(id, name, LogicalChannelCategory.PS);
+  }
+
+  toYAML(): object {
+    return {
+      id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
+    };
+  }
+
+  toJSON(): object {
+    return this.toYAML();
   }
 }
 
@@ -327,53 +437,41 @@ export class AnalogChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 @ChildEntity(LogicalChannelCategory.ETHERNET)
 export class EthernetChannel extends LogicalChannel {
-  @Column()
-  friendlyName: string = '';
-
-  @Column()
-  bufferSize: number = 0;
-
-  @Column()
-  timeout: number = 0;
-
-  @Column()
-  timeframeName: string = '';
-
-  @Column()
-  timeframePrecision: string = '';
-
-  @Column()
-  timeframeSource: string = '';
-
-  @Column()
-  timestampBound: number = 0;
-
-  @Column()
-  snapshotLength: number = 0;
-
-  @Column()
-  defSaveMode: number = 0;
-
-  @Column()
-  defDataSupportTimeStamp: boolean = false;
-
-  @Column()
-  sendDataLoggerMeta: boolean = false;
-
-  @Column()
-  dataLoggerType: string = '';
-
-  @Column()
-  packetProcessingConfig: boolean = false;
-
-  @Column()
-  differentHandlerForIuluAndR: boolean = false;
-
-  @Column()
-  useFlexRayBaudRate: boolean = false;
+  @Column({ nullable: true })
+  friendlyName?: string;
 
   @Column({ nullable: true })
-  captureType?: string;
+  bufferSize?: number;
+
+  @Column({ nullable: true })
+  pblFilter?: string;
+
+  @Column({ nullable: true })
+  timeout?: number;
+
+  @Column({ nullable: true })
+  timeStampPrecision?: string;
+
+  @Column({ nullable: true })
+  timeStampSource?: string;
+
+  @Column({ nullable: true })
+  immediateMode?: boolean;
+
+  @Column({ nullable: true })
+  snapshotLength?: number;
+
+  @Column({ nullable: true })
+  dapDeviceMode?: string;
+
+  @Column({ nullable: true })
+  useDataLoggerTimeStamp?: boolean;
+
+  @Column({ nullable: true })
+  removedDataLoggerMetaData?: boolean;
+
+  @Column({ nullable: true })
+  dataLoggerType?: string;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.ETHERNET);
@@ -382,12 +480,19 @@ export class EthernetChannel extends LogicalChannel {
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-      snapshotLength: this.snapshotLength, captureType: this.captureType,
+      pblFilter: this.pblFilter, timeout: this.timeout,
+      timeStampPrecision: this.timeStampPrecision,
+      timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
+      snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,
+      useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
+      removedDataLoggerMetaData: this.removedDataLoggerMetaData,
+      dataLoggerType: this.dataLoggerType
     };
   }
 
   toJSON(): object {
-    return { ...this };
+    return this.toYAML();
   }
 }

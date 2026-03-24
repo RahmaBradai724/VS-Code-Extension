@@ -18,12 +18,13 @@ const configuration_1 = require("./configuration");
  * Represents a mapping between a logical channel and a hardware channel.
  */
 let Mapping = Mapping_1 = class Mapping {
-    constructor(mappingId, configurationId, logicalChannelId, logicalChannelName, hardwareChannelId) {
+    constructor(mappingId, configurationId, logicalChannelId, logicalChannelName, hardwareChannelId, frameworkConfigId) {
         this.mappingId = mappingId;
         this.configurationId = configurationId;
         this.logicalChannelId = logicalChannelId;
         this.logicalChannelName = logicalChannelName;
         this.hardwareChannelId = hardwareChannelId;
+        this.frameworkConfigId = frameworkConfigId;
         this.createdAt = new Date().toISOString();
     }
     toYAML() {
@@ -39,6 +40,7 @@ let Mapping = Mapping_1 = class Mapping {
             logicalChannelId: this.logicalChannelId,
             logicalChannelName: this.logicalChannelName,
             hardwareChannelId: this.hardwareChannelId,
+            frameworkConfigId: this.frameworkConfigId,
             hardwareChannelName: this.hardwareChannelName,
             comment: this.comment,
             createdAt: this.createdAt,
@@ -47,7 +49,7 @@ let Mapping = Mapping_1 = class Mapping {
         };
     }
     static fromJSON(data) {
-        const m = new Mapping_1(data.mappingId, data.configurationId, data.logicalChannelId, data.logicalChannelName, data.hardwareChannelId);
+        const m = new Mapping_1(data.mappingId, data.configurationId, data.logicalChannelId, data.logicalChannelName, data.hardwareChannelId, data.frameworkConfigId);
         m.hardwareChannelName = data.hardwareChannelName;
         m.comment = data.comment;
         m.createdAt = data.createdAt;
@@ -61,6 +63,10 @@ __decorate([
     (0, typeorm_1.PrimaryColumn)(),
     __metadata("design:type", String)
 ], Mapping.prototype, "mappingId", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Mapping.prototype, "frameworkConfigId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -104,6 +110,6 @@ __decorate([
 ], Mapping.prototype, "configuration", void 0);
 exports.Mapping = Mapping = Mapping_1 = __decorate([
     (0, typeorm_1.Entity)('mappings'),
-    __metadata("design:paramtypes", [String, String, String, String, String])
+    __metadata("design:paramtypes", [String, String, String, String, String, String])
 ], Mapping);
 //# sourceMappingURL=mapping.js.map
