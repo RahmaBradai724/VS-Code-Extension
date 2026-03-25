@@ -37,6 +37,7 @@ exports.ConfigImporter = void 0;
 const vscode = __importStar(require("vscode"));
 const yaml = __importStar(require("js-yaml"));
 const path = __importStar(require("path"));
+const enums_1 = require("../models/enums");
 /**
  * ConfigImporter handles importing YAML config files
  * and parsing them back into Configuration objects.
@@ -109,10 +110,16 @@ class ConfigImporter {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             logicalChannels: logicalNames.map(name => ({
-                id: `lc_${name}`, name, type: channels[name]?.type || 'CAN', ...channels[name],
+                id: `lc_${name}`,
+                name,
+                ...channels[name],
+                type: enums_1.ChannelType.LOGICAL,
             })),
             hardwareChannels: hwNames.map(name => ({
-                id: `hw_${name}`, name, type: hardware[name]?.type || 'CAN_INTERFACE', ...hardware[name],
+                id: `hw_${name}`,
+                name,
+                ...hardware[name],
+                type: enums_1.ChannelType.HARDWARE,
             })),
             mappings: mappings.map((m, i) => ({
                 mappingId: `mapping_${i}`,

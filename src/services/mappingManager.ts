@@ -16,7 +16,6 @@ const PROTOCOL_COMPATIBILITY: Record<string, string[]> = {
   'BRIDGE':   ['CAN_INTERFACE', 'ETHERNET_ADAPTER', 'SERIAL_PORT'],
   'ANALOG':   ['ANALOG_DEVICE', 'TE_ANALOG'],
   'TE_ANALOG':['TE_ANALOG'],
-  'I2C':      ['SERIAL_PORT'],
 };
 
 export interface MappingValidationResult {

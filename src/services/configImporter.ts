@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 import { Configuration } from '../models';
+import { ChannelType } from '../models/enums';
 import { StorageService } from '../services/storageService';
 import { ConfigGenerator } from '../services/configGenerator';
 import { ChannelManager } from '../services/channelManager';
@@ -89,10 +90,16 @@ export class ConfigImporter {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       logicalChannels: logicalNames.map(name => ({
-        id: `lc_${name}`, name, type: channels[name]?.type || 'CAN', ...channels[name],
+        id: `lc_${name}`,
+        name,
+        ...channels[name],
+        type: ChannelType.LOGICAL,
       })),
       hardwareChannels: hwNames.map(name => ({
-        id: `hw_${name}`, name, type: hardware[name]?.type || 'CAN_INTERFACE', ...hardware[name],
+        id: `hw_${name}`,
+        name,
+        ...hardware[name],
+        type: ChannelType.HARDWARE,
       })),
       mappings: mappings.map((m: any, i: number) => ({
         mappingId: `mapping_${i}`,

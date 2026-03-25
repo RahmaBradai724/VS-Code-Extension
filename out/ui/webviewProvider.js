@@ -295,6 +295,8 @@ class WebviewProvider {
     }
     _getHtmlForWebview(webview) {
         const nonce = getNonce();
+        const logicalCategoryOptions = Object.values(enums_1.LogicalChannelCategory);
+        const hardwareCategoryOptions = Object.values(enums_1.HardwareChannelCategory);
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -388,10 +390,13 @@ class WebviewProvider {
     <h3>Logical Channels</h3>
     <div class="card">
       <div class="form-group">
+        <label>Category</label>
+        <select id="lc-category"></select>
+      </div>
+      <div class="form-group">
         <label>Subclass</label>
         <div id="lc-subclass-list" class="btn-row"></div>
         <input id="lc-subclass" type="hidden" />
-        <input id="lc-category" type="hidden" />
       </div>
       <div id="lc-fields-wrapper" style="display:none">
         <div class="form-group">
@@ -424,26 +429,13 @@ class WebviewProvider {
     <h3>Hardware Channels</h3>
     <div class="card">
       <div class="form-group">
-        <label>Name</label>
-        <input id="hw-name" type="text" placeholder="e.g. CAN_IF_0" />
-      </div>
-      <div class="form-group">
         <label>Category</label>
-        <select id="hw-category">
-          <option value="CAN_INTERFACE">CAN Interface</option>
-          <option value="ETHERNET_ADAPTER">Ethernet Adapter</option>
-          <option value="SERIAL_PORT">Serial Port</option>
-          <option value="RELAY_BOARD">Relay Board</option>
-          <option value="HID_RELAY">HID Relay</option>
-          <option value="ANALOG_DEVICE">Analog Device</option>
-          <option value="TE_ANALOG">TE Analog</option>
-          <option value="CM_INTERFACE">CM Interface</option>
-          <option value="HH_LOAD">HH Load</option>
-        </select>
+        <select id="hw-category"></select>
       </div>
       <div class="form-group">
         <label>Subclass</label>
-        <select id="hw-subclass"></select>
+        <div id="hw-subclass-list" class="btn-row"></div>
+        <input id="hw-subclass" type="hidden" />
       </div>
       <div id="hw-dynamic-attrs" style="border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">
         <!-- Dynamic fields go here -->
@@ -555,6 +547,7 @@ class WebviewProvider {
       if (tabName === 'mappings') { refreshMappingDropdowns(); }
       if (tabName === 'diagram') { renderDiagram(); }
       if (tabName === 'logical') { resetLogicalSubclassSelection(); }
+      if (tabName === 'hardware') { resetHardwareSubclassSelection(); }
     }
 
     // Initialize tab listeners
@@ -648,6 +641,12 @@ class WebviewProvider {
       vscode.postMessage({ command: 'importConfig' });
     });
 
+    const CHANNEL_TYPES = {
+      LOGICAL: '${enums_1.ChannelType.LOGICAL}',
+      HARDWARE: '${enums_1.ChannelType.HARDWARE}',
+    };
+    const LOGICAL_CATEGORY_OPTIONS = ${JSON.stringify(logicalCategoryOptions)};
+    const HARDWARE_CATEGORY_OPTIONS = ${JSON.stringify(hardwareCategoryOptions)};
     const LOGICAL_SUBCLASS_OPTIONS = [
       { value: 'FlexRayChannel', label: 'FlexRayChannel', category: 'FLEXRAY' },
       { value: 'SerialChannel', label: 'SerialChannel', category: 'SERIAL' },
@@ -661,34 +660,59 @@ class WebviewProvider {
       { value: 'EthernetChannel', label: 'EthernetChannel', category: 'ETHERNET' },
     ];
 
-    const HARDWARE_SUBCLASS_OPTIONS = {
-      'CAN_INTERFACE': [{ value: 'CANInterface', label: 'CANInterface' }, { value: 'CIBInterface', label: 'CIBInterface' }],
-      'ETHERNET_ADAPTER': [{ value: 'EthernetAdapter', label: 'EthernetAdapter' }],
-      'SERIAL_PORT': [{ value: 'SerialPort', label: 'SerialPort' }, { value: 'LINCard', label: 'LINCard' }],
-      'RELAY_BOARD': [{ value: 'RelayBoard', label: 'RelayBoard' }],
-      'HID_RELAY': [{ value: 'HIDRelay', label: 'HIDRelay' }],
-      'ANALOG_DEVICE': [{ value: 'AnalogDevice', label: 'AnalogDevice' }],
-      'TE_ANALOG': [{ value: 'TEAnalog', label: 'TEAnalog' }],
-      'CM_INTERFACE': [{ value: 'CMInterface', label: 'CMInterface' }],
-      'HH_LOAD': [{ value: 'HHLoad', label: 'HHLoad' }],
-    };
+    const HARDWARE_SUBCLASS_OPTIONS = [
+      { value: 'AnalogDevice', label: 'AnalogDevice', category: 'ANALOG_DEVICE' },
+      { value: 'TEAnalog', label: 'TEAnalog', category: 'TE_ANALOG' },
+      { value: 'EthernetAdapter', label: 'EthernetAdapter', category: 'ETHERNET_ADAPTER' },
+      { value: 'RelayBoard', label: 'RelayBoard', category: 'RELAY_BOARD' },
+      { value: 'HIDRelay', label: 'HIDRelay', category: 'HID_RELAY' },
+      { value: 'SerialPort', label: 'SerialPort', category: 'SERIAL_PORT' },
+      { value: 'CMInterface', label: 'CMInterface', category: 'CM_INTERFACE' },
+      { value: 'HHLoad', label: 'HHLoad', category: 'HH_LOAD' },
+    ];
 
-    function renderSubclassSelect(selectId, options) {
-      const select = document.getElementById(selectId);
-      select.innerHTML = options.map(o => \`<option value="\${o.value}">\${o.label}</option>\`).join('');
+    function renderLogicalCategoryOptions() {
+      const select = document.getElementById('lc-category');
+      select.innerHTML = '<option value="">-- Select Category --</option>' +
+        LOGICAL_CATEGORY_OPTIONS.map(category => \`<option value="\${category}">\${category}</option>\`).join('');
+    }
+
+    function renderHardwareCategoryOptions() {
+      const select = document.getElementById('hw-category');
+      select.innerHTML = '<option value="">-- Select Category --</option>' +
+        HARDWARE_CATEGORY_OPTIONS.map(category => \`<option value="\${category}">\${category}</option>\`).join('');
+    }
+
+    function buildAutoHardwareName(subclass) {
+      const count = state.hardwareChannels.filter(c => c.subclass === subclass).length + 1;
+      return \`\${subclass}_\${count}\`;
     }
 
     function collectDynamicValues(containerId, prefix) {
       const out = {};
       const container = document.getElementById(containerId);
-      const inputs = container.querySelectorAll('input, select');
+      const inputs = container.querySelectorAll('input, select, textarea');
       inputs.forEach(input => {
-        if (input.type !== 'checkbox' && !input.value) {
+        const rawValue = typeof input.value === 'string' ? input.value.trim() : input.value;
+        if (input.type !== 'checkbox' && !rawValue) {
           return;
         }
-        let val = input.value;
-        if (input.type === 'number') { val = parseFloat(val); }
+        let val = rawValue;
+        if (input.type === 'number') { val = parseFloat(rawValue); }
         if (input.type === 'checkbox') { val = input.checked; }
+        if (input.dataset.format === 'csv') {
+          val = rawValue.split(',').map(v => v.trim()).filter(Boolean);
+          if (val.length === 0) {
+            return;
+          }
+        }
+        if (input.dataset.format === 'json') {
+          try {
+            val = JSON.parse(rawValue);
+          } catch (error) {
+            throw new Error('Invalid JSON for ' + input.id.replace(prefix, '') + '.');
+          }
+        }
         out[input.id.replace(prefix, '')] = val;
       });
       return out;
@@ -710,7 +734,7 @@ class WebviewProvider {
         fieldsWrapper.style.display = 'block';
         renderDynamicLogicalFields(selectedOption.value);
       } else {
-        categoryInput.value = '';
+        categoryInput.value = categoryInput.value || '';
         fieldsWrapper.style.display = 'none';
         document.getElementById('lc-dynamic-attrs').innerHTML = '';
       }
@@ -783,10 +807,10 @@ class WebviewProvider {
         \`;
       } else if (subclass === 'EthernetChannel') {
         html += \`
-          <div class="form-group"><label>Name</label><input id="lc-attr-name" type="text" /></div>
+          <div class="form-group"><label>Ethernet Name</label><input id="lc-attr-ethernetName" type="text" placeholder="Defaults to channel name" /></div>
           <div class="form-group"><label>Friendly Name</label><input id="lc-attr-friendlyName" type="text" /></div>
           <div class="form-group"><label>Buffer Size</label><input id="lc-attr-bufferSize" type="number" /></div>
-          <div class="form-group"><label>pbIFilter</label><input id="lc-attr-pbIFilter" type="text" /></div>
+          <div class="form-group"><label>pblFilter</label><input id="lc-attr-pblFilter" type="text" /></div>
           <div class="form-group"><label>Timeout</label><input id="lc-attr-timeout" type="number" /></div>
           <div class="form-group"><label>Timestamp Precision</label><input id="lc-attr-timeStampPrecision" type="text" /></div>
           <div class="form-group"><label>Timestamp Source</label><input id="lc-attr-timeStampSource" type="text" /></div>
@@ -817,12 +841,15 @@ class WebviewProvider {
           <div class="form-group"><label>Static Channel</label><input id="lc-attr-staticChannel" type="checkbox" style="width:auto"/></div>
           <div class="form-group"><label>Init Value</label><input id="lc-attr-initValue" type="text" /></div>
           <div class="form-group"><label>Channel Type</label><input id="lc-attr-channelType" type="text" /></div>
+          <div class="form-group"><label>Measurement Config</label><textarea id="lc-attr-measurementConfig" data-format="csv" placeholder="value1, value2"></textarea></div>
           <div class="form-group"><label>PWM Window Time</label><input id="lc-attr-pwmWindowTime" type="number" /></div>
+          <div class="form-group"><label>Subscription Config</label><textarea id="lc-attr-subscriptionConfig" data-format="json" placeholder='{"topic":"example"}'></textarea></div>
         \`;
       } else if (subclass === 'BridgeChannel') {
         html += \`
-          <div class="form-group"><label>Name</label><input id="lc-attr-name" type="text" /></div>
+          <div class="form-group"><label>Bridge Name</label><input id="lc-attr-bridgeName" type="text" placeholder="Defaults to channel name" /></div>
           <div class="form-group"><label>Physical Adapter</label><input id="lc-attr-physicalAdapter" type="text" /></div>
+          <div class="form-group"><label>Tun/Tap Adapter List</label><textarea id="lc-attr-tunTapAdapterList" data-format="json" placeholder='[{"name":"tap0"}]'></textarea></div>
           <div class="form-group"><label>Manipulate Packets</label><input id="lc-attr-manipulatePackets" type="checkbox" style="width:auto"/></div>
         \`;
       }
@@ -831,11 +858,36 @@ class WebviewProvider {
     }
 
     function syncHardwareSubclassOptions() {
-      const category = document.getElementById('hw-category').value;
-      const options = HARDWARE_SUBCLASS_OPTIONS[category] || [];
-      renderSubclassSelect('hw-subclass', options);
-      const selected = document.getElementById('hw-subclass').value;
-      renderDynamicHardwareFields(selected);
+      const list = document.getElementById('hw-subclass-list');
+      const subclassInput = document.getElementById('hw-subclass');
+      const categoryInput = document.getElementById('hw-category');
+      const attrsContainer = document.getElementById('hw-dynamic-attrs');
+      const selected = subclassInput.value;
+
+      list.innerHTML = HARDWARE_SUBCLASS_OPTIONS.map(o => \`<button class="secondary hardware-subclass-btn \${o.value === selected ? 'active' : ''}" data-subclass="\${o.value}" data-category="\${o.category}">\${o.label}</button>\`).join('');
+
+      const selectedOption = HARDWARE_SUBCLASS_OPTIONS.find(o => o.value === selected);
+      if (selectedOption) {
+        categoryInput.value = selectedOption.category;
+        renderDynamicHardwareFields(selectedOption.value);
+      } else {
+        attrsContainer.innerHTML = '';
+      }
+
+      list.querySelectorAll('.hardware-subclass-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          subclassInput.value = btn.dataset.subclass;
+          categoryInput.value = btn.dataset.category;
+          syncHardwareSubclassOptions();
+        });
+      });
+    }
+
+    function resetHardwareSubclassSelection() {
+      document.getElementById('hw-subclass').value = '';
+      document.getElementById('hw-category').value = '';
+      document.getElementById('hw-dynamic-attrs').innerHTML = '';
+      syncHardwareSubclassOptions();
     }
 
     function renderDynamicHardwareFields(subclass) {
@@ -843,51 +895,38 @@ class WebviewProvider {
       container.innerHTML = '';
       let html = '';
 
-      if (subclass === 'CANInterface') {
+      if (subclass === 'RelayBoard') {
         html += \`
-          <div class="form-group"><label>Net Channel</label><input id="hw-attr-netChannel" type="number" /></div>
-          <div class="form-group"><label>Net HW Channel</label><input id="hw-attr-netHwChannel" type="number" /></div>
-        \`;
-      } else if (subclass === 'CIBInterface') {
-        html += \`
-          <div class="form-group"><label>Bit Rate</label><input id="hw-attr-bitRate" type="number" /></div>
-          <div class="form-group"><label>HW Channel</label><input id="hw-attr-hwChannel" type="number" /></div>
-        \`;
-      } else if (subclass === 'SerialPort') {
-        html += \`
-          <div class="form-group"><label>Port Name</label><input id="hw-attr-portName" type="text" /></div>
-          <div class="form-group"><label>Baud Rate</label><input id="hw-attr-baudRate" type="number" /></div>
-          <div class="form-group"><label>Parity</label><input id="hw-attr-parity" type="text" /></div>
-          <div class="form-group"><label>Data Bits</label><input id="hw-attr-dataBits" type="number" /></div>
-          <div class="form-group"><label>Stop Bits</label><input id="hw-attr-stopBits" type="text" /></div>
-          <div class="form-group"><label>Message Terminator</label><input id="hw-attr-messageTerminator" type="text" /></div>
-          <div class="form-group"><label>Separation Time (ms)</label><input id="hw-attr-separationTimeMs" type="number" /></div>
-          <div class="form-group"><label>Max Received Data Size</label><input id="hw-attr-maxReceivedDataSize" type="number" /></div>
-        \`;
-      } else if (subclass === 'LINCard') {
-        html += \`
-          <div class="form-group"><label>HW Model</label><input id="hw-attr-hwModel" type="number" /></div>
-          <div class="form-group"><label>HW Channel</label><input id="hw-attr-hwChannel" type="number" /></div>
+          <div class="form-group"><label>Relay Count</label><input id="hw-attr-relayCount" type="number" /></div>
+          <div class="form-group"><label>CAN Channel Name</label><input id="hw-attr-canChannelName" type="text" /></div>
+          <div class="form-group"><label>Board ID</label><input id="hw-attr-boardId" type="number" /></div>
+          <div class="form-group"><label>Relays</label><textarea id="hw-attr-relays" data-format="json" placeholder='{"relay1":{"state":true}}'></textarea></div>
         \`;
       } else if (subclass === 'EthernetAdapter') {
         html += \`
           <div class="form-group"><label>MAC Address</label><input id="hw-attr-macAddress" type="text" /></div>
           <div class="form-group"><label>IP Address</label><input id="hw-attr-ipAddress" type="text" /></div>
           <div class="form-group"><label>Friendly Name</label><input id="hw-attr-friendlyName" type="text" /></div>
+          <div class="form-group"><label>Interface</label><input id="hw-attr-interface" type="text" /></div>
           <div class="form-group"><label>Buffer Size</label><input id="hw-attr-bufferSize" type="number" /></div>
+          <div class="form-group"><label>BP Filter</label><input id="hw-attr-bpFilter" type="text" /></div>
           <div class="form-group"><label>Timeout</label><input id="hw-attr-timeout" type="number" /></div>
+          <div class="form-group"><label>Timestamp Precision</label><input id="hw-attr-timeStampPrecision" type="text" /></div>
+          <div class="form-group"><label>Timestamp Source</label><input id="hw-attr-timeStampSource" type="text" /></div>
+          <div class="form-group"><label>Immediate Mode</label><input id="hw-attr-immediateMode" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>SnapShot Length</label><input id="hw-attr-snapShotLength" type="number" /></div>
+          <div class="form-group"><label>PCAP Device Mode</label><input id="hw-attr-pcapDeviceMode" type="text" /></div>
+          <div class="form-group"><label>Use DataLogger TimeStamp</label><input id="hw-attr-useDataLoggerTimeStamp" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>Remove DataLogger MetaData</label><input id="hw-attr-removeDataLoggerMetaData" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>Data Logger Type</label><input id="hw-attr-dataLoggerType" type="text" /></div>
+          <div class="form-group"><label>Packet Processing Active</label><input id="hw-attr-packetProcessingActive" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>Packet Identification Active</label><input id="hw-attr-packetIdentificationActive" type="checkbox" style="width:auto"/></div>
         \`;
-      } else if (subclass === 'RelayBoard') {
+      } else if (subclass === 'TEAnalog') {
         html += \`
-          <div class="form-group"><label>Relay Count</label><input id="hw-attr-relayCount" type="number" /></div>
-          <div class="form-group"><label>Channel Name</label><input id="hw-attr-channelName" type="text" /></div>
-          <div class="form-group"><label>Board ID</label><input id="hw-attr-boardId" type="number" /></div>
-        \`;
-      } else if (subclass === 'HIDRelay') {
-        html += \`
-          <div class="form-group"><label>Vendor ID</label><input id="hw-attr-vendorId" type="text" /></div>
-          <div class="form-group"><label>Product ID</label><input id="hw-attr-productId" type="text" /></div>
-          <div class="form-group"><label>Device Serial</label><input id="hw-attr-deviceSerial" type="text" /></div>
+          <div class="form-group"><label>Sensor Type</label><input id="hw-attr-sensorType" type="text" /></div>
+          <div class="form-group"><label>HW Channel</label><input id="hw-attr-hwChannel" type="number" /></div>
+          <div class="form-group"><label>Device ID</label><input id="hw-attr-deviceId" type="number" /></div>
         \`;
       } else if (subclass === 'AnalogDevice') {
         html += \`
@@ -895,30 +934,49 @@ class WebviewProvider {
           <div class="form-group"><label>Resolution</label><input id="hw-attr-resolution" type="number" /></div>
           <div class="form-group"><label>Measurement Attribute</label><input id="hw-attr-measurementAttribute" type="text" /></div>
           <div class="form-group"><label>HW Channel</label><input id="hw-attr-hwChannel" type="number" /></div>
-          <div class="form-group"><label>Line Contact State</label><input id="hw-attr-lineContactState" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>In Contact State</label><input id="hw-attr-inContactState" type="checkbox" style="width:auto"/></div>
           <div class="form-group"><label>GND Contact State</label><input id="hw-attr-gndContactState" type="checkbox" style="width:auto"/></div>
           <div class="form-group"><label>VBAT Contact State</label><input id="hw-attr-vbatContactState" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>Static Channel</label><input id="hw-attr-staticChannel" type="checkbox" style="width:auto"/></div>
+          <div class="form-group"><label>Init Value</label><input id="hw-attr-initValue" type="text" /></div>
           <div class="form-group"><label>Function</label><input id="hw-attr-function" type="text" /></div>
           <div class="form-group"><label>Channel Type</label><input id="hw-attr-channelType" type="text" /></div>
           <div class="form-group"><label>PWM Window Time</label><input id="hw-attr-pwmWindowTime" type="number" /></div>
-        \`;
-      } else if (subclass === 'TEAnalog') {
-        html += \`
-          <div class="form-group"><label>Sensor Type</label><input id="hw-attr-sensorType" type="text" /></div>
-          <div class="form-group"><label>Device ID</label><input id="hw-attr-deviceId" type="number" /></div>
-        \`;
-      } else if (subclass === 'CMInterface') {
-        html += \`
-          <div class="form-group"><label>Interface Name</label><input id="hw-attr-interfaceName" type="text" /></div>
-          <div class="form-group"><label>Bitrate</label><input id="hw-attr-bitrate" type="number" /></div>
         \`;
       } else if (subclass === 'HHLoad') {
         html += \`
           <div class="form-group"><label>Max Load</label><input id="hw-attr-maxLoad" type="number" /></div>
           <div class="form-group"><label>Device ID</label><input id="hw-attr-deviceId" type="number" /></div>
-          <div class="form-group"><label>Bit Rate</label><input id="hw-attr-bitRate" type="number" /></div>
-          <div class="form-group"><label>Flag</label><input id="hw-attr-flag" type="checkbox" style="width:auto"/></div>
           <div class="form-group"><label>Port Name</label><input id="hw-attr-portName" type="text" /></div>
+          <div class="form-group"><label>Bit Rate</label><input id="hw-attr-bitRate" type="number" /></div>
+          <div class="form-group"><label>Type</label><input id="hw-attr-loadType" type="text" /></div>
+          <div class="form-group"><label>Channels</label><textarea id="hw-attr-channels" data-format="json" placeholder='{"1":{"name":"load1"}}'></textarea></div>
+        \`;
+      } else if (subclass === 'SerialPort') {
+        html += \`
+          <div class="form-group"><label>Port Name</label><input id="hw-attr-portName" type="text" /></div>
+          <div class="form-group"><label>Baud Rate</label><input id="hw-attr-baudRate" type="number" /></div>
+          <div class="form-group"><label>Parity</label><input id="hw-attr-parity" type="text" /></div>
+          <div class="form-group"><label>Data Bits</label><input id="hw-attr-dataBits" type="number" /></div>
+          <div class="form-group"><label>Stop Bits</label><input id="hw-attr-stopBits" type="number" /></div>
+          <div class="form-group"><label>Flow Control</label><input id="hw-attr-flowControl" type="text" /></div>
+          <div class="form-group"><label>Message Terminator</label><input id="hw-attr-messageTerminator" type="text" /></div>
+          <div class="form-group"><label>Separation Times</label><input id="hw-attr-separationTimes" type="number" /></div>
+          <div class="form-group"><label>Max Received Data Size</label><input id="hw-attr-maxReceivedDataSize" type="number" /></div>
+        \`;
+      } else if (subclass === 'HIDRelay') {
+        html += \`
+          <div class="form-group"><label>Vendor ID</label><input id="hw-attr-vendorId" type="text" /></div>
+          <div class="form-group"><label>Product ID</label><input id="hw-attr-productId" type="text" /></div>
+          <div class="form-group"><label>Device Serial</label><input id="hw-attr-deviceSerial" type="text" /></div>
+          <div class="form-group"><label>Relays</label><textarea id="hw-attr-relays" data-format="json" placeholder='{"relay1":{"state":true}}'></textarea></div>
+        \`;
+      } else if (subclass === 'CMInterface') {
+        html += \`
+          <div class="form-group"><label>Interface Name</label><input id="hw-attr-interfaceName" type="text" /></div>
+          <div class="form-group"><label>Type</label><select id="hw-attr-captureType"><option value="FLEXRAY">FLEXRAY</option><option value="ETHERNET">ETHERNET</option><option value="CAN">CAN</option></select></div>
+          <div class="form-group"><label>Bitrate</label><input id="hw-attr-bitrate" type="number" /></div>
+          <div class="form-group"><label>HW Channel</label><input id="hw-attr-hwChannel" type="number" /></div>
         \`;
       }
 
@@ -926,62 +984,78 @@ class WebviewProvider {
     }
 
     document.getElementById('btn-add-logical').addEventListener('click', () => {
-      const name = document.getElementById('lc-name').value.trim();
-      const category = document.getElementById('lc-category').value;
-      const subclass = document.getElementById('lc-subclass').value;
-      const loggingName = document.getElementById('lc-logging-name').value.trim();
-      const tracerName = document.getElementById('lc-tracer-name').value.trim();
-      const aliasRaw = document.getElementById('lc-alias').value.trim();
+      try {
+        const name = document.getElementById('lc-name').value.trim();
+        const category = document.getElementById('lc-category').value;
+        const subclass = document.getElementById('lc-subclass').value;
+        const loggingName = document.getElementById('lc-logging-name').value.trim();
+        const tracerName = document.getElementById('lc-tracer-name').value.trim();
+        const aliasRaw = document.getElementById('lc-alias').value.trim();
 
-      if (!name) { showGlobal('Enter a channel name.', 'error'); return; }
-      if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
-      if (!category) { showGlobal('Select a logical category.', 'error'); return; }
-      if (!subclass) { showGlobal('Select a logical subclass.', 'error'); return; }
+        if (!name) { showGlobal('Enter a channel name.', 'error'); return; }
+        if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
+        if (!category) { showGlobal('Select a logical category.', 'error'); return; }
+        if (!subclass) { showGlobal('Select a logical subclass.', 'error'); return; }
 
-      const channelData = {
-        id: 'lc_' + Date.now(),
-        name,
-        type: 'LOGICAL',
-        category,
-        subclass,
-        loggingName: loggingName || undefined,
-        tracerName: tracerName || undefined,
-        alias: aliasRaw ? aliasRaw.split(',').map(a => a.trim()) : undefined,
-        ...collectDynamicValues('lc-dynamic-attrs', 'lc-attr-'),
-      };
+        const channelData = {
+          id: 'lc_' + Date.now(),
+          name,
+          type: CHANNEL_TYPES.LOGICAL,
+          category,
+          subclass,
+          loggingName: loggingName || undefined,
+          tracerName: tracerName || undefined,
+          alias: aliasRaw ? aliasRaw.split(',').map(a => a.trim()) : undefined,
+          ...collectDynamicValues('lc-dynamic-attrs', 'lc-attr-'),
+        };
 
-      vscode.postMessage({ command: 'addLogicalChannel', channel: channelData });
+        if (subclass === 'BridgeChannel' && !channelData.bridgeName) {
+          channelData.bridgeName = name;
+        }
+        if (subclass === 'EthernetChannel' && !channelData.ethernetName) {
+          channelData.ethernetName = name;
+        }
 
-      document.getElementById('lc-name').value = '';
-      document.getElementById('lc-logging-name').value = '';
-      document.getElementById('lc-tracer-name').value = '';
-      document.getElementById('lc-alias').value = '';
-      resetLogicalSubclassSelection();
+        vscode.postMessage({ command: 'addLogicalChannel', channel: channelData });
+
+        document.getElementById('lc-name').value = '';
+        document.getElementById('lc-logging-name').value = '';
+        document.getElementById('lc-tracer-name').value = '';
+        document.getElementById('lc-alias').value = '';
+        resetLogicalSubclassSelection();
+      } catch (error) {
+        showGlobal(error.message || 'Unable to collect logical channel attributes.', 'error');
+      }
     });
 
     document.getElementById('btn-add-hardware').addEventListener('click', () => {
-      const name = document.getElementById('hw-name').value.trim();
-      const category = document.getElementById('hw-category').value;
-      const subclass = document.getElementById('hw-subclass').value;
-      if (!name) { showGlobal('Enter a hardware channel name.', 'error'); return; }
-      if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
-      const id = 'hw_' + Date.now();
-      const channelData = {
-        id,
-        name,
-        type: 'HARDWARE',
-        category,
-        subclass,
-        ...collectDynamicValues('hw-dynamic-attrs', 'hw-attr-'),
-      };
-      vscode.postMessage({ command: 'addHardwareChannel', channel: channelData });
-      document.getElementById('hw-name').value = '';
+      try {
+        const category = document.getElementById('hw-category').value;
+        const subclass = document.getElementById('hw-subclass').value;
+        if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
+        if (!category) { showGlobal('Select a hardware category.', 'error'); return; }
+        if (!subclass) { showGlobal('Select a hardware subclass.', 'error'); return; }
+        const id = 'hw_' + Date.now();
+        const channelData = {
+          id,
+          name: buildAutoHardwareName(subclass),
+          type: CHANNEL_TYPES.HARDWARE,
+          category,
+          subclass,
+          ...collectDynamicValues('hw-dynamic-attrs', 'hw-attr-'),
+        };
+        vscode.postMessage({ command: 'addHardwareChannel', channel: channelData });
+        resetHardwareSubclassSelection();
+      } catch (error) {
+        showGlobal(error.message || 'Unable to collect hardware channel attributes.', 'error');
+      }
+    });
+
+    document.getElementById('hw-category').addEventListener('change', () => {
+      document.getElementById('hw-subclass').value = '';
       document.getElementById('hw-dynamic-attrs').innerHTML = '';
       syncHardwareSubclassOptions();
     });
-
-    document.getElementById('hw-category').addEventListener('change', () => syncHardwareSubclassOptions());
-    document.getElementById('hw-subclass').addEventListener('change', (e) => renderDynamicHardwareFields(e.target.value));
 
     document.getElementById('btn-add-mapping').addEventListener('click', () => {
       const logicalId = document.getElementById('map-logical').value;
@@ -1145,8 +1219,10 @@ class WebviewProvider {
     }
 
     // ── Init ─────────────────────────────────────────────────────────────
+    renderLogicalCategoryOptions();
+    renderHardwareCategoryOptions();
     resetLogicalSubclassSelection();
-    syncHardwareSubclassOptions();
+    resetHardwareSubclassSelection();
     vscode.postMessage({ command: 'getConfigurations' });
   </script>
 </body>

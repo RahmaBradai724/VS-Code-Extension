@@ -16,14 +16,11 @@ var LogicalChannelCategory;
     LogicalChannelCategory["IOOUTPUT"] = "IOOUTPUT";
     LogicalChannelCategory["IOINPUT"] = "IOINPUT";
     LogicalChannelCategory["IOSERIAL"] = "IOSERIAL";
-    // Backward compatible alias
-    LogicalChannelCategory["IDSERIAL"] = "IOSERIAL";
     LogicalChannelCategory["SERIAL"] = "SERIAL";
-    LogicalChannelCategory["I2C"] = "I2C";
+    LogicalChannelCategory["PS"] = "PS";
     LogicalChannelCategory["BRIDGE"] = "BRIDGE";
     LogicalChannelCategory["ANALOG"] = "ANALOG";
     LogicalChannelCategory["TE_ANALOG"] = "TE_ANALOG";
-    LogicalChannelCategory["PS"] = "PS";
 })(LogicalChannelCategory || (exports.LogicalChannelCategory = LogicalChannelCategory = {}));
 var ChannelType;
 (function (ChannelType) {

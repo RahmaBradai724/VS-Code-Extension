@@ -67,6 +67,12 @@ let SerialPort = class SerialPort extends channel_1.HardwareChannel {
         this.separationTimeMs = 0;
         this.maxReceivedDataSize = 0;
     }
+    get separationTimes() {
+        return this.separationTimeMs;
+    }
+    set separationTimes(value) {
+        this.separationTimeMs = value;
+    }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
@@ -77,7 +83,7 @@ let SerialPort = class SerialPort extends channel_1.HardwareChannel {
             parity: this.parity, dataBits: this.dataBits,
             stopBits: this.stopBits, flowControl: this.flowControl,
             messageTerminator: this.messageTerminator,
-            separationTimeMs: this.separationTimeMs,
+            separationTimes: this.separationTimes,
             maxReceivedDataSize: this.maxReceivedDataSize
         };
     }
@@ -175,13 +181,19 @@ let RelayBoard = class RelayBoard extends channel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.RELAY_BOARD, enums_1.HardwareChannelSubclass.RELAY_BOARD);
     }
+    get canChannelName() {
+        return this.channelName;
+    }
+    set canChannelName(value) {
+        this.channelName = value;
+    }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            relayCount: this.relayCount, channelName: this.channelName,
+            relayCount: this.relayCount, canChannelName: this.canChannelName,
             boardId: this.boardId, relays: this.relays
         };
     }
@@ -234,6 +246,12 @@ let EthernetAdapter = class EthernetAdapter extends channel_1.HardwareChannel {
         this.packetProcessingActive = false;
         this.packetIdentificationActive = false;
     }
+    get snapShotLength() {
+        return this.snapshotLength;
+    }
+    set snapShotLength(value) {
+        this.snapshotLength = value;
+    }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
@@ -245,7 +263,7 @@ let EthernetAdapter = class EthernetAdapter extends channel_1.HardwareChannel {
             bufferSize: this.bufferSize, bpFilter: this.bpFilter,
             timeout: this.timeout, timeStampPrecision: this.timeStampPrecision,
             timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
-            snapshotLength: this.snapshotLength, pcapDeviceMode: this.pcapDeviceMode,
+            snapShotLength: this.snapShotLength, pcapDeviceMode: this.pcapDeviceMode,
             useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
             removeDataLoggerMetaData: this.removeDataLoggerMetaData,
             dataLoggerType: this.dataLoggerType,
@@ -337,6 +355,12 @@ let AnalogDevice = class AnalogDevice extends channel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.ANALOG_DEVICE, enums_1.HardwareChannelSubclass.ANALOG_DEVICE);
     }
+    get inContactState() {
+        return this.lineContactState;
+    }
+    set inContactState(value) {
+        this.lineContactState = value;
+    }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
@@ -345,7 +369,7 @@ let AnalogDevice = class AnalogDevice extends channel_1.HardwareChannel {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             channels: this.channels, resolution: this.resolution,
             measurementAttribute: this.measurementAttribute, hwChannel: this.hwChannel,
-            lineContactState: this.lineContactState, gndContactState: this.gndContactState,
+            inContactState: this.inContactState, gndContactState: this.gndContactState,
             vbatContactState: this.vbatContactState, staticChannel: this.staticChannel,
             initValue: this.initValue, function: this.function,
             channelType: this.channelType, pwmWindowTime: this.pwmWindowTime,

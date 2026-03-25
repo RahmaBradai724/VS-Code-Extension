@@ -2,6 +2,10 @@ import { ChildEntity, Column } from 'typeorm';
 import { LogicalChannel } from './channel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from './enums';
 
+export interface TunTapAdapter {
+  [key: string]: unknown;
+}
+
 // ─────────────────────────────────────────────
 //  FlexRay Logical Channel
 // ─────────────────────────────────────────────
@@ -194,7 +198,7 @@ export class IOInputChannel extends LogicalChannel {
   pwmWindowTime?: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  subscriptionConfig?: object;
+  subscriptionConfig?: Record<string, unknown>;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.IOINPUT, LogicalChannelSubclass.IOINPUT);
@@ -257,7 +261,7 @@ export class IOOutputChannel extends LogicalChannel {
   pwmWindowTime?: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  subscriptionConfig?: object;
+  subscriptionConfig?: Record<string, unknown>;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.IOOUTPUT, LogicalChannelSubclass.IOOUTPUT);
@@ -350,22 +354,27 @@ export class IPSChannel extends LogicalChannel {
 @ChildEntity(LogicalChannelSubclass.BRIDGE)
 export class BridgeChannel extends LogicalChannel {
   @Column({ nullable: true })
+  bridgeName?: string;
+
+  @Column({ nullable: true })
   physicalAdapter?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  tunTapAdapterList?: object[];
+  tunTapAdapterList?: TunTapAdapter[];
 
   @Column({ nullable: true })
   manipulatePackets?: boolean;
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.BRIDGE, LogicalChannelSubclass.BRIDGE);
+    this.bridgeName = name;
   }
 
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      bridgeName: this.bridgeName ?? this.name,
       physicalAdapter: this.physicalAdapter,
       tunTapAdapterList: this.tunTapAdapterList,
       manipulatePackets: this.manipulatePackets
@@ -438,13 +447,16 @@ export class PSChannel extends LogicalChannel {
 @ChildEntity(LogicalChannelSubclass.ETHERNET)
 export class EthernetChannel extends LogicalChannel {
   @Column({ nullable: true })
+  ethernetName?: string;
+
+  @Column({ nullable: true })
   friendlyName?: string;
 
   @Column({ nullable: true })
   bufferSize?: number;
 
   @Column({ nullable: true })
-  pbIFilter?: string;
+  pblFilter?: string;
 
   @Column({ nullable: true })
   timeout?: number;
@@ -487,14 +499,24 @@ export class EthernetChannel extends LogicalChannel {
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.ETHERNET, LogicalChannelSubclass.ETHERNET);
+    this.ethernetName = name;
+  }
+
+  get pbIFilter(): string | undefined {
+    return this.pblFilter;
+  }
+
+  set pbIFilter(value: string | undefined) {
+    this.pblFilter = value;
   }
 
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+      ethernetName: this.ethernetName ?? this.name,
       friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-      pbIFilter: this.pbIFilter, timeout: this.timeout,
+      pblFilter: this.pblFilter, timeout: this.timeout,
       timeStampPrecision: this.timeStampPrecision,
       timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
       snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,

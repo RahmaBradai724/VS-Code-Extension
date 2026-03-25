@@ -430,11 +430,13 @@ exports.IPSChannel = IPSChannel = __decorate([
 let BridgeChannel = class BridgeChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.BRIDGE, enums_1.LogicalChannelSubclass.BRIDGE);
+        this.bridgeName = name;
     }
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            bridgeName: this.bridgeName ?? this.name,
             physicalAdapter: this.physicalAdapter,
             tunTapAdapterList: this.tunTapAdapterList,
             manipulatePackets: this.manipulatePackets
@@ -445,6 +447,10 @@ let BridgeChannel = class BridgeChannel extends channel_1.LogicalChannel {
     }
 };
 exports.BridgeChannel = BridgeChannel;
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], BridgeChannel.prototype, "bridgeName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
@@ -520,13 +526,21 @@ exports.PSChannel = PSChannel = __decorate([
 let EthernetChannel = class EthernetChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.ETHERNET, enums_1.LogicalChannelSubclass.ETHERNET);
+        this.ethernetName = name;
+    }
+    get pbIFilter() {
+        return this.pblFilter;
+    }
+    set pbIFilter(value) {
+        this.pblFilter = value;
     }
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            ethernetName: this.ethernetName ?? this.name,
             friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-            pbIFilter: this.pbIFilter, timeout: this.timeout,
+            pblFilter: this.pblFilter, timeout: this.timeout,
             timeStampPrecision: this.timeStampPrecision,
             timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
             snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,
@@ -547,6 +561,10 @@ exports.EthernetChannel = EthernetChannel;
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
+], EthernetChannel.prototype, "ethernetName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], EthernetChannel.prototype, "friendlyName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
@@ -555,7 +573,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], EthernetChannel.prototype, "pbIFilter", void 0);
+], EthernetChannel.prototype, "pblFilter", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)

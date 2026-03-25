@@ -17,7 +17,6 @@ const PROTOCOL_COMPATIBILITY = {
     'BRIDGE': ['CAN_INTERFACE', 'ETHERNET_ADAPTER', 'SERIAL_PORT'],
     'ANALOG': ['ANALOG_DEVICE', 'TE_ANALOG'],
     'TE_ANALOG': ['TE_ANALOG'],
-    'I2C': ['SERIAL_PORT'],
 };
 /**
  * MappingManager handles creation, deletion, and validation of

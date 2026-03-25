@@ -72,6 +72,14 @@ export class SerialPort extends HardwareChannel {
     super(id, name, HardwareChannelCategory.SERIAL_PORT, HardwareChannelSubclass.SERIAL_PORT);
   }
 
+  get separationTimes(): number {
+    return this.separationTimeMs;
+  }
+
+  set separationTimes(value: number) {
+    this.separationTimeMs = value;
+  }
+
   canDelete(mappingIds: string[]): boolean {
     return !mappingIds.includes(this.id);
   }
@@ -83,7 +91,7 @@ export class SerialPort extends HardwareChannel {
       parity: this.parity, dataBits: this.dataBits,
       stopBits: this.stopBits, flowControl: this.flowControl,
       messageTerminator: this.messageTerminator,
-      separationTimeMs: this.separationTimeMs,
+      separationTimes: this.separationTimes,
       maxReceivedDataSize: this.maxReceivedDataSize
     };
   }
@@ -152,6 +160,14 @@ export class RelayBoard extends HardwareChannel {
     super(id, name, HardwareChannelCategory.RELAY_BOARD, HardwareChannelSubclass.RELAY_BOARD);
   }
 
+  get canChannelName(): string | undefined {
+    return this.channelName;
+  }
+
+  set canChannelName(value: string | undefined) {
+    this.channelName = value;
+  }
+
   canDelete(mappingIds: string[]): boolean {
     return !mappingIds.includes(this.id);
   }
@@ -159,7 +175,7 @@ export class RelayBoard extends HardwareChannel {
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-      relayCount: this.relayCount, channelName: this.channelName,
+      relayCount: this.relayCount, canChannelName: this.canChannelName,
       boardId: this.boardId, relays: this.relays
     };
   }
@@ -229,6 +245,14 @@ export class EthernetAdapter extends HardwareChannel {
     super(id, name, HardwareChannelCategory.ETHERNET_ADAPTER, HardwareChannelSubclass.ETHERNET_ADAPTER);
   }
 
+  get snapShotLength(): number {
+    return this.snapshotLength;
+  }
+
+  set snapShotLength(value: number) {
+    this.snapshotLength = value;
+  }
+
   canDelete(mappingIds: string[]): boolean {
     return !mappingIds.includes(this.id);
   }
@@ -241,7 +265,7 @@ export class EthernetAdapter extends HardwareChannel {
       bufferSize: this.bufferSize, bpFilter: this.bpFilter,
       timeout: this.timeout, timeStampPrecision: this.timeStampPrecision,
       timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
-      snapshotLength: this.snapshotLength, pcapDeviceMode: this.pcapDeviceMode,
+      snapShotLength: this.snapShotLength, pcapDeviceMode: this.pcapDeviceMode,
       useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
       removeDataLoggerMetaData: this.removeDataLoggerMetaData,
       dataLoggerType: this.dataLoggerType,
@@ -303,6 +327,14 @@ export class AnalogDevice extends HardwareChannel {
     super(id, name, HardwareChannelCategory.ANALOG_DEVICE, HardwareChannelSubclass.ANALOG_DEVICE);
   }
 
+  get inContactState(): boolean | undefined {
+    return this.lineContactState;
+  }
+
+  set inContactState(value: boolean | undefined) {
+    this.lineContactState = value;
+  }
+
   canDelete(mappingIds: string[]): boolean {
     return !mappingIds.includes(this.id);
   }
@@ -312,7 +344,7 @@ export class AnalogDevice extends HardwareChannel {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       channels: this.channels, resolution: this.resolution,
       measurementAttribute: this.measurementAttribute, hwChannel: this.hwChannel,
-      lineContactState: this.lineContactState, gndContactState: this.gndContactState,
+      inContactState: this.inContactState, gndContactState: this.gndContactState,
       vbatContactState: this.vbatContactState, staticChannel: this.staticChannel,
       initValue: this.initValue, function: this.function,
       channelType: this.channelType, pwmWindowTime: this.pwmWindowTime,

@@ -13,14 +13,11 @@ export enum LogicalChannelCategory {
   IOOUTPUT = 'IOOUTPUT',
   IOINPUT = 'IOINPUT',
   IOSERIAL = 'IOSERIAL',
-  // Backward compatible alias
-  IDSERIAL = 'IOSERIAL',
   SERIAL = 'SERIAL',
-  I2C = 'I2C',
+  PS = 'PS',
   BRIDGE = 'BRIDGE',
   ANALOG = 'ANALOG',
   TE_ANALOG = 'TE_ANALOG',
-  PS = 'PS',
 }
 
 export enum ChannelType {
@@ -50,9 +47,7 @@ export enum HardwareChannelCategory {
   RELAY_BOARD = 'RELAY_BOARD',
   HID_RELAY = 'HID_RELAY',
   ANALOG_DEVICE = 'ANALOG_DEVICE',
-  HID_LOAD = 'HID_LOAD',
   TE_ANALOG = 'TE_ANALOG',
-  CM_INTERFACE = 'CM_INTERFACE',
   HH_LOAD = 'HH_LOAD',
 }
 
