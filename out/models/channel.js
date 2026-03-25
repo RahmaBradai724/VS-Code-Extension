@@ -17,9 +17,22 @@ const configuration_1 = require("./configuration");
  * Abstract base class for all channels.
  */
 class Channel {
-    constructor(id, name) {
+    constructor(id, name, type) {
         this.id = id;
         this.name = name;
+        this.type = type;
+    }
+    create() {
+        return this;
+    }
+    getId() {
+        return this.id;
+    }
+    getName() {
+        return this.name;
+    }
+    getType() {
+        return this.type;
     }
 }
 exports.Channel = Channel;
@@ -32,6 +45,10 @@ __decorate([
     __metadata("design:type", String)
 ], Channel.prototype, "name", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar' }),
+    __metadata("design:type", String)
+], Channel.prototype, "type", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => configuration_1.Configuration),
     (0, typeorm_1.JoinColumn)({ name: 'config_id' }),
     __metadata("design:type", configuration_1.Configuration)
@@ -40,16 +57,21 @@ __decorate([
  * Abstract base class for all logical channels.
  */
 let LogicalChannel = class LogicalChannel extends Channel {
-    constructor(id, name, type) {
-        super(id, name);
-        this.type = type;
+    constructor(id, name, category, subclass) {
+        super(id, name, enums_1.ChannelType.LOGICAL);
+        this.category = category;
+        this.subclass = subclass;
     }
 };
 exports.LogicalChannel = LogicalChannel;
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
-], LogicalChannel.prototype, "type", void 0);
+], LogicalChannel.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar' }),
+    __metadata("design:type", String)
+], LogicalChannel.prototype, "subclass", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
@@ -64,16 +86,17 @@ __decorate([
 ], LogicalChannel.prototype, "alias", void 0);
 exports.LogicalChannel = LogicalChannel = __decorate([
     (0, typeorm_1.Entity)('logical_channels'),
-    (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'type' } }),
-    __metadata("design:paramtypes", [String, String, String])
+    (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'discriminator' } }),
+    __metadata("design:paramtypes", [String, String, String, String])
 ], LogicalChannel);
 /**
  * Abstract base class for all hardware channels.
  */
 let HardwareChannel = class HardwareChannel extends Channel {
-    constructor(id, name, type) {
-        super(id, name);
-        this.type = type;
+    constructor(id, name, category, subclass) {
+        super(id, name, enums_1.ChannelType.HARDWARE);
+        this.category = category;
+        this.subclass = subclass;
     }
     getStatus() {
         return this.status || 'Unknown';
@@ -86,14 +109,18 @@ exports.HardwareChannel = HardwareChannel;
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
-], HardwareChannel.prototype, "type", void 0);
+], HardwareChannel.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar' }),
+    __metadata("design:type", String)
+], HardwareChannel.prototype, "subclass", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], HardwareChannel.prototype, "status", void 0);
 exports.HardwareChannel = HardwareChannel = __decorate([
     (0, typeorm_1.Entity)('hardware_channels'),
-    (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'type' } }),
-    __metadata("design:paramtypes", [String, String, String])
+    (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'discriminator' } }),
+    __metadata("design:paramtypes", [String, String, String, String])
 ], HardwareChannel);
 //# sourceMappingURL=channel.js.map

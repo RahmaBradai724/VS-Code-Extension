@@ -1,11 +1,11 @@
 import { ChildEntity, Column } from 'typeorm';
 import { LogicalChannel } from './channel';
-import { LogicalChannelCategory } from './enums';
+import { LogicalChannelCategory, LogicalChannelSubclass } from './enums';
 
 // ─────────────────────────────────────────────
 //  FlexRay Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.FLEXRAY)
+@ChildEntity(LogicalChannelSubclass.FLEXRAY)
 export class FlexRayChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -23,12 +23,12 @@ export class FlexRayChannel extends LogicalChannel {
   operationMode?: string;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.FLEXRAY);
+    super(id, name, LogicalChannelCategory.FLEXRAY, LogicalChannelSubclass.FLEXRAY);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       hwChannel: this.hwChannel, keySlot: this.keySlot,
       nodeType: this.nodeType, wakeUpCluster: this.wakeUpCluster,
@@ -44,7 +44,7 @@ export class FlexRayChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Serial Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.SERIAL)
+@ChildEntity(LogicalChannelSubclass.SERIAL)
 export class SerialChannel extends LogicalChannel {
   @Column()
   portName: string = '';
@@ -77,12 +77,12 @@ export class SerialChannel extends LogicalChannel {
   serialChannelActivationOptional?: boolean;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.SERIAL);
+    super(id, name, LogicalChannelCategory.SERIAL, LogicalChannelSubclass.SERIAL);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       portName: this.portName, baudRate: this.baudRate,
       parity: this.parity, dataBits: this.dataBits,
@@ -102,7 +102,7 @@ export class SerialChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  CAN Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.CAN)
+@ChildEntity(LogicalChannelSubclass.CAN)
 export class CANChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -111,12 +111,12 @@ export class CANChannel extends LogicalChannel {
   operationMode?: string;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.CAN);
+    super(id, name, LogicalChannelCategory.CAN, LogicalChannelSubclass.CAN);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       hwChannel: this.hwChannel, operationMode: this.operationMode
     };
@@ -130,7 +130,7 @@ export class CANChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  CAN FD Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.CAN_FD)
+@ChildEntity(LogicalChannelSubclass.CAN_FD)
 export class CANFDChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -139,12 +139,12 @@ export class CANFDChannel extends LogicalChannel {
   operationMode?: string;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.CAN_FD);
+    super(id, name, LogicalChannelCategory.CAN_FD, LogicalChannelSubclass.CAN_FD);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       hwChannel: this.hwChannel, operationMode: this.operationMode
     };
@@ -158,7 +158,7 @@ export class CANFDChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IO Input Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.IOINPUT)
+@ChildEntity(LogicalChannelSubclass.IOINPUT)
 export class IOInputChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -197,12 +197,12 @@ export class IOInputChannel extends LogicalChannel {
   subscriptionConfig?: object;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.IOINPUT);
+    super(id, name, LogicalChannelCategory.IOINPUT, LogicalChannelSubclass.IOINPUT);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
       function: this.function, lineContactState: this.lineContactState,
@@ -221,7 +221,7 @@ export class IOInputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IO Output Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.IOOUTPUT)
+@ChildEntity(LogicalChannelSubclass.IOOUTPUT)
 export class IOOutputChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -260,12 +260,12 @@ export class IOOutputChannel extends LogicalChannel {
   subscriptionConfig?: object;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.IOOUTPUT);
+    super(id, name, LogicalChannelCategory.IOOUTPUT, LogicalChannelSubclass.IOOUTPUT);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
       function: this.function, lineContactState: this.lineContactState,
@@ -284,7 +284,7 @@ export class IOOutputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  LIN Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.LIN)
+@ChildEntity(LogicalChannelSubclass.LIN)
 export class LINChannel extends LogicalChannel {
   @Column({ nullable: true })
   protocol?: string;
@@ -296,12 +296,12 @@ export class LINChannel extends LogicalChannel {
   operationMode?: string;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.LIN);
+    super(id, name, LogicalChannelCategory.LIN, LogicalChannelSubclass.LIN);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       protocol: this.protocol, hwChannel: this.hwChannel,
       operationMode: this.operationMode
@@ -316,7 +316,7 @@ export class LINChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IPS Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.IDSERIAL)
+@ChildEntity(LogicalChannelSubclass.IOSERIAL)
 export class IPSChannel extends LogicalChannel {
   @Column()
   openSession: number = 0;
@@ -328,12 +328,12 @@ export class IPSChannel extends LogicalChannel {
   openSessionFields: string = '';
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.IDSERIAL);
+    super(id, name, LogicalChannelCategory.IOSERIAL, LogicalChannelSubclass.IOSERIAL);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       openSession: this.openSession
     };
@@ -347,7 +347,7 @@ export class IPSChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Bridge Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.BRIDGE)
+@ChildEntity(LogicalChannelSubclass.BRIDGE)
 export class BridgeChannel extends LogicalChannel {
   @Column({ nullable: true })
   physicalAdapter?: string;
@@ -359,12 +359,12 @@ export class BridgeChannel extends LogicalChannel {
   manipulatePackets?: boolean;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.BRIDGE);
+    super(id, name, LogicalChannelCategory.BRIDGE, LogicalChannelSubclass.BRIDGE);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       physicalAdapter: this.physicalAdapter,
       tunTapAdapterList: this.tunTapAdapterList,
@@ -386,7 +386,7 @@ export interface HardwareChannel_Ref {
 // ─────────────────────────────────────────────
 //  Analog Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.ANALOG)
+@ChildEntity(LogicalChannelSubclass.ANALOG)
 export class AnalogChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -395,12 +395,12 @@ export class AnalogChannel extends LogicalChannel {
   deviceId?: number;
 
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.ANALOG);
+    super(id, name, LogicalChannelCategory.ANALOG, LogicalChannelSubclass.ANALOG);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       hwChannel: this.hwChannel, deviceId: this.deviceId
     };
@@ -414,15 +414,15 @@ export class AnalogChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  PS Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.PS)
+@ChildEntity(LogicalChannelSubclass.PS)
 export class PSChannel extends LogicalChannel {
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.PS);
+    super(id, name, LogicalChannelCategory.PS, LogicalChannelSubclass.PS);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
     };
   }
@@ -435,7 +435,7 @@ export class PSChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Ethernet Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelCategory.ETHERNET)
+@ChildEntity(LogicalChannelSubclass.ETHERNET)
 export class EthernetChannel extends LogicalChannel {
   @Column({ nullable: true })
   friendlyName?: string;
@@ -444,7 +444,7 @@ export class EthernetChannel extends LogicalChannel {
   bufferSize?: number;
 
   @Column({ nullable: true })
-  pblFilter?: string;
+  pbIFilter?: string;
 
   @Column({ nullable: true })
   timeout?: number;
@@ -468,27 +468,43 @@ export class EthernetChannel extends LogicalChannel {
   useDataLoggerTimeStamp?: boolean;
 
   @Column({ nullable: true })
-  removedDataLoggerMetaData?: boolean;
+  removeDataLoggerMetaData?: boolean;
 
   @Column({ nullable: true })
   dataLoggerType?: string;
 
+  @Column({ nullable: true })
+  packetProcessingActive?: boolean;
+
+  @Column({ nullable: true })
+  packetIdentificationActive?: boolean;
+
+  @Column({ nullable: true })
+  differentHandlerForTxAndRx?: boolean;
+
+  @Column({ nullable: true })
+  tccmPacketizationActive?: boolean;
+
   constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.ETHERNET);
+    super(id, name, LogicalChannelCategory.ETHERNET, LogicalChannelSubclass.ETHERNET);
   }
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-      pblFilter: this.pblFilter, timeout: this.timeout,
+      pbIFilter: this.pbIFilter, timeout: this.timeout,
       timeStampPrecision: this.timeStampPrecision,
       timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
       snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,
       useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
-      removedDataLoggerMetaData: this.removedDataLoggerMetaData,
-      dataLoggerType: this.dataLoggerType
+      removeDataLoggerMetaData: this.removeDataLoggerMetaData,
+      dataLoggerType: this.dataLoggerType,
+      packetProcessingActive: this.packetProcessingActive,
+      packetIdentificationActive: this.packetIdentificationActive,
+      differentHandlerForTxAndRx: this.differentHandlerForTxAndRx,
+      tccmPacketizationActive: this.tccmPacketizationActive
     };
   }
 

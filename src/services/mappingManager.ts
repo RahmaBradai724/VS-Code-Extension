@@ -10,7 +10,7 @@ const PROTOCOL_COMPATIBILITY: Record<string, string[]> = {
   'FR':       ['CAN_INTERFACE', 'ETHERNET_ADAPTER'],
   'ETHERNET': ['ETHERNET_ADAPTER'],
   'SERIAL':   ['SERIAL_PORT'],
-  'IDSERIAL': ['SERIAL_PORT'],
+  'IOSERIAL': ['SERIAL_PORT'],
   'IOINPUT':  ['RELAY_BOARD', 'HID_RELAY', 'ANALOG_DEVICE'],
   'IOOUTPUT': ['RELAY_BOARD', 'HID_RELAY', 'ANALOG_DEVICE'],
   'BRIDGE':   ['CAN_INTERFACE', 'ETHERNET_ADAPTER', 'SERIAL_PORT'],
@@ -65,8 +65,8 @@ export class MappingManager {
     const frameworkConfigId = "default"; // Placeholder or should be passed
     const mapping = new Mapping(mappingId, configurationId, logicalChannelId, logical.name, hardwareChannelId, frameworkConfigId);
     mapping.hardwareChannelName = hardware.name;
-    mapping.logicalChannelType = logical.type;
-    mapping.hardwareChannelType = hardware.type;
+    mapping.logicalChannelType = logical.category;
+    mapping.hardwareChannelType = hardware.category;
 
     this.mappings.set(mappingId, mapping);
     this.channelManager.registerMappingForChannel(logicalChannelId, mappingId);
@@ -103,10 +103,10 @@ export class MappingManager {
 
   validateCompatibility(logical: LogicalChannel, hardware: HardwareChannel): MappingValidationResult {
     const errors: string[] = [];
-    const compatibleHardware = PROTOCOL_COMPATIBILITY[logical.type] || [];
-    if (!compatibleHardware.includes(hardware.type)) {
+    const compatibleHardware = PROTOCOL_COMPATIBILITY[logical.category] || [];
+    if (!compatibleHardware.includes(hardware.category)) {
       errors.push(
-        `Protocol mismatch: logical type "${logical.type}" is not compatible with hardware type "${hardware.type}". ` +
+        `Protocol mismatch: logical category "${logical.category}" is not compatible with hardware category "${hardware.category}". ` +
         `Compatible hardware types: ${compatibleHardware.join(', ')}.`
       );
     }

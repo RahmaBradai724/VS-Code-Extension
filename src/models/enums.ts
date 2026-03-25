@@ -12,13 +12,35 @@ export enum LogicalChannelCategory {
   ETHERNET = 'ETHERNET',
   IOOUTPUT = 'IOOUTPUT',
   IOINPUT = 'IOINPUT',
-  IDSERIAL = 'IDSERIAL',
+  IOSERIAL = 'IOSERIAL',
+  // Backward compatible alias
+  IDSERIAL = 'IOSERIAL',
   SERIAL = 'SERIAL',
   I2C = 'I2C',
   BRIDGE = 'BRIDGE',
   ANALOG = 'ANALOG',
   TE_ANALOG = 'TE_ANALOG',
   PS = 'PS',
+}
+
+export enum ChannelType {
+  HARDWARE = 'HARDWARE',
+  LOGICAL = 'LOGICAL',
+}
+
+export enum LogicalChannelSubclass {
+  FLEXRAY = 'FlexRayChannel',
+  SERIAL = 'SerialChannel',
+  CAN = 'CANChannel',
+  CAN_FD = 'CANFDChannel',
+  IOINPUT = 'IOInputChannel',
+  IOOUTPUT = 'IOOutputChannel',
+  LIN = 'LINChannel',
+  IOSERIAL = 'IOSerialChannel',
+  BRIDGE = 'BridgeChannel',
+  ANALOG = 'AnalogChannel',
+  PS = 'PSChannel',
+  ETHERNET = 'EthernetChannel',
 }
 
 export enum HardwareChannelCategory {
@@ -32,6 +54,20 @@ export enum HardwareChannelCategory {
   TE_ANALOG = 'TE_ANALOG',
   CM_INTERFACE = 'CM_INTERFACE',
   HH_LOAD = 'HH_LOAD',
+}
+
+export enum HardwareChannelSubclass {
+  LIN_CARD = 'LINCard',
+  SERIAL_PORT = 'SerialPort',
+  HID_RELAY = 'HIDRelay',
+  RELAY_BOARD = 'RelayBoard',
+  ETHERNET_ADAPTER = 'EthernetAdapter',
+  ANALOG_DEVICE = 'AnalogDevice',
+  TE_ANALOG = 'TEAnalog',
+  CAN_INTERFACE = 'CANInterface',
+  CIB_INTERFACE = 'CIBInterface',
+  CM_INTERFACE = 'CMInterface',
+  HH_LOAD = 'HHLoad',
 }
 
 export enum CaptureType {

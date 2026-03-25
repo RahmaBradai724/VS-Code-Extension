@@ -96,12 +96,12 @@ class ConfigGenerator {
             name: this.config.name,
             // Logical channels section
             channels: this.config.logicalChannels.reduce((acc, ch) => {
-                acc[ch.name] = { ...ch.toYAML(), type: ch.type };
+                acc[ch.name] = ch.toYAML();
                 return acc;
             }, {}),
             // Hardware channels section
             hardware: this.config.hardwareChannels.reduce((acc, hw) => {
-                acc[hw.name] = { ...hw.toYAML(), type: hw.type };
+                acc[hw.name] = hw.toYAML();
                 return acc;
             }, {}),
             // Mappings section

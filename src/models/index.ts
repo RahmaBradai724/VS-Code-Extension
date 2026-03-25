@@ -1,4 +1,14 @@
-export { LogicalChannelCategory, HardwareChannelCategory, CaptureType, PublisherMode, TimestampPrecision } from './enums';
+export {
+  ChannelType,
+  LogicalChannelCategory,
+  HardwareChannelCategory,
+  LogicalChannelSubclass,
+  HardwareChannelSubclass,
+  CaptureType,
+  PublisherMode,
+  TimestampPrecision,
+} from './enums';
+export { Category } from './category';
 export { Channel, LogicalChannel, HardwareChannel } from './channel';
 export { FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel, LINChannel, IPSChannel, BridgeChannel, AnalogChannel, EthernetChannel, PSChannel } from './logicalChannels';
 export { LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice, CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad } from './hardwareChannels';

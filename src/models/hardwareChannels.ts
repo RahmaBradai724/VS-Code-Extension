@@ -1,11 +1,11 @@
 import { ChildEntity, Column } from 'typeorm';
 import { HardwareChannel } from './channel';
-import { HardwareChannelCategory, CaptureType } from './enums';
+import { HardwareChannelCategory, HardwareChannelSubclass, CaptureType } from './enums';
 
 // ─────────────────────────────────────────────
 //  LIN Card Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.SERIAL_PORT)
+@ChildEntity(HardwareChannelSubclass.LIN_CARD)
 export class LINCard extends HardwareChannel {
   @Column({ nullable: true })
   hwModel?: number;
@@ -20,7 +20,7 @@ export class LINCard extends HardwareChannel {
   hwChannel?: number;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.SERIAL_PORT);
+    super(id, name, HardwareChannelCategory.SERIAL_PORT, HardwareChannelSubclass.LIN_CARD);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -28,18 +28,18 @@ export class LINCard extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, hwModel: this.hwModel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, hwModel: this.hwModel, bmtStr: this.bmtStr, hwChannel: this.hwChannel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel, bmtStr: this.bmtStr, hwChannel: this.hwChannel };
   }
 }
 
 // ─────────────────────────────────────────────
 //  Serial Port Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.SERIAL_PORT)
+@ChildEntity(HardwareChannelSubclass.SERIAL_PORT)
 export class SerialPort extends HardwareChannel {
   @Column()
   portName: string = '';
@@ -63,13 +63,13 @@ export class SerialPort extends HardwareChannel {
   messageTerminator: string = '';
 
   @Column()
-  separationTimes: number = 0;
+  separationTimeMs: number = 0;
 
   @Column()
   maxReceivedDataSize: number = 0;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.SERIAL_PORT);
+    super(id, name, HardwareChannelCategory.SERIAL_PORT, HardwareChannelSubclass.SERIAL_PORT);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -78,12 +78,12 @@ export class SerialPort extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       portName: this.portName, baudRate: this.baudRate,
       parity: this.parity, dataBits: this.dataBits,
       stopBits: this.stopBits, flowControl: this.flowControl,
       messageTerminator: this.messageTerminator,
-      separationTimes: this.separationTimes,
+      separationTimeMs: this.separationTimeMs,
       maxReceivedDataSize: this.maxReceivedDataSize
     };
   }
@@ -96,7 +96,7 @@ export class SerialPort extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  HID Relay Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.HID_RELAY)
+@ChildEntity(HardwareChannelSubclass.HID_RELAY)
 export class HIDRelay extends HardwareChannel {
   @Column({ nullable: true })
   vendorId?: string;
@@ -111,7 +111,7 @@ export class HIDRelay extends HardwareChannel {
   relays?: object;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.HID_RELAY);
+    super(id, name, HardwareChannelCategory.HID_RELAY, HardwareChannelSubclass.HID_RELAY);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -120,7 +120,7 @@ export class HIDRelay extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       vendorId: this.vendorId, productId: this.productId,
       deviceSerial: this.deviceSerial, relays: this.relays
     };
@@ -134,13 +134,13 @@ export class HIDRelay extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  Relay Board Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.RELAY_BOARD)
+@ChildEntity(HardwareChannelSubclass.RELAY_BOARD)
 export class RelayBoard extends HardwareChannel {
   @Column({ nullable: true })
   relayCount?: number;
 
   @Column({ nullable: true })
-  canChannelName?: string;
+  channelName?: string;
 
   @Column({ nullable: true })
   boardId?: number;
@@ -149,7 +149,7 @@ export class RelayBoard extends HardwareChannel {
   relays?: object;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.RELAY_BOARD);
+    super(id, name, HardwareChannelCategory.RELAY_BOARD, HardwareChannelSubclass.RELAY_BOARD);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -158,8 +158,8 @@ export class RelayBoard extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
-      relayCount: this.relayCount, canChannelName: this.canChannelName,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
+      relayCount: this.relayCount, channelName: this.channelName,
       boardId: this.boardId, relays: this.relays
     };
   }
@@ -172,7 +172,7 @@ export class RelayBoard extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  Ethernet Adapter Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.ETHERNET_ADAPTER)
+@ChildEntity(HardwareChannelSubclass.ETHERNET_ADAPTER)
 export class EthernetAdapter extends HardwareChannel {
   @Column()
   macAddress: string = '';
@@ -226,7 +226,7 @@ export class EthernetAdapter extends HardwareChannel {
   packetIdentificationActive: boolean = false;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.ETHERNET_ADAPTER);
+    super(id, name, HardwareChannelCategory.ETHERNET_ADAPTER, HardwareChannelSubclass.ETHERNET_ADAPTER);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -235,7 +235,7 @@ export class EthernetAdapter extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       macAddress: this.macAddress, ipAddress: this.ipAddress,
       friendlyName: this.friendlyName, interface: this.interface,
       bufferSize: this.bufferSize, bpFilter: this.bpFilter,
@@ -258,7 +258,7 @@ export class EthernetAdapter extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  IO Analog Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.ANALOG_DEVICE)
+@ChildEntity(HardwareChannelSubclass.ANALOG_DEVICE)
 export class AnalogDevice extends HardwareChannel {
   @Column({ nullable: true })
   channels?: number;
@@ -273,7 +273,7 @@ export class AnalogDevice extends HardwareChannel {
   hwChannel?: number;
 
   @Column({ nullable: true })
-  inContactState?: boolean;
+  lineContactState?: boolean;
 
   @Column({ nullable: true })
   gndContactState?: boolean;
@@ -296,8 +296,11 @@ export class AnalogDevice extends HardwareChannel {
   @Column({ nullable: true })
   pwmWindowTime?: number;
 
+  @Column({ type: 'jsonb', nullable: true })
+  diagnostics?: object;
+
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.ANALOG_DEVICE);
+    super(id, name, HardwareChannelCategory.ANALOG_DEVICE, HardwareChannelSubclass.ANALOG_DEVICE);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -306,13 +309,14 @@ export class AnalogDevice extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       channels: this.channels, resolution: this.resolution,
       measurementAttribute: this.measurementAttribute, hwChannel: this.hwChannel,
-      inContactState: this.inContactState, gndContactState: this.gndContactState,
+      lineContactState: this.lineContactState, gndContactState: this.gndContactState,
       vbatContactState: this.vbatContactState, staticChannel: this.staticChannel,
       initValue: this.initValue, function: this.function,
-      channelType: this.channelType, pwmWindowTime: this.pwmWindowTime
+      channelType: this.channelType, pwmWindowTime: this.pwmWindowTime,
+      diagnostics: this.diagnostics
     };
   }
 
@@ -324,7 +328,7 @@ export class AnalogDevice extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  TEAnalog Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.TE_ANALOG)
+@ChildEntity(HardwareChannelSubclass.TE_ANALOG)
 export class TEAnalog extends HardwareChannel {
   @Column({ nullable: true })
   sensorType?: string;
@@ -336,7 +340,7 @@ export class TEAnalog extends HardwareChannel {
   deviceId?: number;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.TE_ANALOG);
+    super(id, name, HardwareChannelCategory.TE_ANALOG, HardwareChannelSubclass.TE_ANALOG);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -344,7 +348,7 @@ export class TEAnalog extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType, hwChannel: this.hwChannel, deviceId: this.deviceId };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, sensorType: this.sensorType, hwChannel: this.hwChannel, deviceId: this.deviceId };
   }
 
   toJSON(): object {
@@ -355,7 +359,7 @@ export class TEAnalog extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  CAN Interface Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.CAN_INTERFACE)
+@ChildEntity(HardwareChannelSubclass.CAN_INTERFACE)
 export class CANInterface extends HardwareChannel {
   @Column()
   netChannel: number = 0;
@@ -364,7 +368,7 @@ export class CANInterface extends HardwareChannel {
   netHwChannel: number = 0;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.CAN_INTERFACE);
+    super(id, name, HardwareChannelCategory.CAN_INTERFACE, HardwareChannelSubclass.CAN_INTERFACE);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -372,18 +376,18 @@ export class CANInterface extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
   }
 }
 
 // ─────────────────────────────────────────────
 //  CIB Interface Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.CAN_INTERFACE)
+@ChildEntity(HardwareChannelSubclass.CIB_INTERFACE)
 export class CIBInterface extends HardwareChannel {
   @Column({ nullable: true })
   bitRate?: number;
@@ -395,7 +399,7 @@ export class CIBInterface extends HardwareChannel {
   hwChannel2?: number;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.CAN_INTERFACE);
+    super(id, name, HardwareChannelCategory.CAN_INTERFACE, HardwareChannelSubclass.CIB_INTERFACE);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -403,18 +407,18 @@ export class CIBInterface extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, bitRate: this.bitRate };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, bitRate: this.bitRate };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, bitRate: this.bitRate, hwChannel: this.hwChannel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, bitRate: this.bitRate, hwChannel: this.hwChannel };
   }
 }
 
 // ─────────────────────────────────────────────
 //  CMInterface Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.CM_INTERFACE)
+@ChildEntity(HardwareChannelSubclass.CM_INTERFACE)
 export class CMInterface extends HardwareChannel {
   @Column({ nullable: true })
   interfaceName?: string;
@@ -429,7 +433,7 @@ export class CMInterface extends HardwareChannel {
   hwChannel?: number;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.CM_INTERFACE);
+    super(id, name, HardwareChannelCategory.CM_INTERFACE, HardwareChannelSubclass.CM_INTERFACE);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -438,7 +442,7 @@ export class CMInterface extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       interfaceName: this.interfaceName, captureType: this.captureType,
       bitrate: this.bitrate, hwChannel: this.hwChannel
     };
@@ -452,7 +456,7 @@ export class CMInterface extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  HHLoad Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelCategory.HH_LOAD)
+@ChildEntity(HardwareChannelSubclass.HH_LOAD)
 export class HHLoad extends HardwareChannel {
   @Column({ type: 'float', nullable: true })
   maxLoad?: number;
@@ -464,6 +468,9 @@ export class HHLoad extends HardwareChannel {
   portName?: string;
 
   @Column({ nullable: true })
+  flag?: boolean;
+
+  @Column({ nullable: true })
   bitRate?: number;
 
   @Column({ nullable: true })
@@ -473,7 +480,7 @@ export class HHLoad extends HardwareChannel {
   channels?: object;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.HH_LOAD);
+    super(id, name, HardwareChannelCategory.HH_LOAD, HardwareChannelSubclass.HH_LOAD);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -482,10 +489,10 @@ export class HHLoad extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type,
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       maxLoad: this.maxLoad, deviceId: this.deviceId,
       portName: this.portName, bitRate: this.bitRate,
-      loadType: this.loadType, channels: this.channels
+      loadType: this.loadType, flag: this.flag, channels: this.channels
     };
   }
 

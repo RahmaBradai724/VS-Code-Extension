@@ -1,12 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = exports.Configuration = exports.Mapping = exports.FrameworkConfig = exports.DiagnosticsConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = exports.HHLoad = exports.CMInterface = exports.TEAnalog = exports.CIBInterface = exports.CANInterface = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = exports.PSChannel = exports.EthernetChannel = exports.AnalogChannel = exports.BridgeChannel = exports.IPSChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = exports.HardwareChannel = exports.LogicalChannel = exports.Channel = exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelCategory = exports.LogicalChannelCategory = void 0;
+exports.User = exports.Configuration = exports.Mapping = exports.FrameworkConfig = exports.DiagnosticsConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = exports.HHLoad = exports.CMInterface = exports.TEAnalog = exports.CIBInterface = exports.CANInterface = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = exports.PSChannel = exports.EthernetChannel = exports.AnalogChannel = exports.BridgeChannel = exports.IPSChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = exports.HardwareChannel = exports.LogicalChannel = exports.Channel = exports.Category = exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelSubclass = exports.LogicalChannelSubclass = exports.HardwareChannelCategory = exports.LogicalChannelCategory = exports.ChannelType = void 0;
 var enums_1 = require("./enums");
+Object.defineProperty(exports, "ChannelType", { enumerable: true, get: function () { return enums_1.ChannelType; } });
 Object.defineProperty(exports, "LogicalChannelCategory", { enumerable: true, get: function () { return enums_1.LogicalChannelCategory; } });
 Object.defineProperty(exports, "HardwareChannelCategory", { enumerable: true, get: function () { return enums_1.HardwareChannelCategory; } });
+Object.defineProperty(exports, "LogicalChannelSubclass", { enumerable: true, get: function () { return enums_1.LogicalChannelSubclass; } });
+Object.defineProperty(exports, "HardwareChannelSubclass", { enumerable: true, get: function () { return enums_1.HardwareChannelSubclass; } });
 Object.defineProperty(exports, "CaptureType", { enumerable: true, get: function () { return enums_1.CaptureType; } });
 Object.defineProperty(exports, "PublisherMode", { enumerable: true, get: function () { return enums_1.PublisherMode; } });
 Object.defineProperty(exports, "TimestampPrecision", { enumerable: true, get: function () { return enums_1.TimestampPrecision; } });
+var category_1 = require("./category");
+Object.defineProperty(exports, "Category", { enumerable: true, get: function () { return category_1.Category; } });
 var channel_1 = require("./channel");
 Object.defineProperty(exports, "Channel", { enumerable: true, get: function () { return channel_1.Channel; } });
 Object.defineProperty(exports, "LogicalChannel", { enumerable: true, get: function () { return channel_1.LogicalChannel; } });

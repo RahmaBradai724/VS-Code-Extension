@@ -54,7 +54,7 @@ export class AIValidator {
     const usedHwIds = new Set(mappings.map(m => m.hardwareChannelId));
     for (const hw of config.hardwareChannels) {
       if (!usedHwIds.has(hw.id)) {
-        warnings.push(`Hardware channel "${hw.name}" (${hw.type}) is defined but not mapped to any logical channel.`);
+        warnings.push(`Hardware channel "${hw.name}" (${hw.category || hw.subclass || hw.type}) is defined but not mapped to any logical channel.`);
       }
     }
     return warnings;
@@ -65,7 +65,7 @@ export class AIValidator {
     const usedLogicalIds = new Set(mappings.map(m => m.hardwareChannelId));
     for (const lc of config.logicalChannels) {
       if (!usedLogicalIds.has(lc.id)) {
-        warnings.push(`Logical channel "${lc.name}" (${lc.type}) is defined but has no mapping.`);
+        warnings.push(`Logical channel "${lc.name}" (${lc.category || lc.subclass || lc.type}) is defined but has no mapping.`);
       }
     }
     return warnings;
@@ -88,15 +88,21 @@ export class AIValidator {
 
   detectInvalidChannelTypes(config: Configuration): string[] {
     const errors: string[] = [];
-    // Validate that types are non-empty/defined
+    // Validate that category and subclass are non-empty/defined
     for (const lc of config.logicalChannels) {
-      if (!lc.type) {
-        errors.push(`Logical channel "${lc.name}" has no type assigned.`);
+      if (!lc.category) {
+        errors.push(`Logical channel "${lc.name}" has no category assigned.`);
+      }
+      if (!lc.subclass) {
+        errors.push(`Logical channel "${lc.name}" has no subclass assigned.`);
       }
     }
     for (const hw of config.hardwareChannels) {
-      if (!hw.type) {
-        errors.push(`Hardware channel "${hw.name}" has no type assigned.`);
+      if (!hw.category) {
+        errors.push(`Hardware channel "${hw.name}" has no category assigned.`);
+      }
+      if (!hw.subclass) {
+        errors.push(`Hardware channel "${hw.name}" has no subclass assigned.`);
       }
     }
     return errors;
@@ -161,8 +167,8 @@ ${yamlContent}
 \`\`\`
 
 Summary:
-- Logical channels: ${config.logicalChannels.map(c => `${c.name} (${c.type})`).join(', ')}
-- Hardware channels: ${config.hardwareChannels.map(c => `${c.name} (${c.type})`).join(', ')}
+- Logical channels: ${config.logicalChannels.map(c => `${c.name} (${c.category || c.subclass || c.type})`).join(', ')}
+- Hardware channels: ${config.hardwareChannels.map(c => `${c.name} (${c.category || c.subclass || c.type})`).join(', ')}
 - Mappings: ${mappings.map(m => `${m.logicalChannelName} -> ${m.hardwareChannelName}`).join(', ')}
 
 Analyze the configuration for:

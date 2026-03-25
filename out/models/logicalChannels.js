@@ -18,11 +18,11 @@ const enums_1 = require("./enums");
 // ─────────────────────────────────────────────
 let FlexRayChannel = class FlexRayChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.FLEXRAY);
+        super(id, name, enums_1.LogicalChannelCategory.FLEXRAY, enums_1.LogicalChannelSubclass.FLEXRAY);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             hwChannel: this.hwChannel, keySlot: this.keySlot,
             nodeType: this.nodeType, wakeUpCluster: this.wakeUpCluster,
@@ -55,7 +55,7 @@ __decorate([
     __metadata("design:type", String)
 ], FlexRayChannel.prototype, "operationMode", void 0);
 exports.FlexRayChannel = FlexRayChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.FLEXRAY),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.FLEXRAY),
     __metadata("design:paramtypes", [String, String])
 ], FlexRayChannel);
 // ─────────────────────────────────────────────
@@ -63,7 +63,7 @@ exports.FlexRayChannel = FlexRayChannel = __decorate([
 // ─────────────────────────────────────────────
 let SerialChannel = class SerialChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.SERIAL);
+        super(id, name, enums_1.LogicalChannelCategory.SERIAL, enums_1.LogicalChannelSubclass.SERIAL);
         this.portName = '';
         this.baudRate = 9600;
         this.parity = 'None';
@@ -76,7 +76,7 @@ let SerialChannel = class SerialChannel extends channel_1.LogicalChannel {
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             portName: this.portName, baudRate: this.baudRate,
             parity: this.parity, dataBits: this.dataBits,
@@ -133,7 +133,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], SerialChannel.prototype, "serialChannelActivationOptional", void 0);
 exports.SerialChannel = SerialChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.SERIAL),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.SERIAL),
     __metadata("design:paramtypes", [String, String])
 ], SerialChannel);
 // ─────────────────────────────────────────────
@@ -141,11 +141,11 @@ exports.SerialChannel = SerialChannel = __decorate([
 // ─────────────────────────────────────────────
 let CANChannel = class CANChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.CAN);
+        super(id, name, enums_1.LogicalChannelCategory.CAN, enums_1.LogicalChannelSubclass.CAN);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             hwChannel: this.hwChannel, operationMode: this.operationMode
         };
@@ -164,7 +164,7 @@ __decorate([
     __metadata("design:type", String)
 ], CANChannel.prototype, "operationMode", void 0);
 exports.CANChannel = CANChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.CAN),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.CAN),
     __metadata("design:paramtypes", [String, String])
 ], CANChannel);
 // ─────────────────────────────────────────────
@@ -172,11 +172,11 @@ exports.CANChannel = CANChannel = __decorate([
 // ─────────────────────────────────────────────
 let CANFDChannel = class CANFDChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.CAN_FD);
+        super(id, name, enums_1.LogicalChannelCategory.CAN_FD, enums_1.LogicalChannelSubclass.CAN_FD);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             hwChannel: this.hwChannel, operationMode: this.operationMode
         };
@@ -195,7 +195,7 @@ __decorate([
     __metadata("design:type", String)
 ], CANFDChannel.prototype, "operationMode", void 0);
 exports.CANFDChannel = CANFDChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.CAN_FD),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.CAN_FD),
     __metadata("design:paramtypes", [String, String])
 ], CANFDChannel);
 // ─────────────────────────────────────────────
@@ -203,11 +203,11 @@ exports.CANFDChannel = CANFDChannel = __decorate([
 // ─────────────────────────────────────────────
 let IOInputChannel = class IOInputChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.IOINPUT);
+        super(id, name, enums_1.LogicalChannelCategory.IOINPUT, enums_1.LogicalChannelSubclass.IOINPUT);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
             function: this.function, lineContactState: this.lineContactState,
@@ -271,7 +271,7 @@ __decorate([
     __metadata("design:type", Object)
 ], IOInputChannel.prototype, "subscriptionConfig", void 0);
 exports.IOInputChannel = IOInputChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.IOINPUT),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.IOINPUT),
     __metadata("design:paramtypes", [String, String])
 ], IOInputChannel);
 // ─────────────────────────────────────────────
@@ -279,11 +279,11 @@ exports.IOInputChannel = IOInputChannel = __decorate([
 // ─────────────────────────────────────────────
 let IOOutputChannel = class IOOutputChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.IOOUTPUT);
+        super(id, name, enums_1.LogicalChannelCategory.IOOUTPUT, enums_1.LogicalChannelSubclass.IOOUTPUT);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
             function: this.function, lineContactState: this.lineContactState,
@@ -347,7 +347,7 @@ __decorate([
     __metadata("design:type", Object)
 ], IOOutputChannel.prototype, "subscriptionConfig", void 0);
 exports.IOOutputChannel = IOOutputChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.IOOUTPUT),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.IOOUTPUT),
     __metadata("design:paramtypes", [String, String])
 ], IOOutputChannel);
 // ─────────────────────────────────────────────
@@ -355,11 +355,11 @@ exports.IOOutputChannel = IOOutputChannel = __decorate([
 // ─────────────────────────────────────────────
 let LINChannel = class LINChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.LIN);
+        super(id, name, enums_1.LogicalChannelCategory.LIN, enums_1.LogicalChannelSubclass.LIN);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             protocol: this.protocol, hwChannel: this.hwChannel,
             operationMode: this.operationMode
@@ -383,7 +383,7 @@ __decorate([
     __metadata("design:type", String)
 ], LINChannel.prototype, "operationMode", void 0);
 exports.LINChannel = LINChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.LIN),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.LIN),
     __metadata("design:paramtypes", [String, String])
 ], LINChannel);
 // ─────────────────────────────────────────────
@@ -391,14 +391,14 @@ exports.LINChannel = LINChannel = __decorate([
 // ─────────────────────────────────────────────
 let IPSChannel = class IPSChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.IDSERIAL);
+        super(id, name, enums_1.LogicalChannelCategory.IOSERIAL, enums_1.LogicalChannelSubclass.IOSERIAL);
         this.openSession = 0;
         this.openInterface = '';
         this.openSessionFields = '';
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             openSession: this.openSession
         };
@@ -421,7 +421,7 @@ __decorate([
     __metadata("design:type", String)
 ], IPSChannel.prototype, "openSessionFields", void 0);
 exports.IPSChannel = IPSChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.IDSERIAL),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.IOSERIAL),
     __metadata("design:paramtypes", [String, String])
 ], IPSChannel);
 // ─────────────────────────────────────────────
@@ -429,11 +429,11 @@ exports.IPSChannel = IPSChannel = __decorate([
 // ─────────────────────────────────────────────
 let BridgeChannel = class BridgeChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.BRIDGE);
+        super(id, name, enums_1.LogicalChannelCategory.BRIDGE, enums_1.LogicalChannelSubclass.BRIDGE);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             physicalAdapter: this.physicalAdapter,
             tunTapAdapterList: this.tunTapAdapterList,
@@ -458,7 +458,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], BridgeChannel.prototype, "manipulatePackets", void 0);
 exports.BridgeChannel = BridgeChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.BRIDGE),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.BRIDGE),
     __metadata("design:paramtypes", [String, String])
 ], BridgeChannel);
 // ─────────────────────────────────────────────
@@ -466,11 +466,11 @@ exports.BridgeChannel = BridgeChannel = __decorate([
 // ─────────────────────────────────────────────
 let AnalogChannel = class AnalogChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.ANALOG);
+        super(id, name, enums_1.LogicalChannelCategory.ANALOG, enums_1.LogicalChannelSubclass.ANALOG);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             hwChannel: this.hwChannel, deviceId: this.deviceId
         };
@@ -489,7 +489,7 @@ __decorate([
     __metadata("design:type", Number)
 ], AnalogChannel.prototype, "deviceId", void 0);
 exports.AnalogChannel = AnalogChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.ANALOG),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.ANALOG),
     __metadata("design:paramtypes", [String, String])
 ], AnalogChannel);
 // ─────────────────────────────────────────────
@@ -497,11 +497,11 @@ exports.AnalogChannel = AnalogChannel = __decorate([
 // ─────────────────────────────────────────────
 let PSChannel = class PSChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.PS);
+        super(id, name, enums_1.LogicalChannelCategory.PS, enums_1.LogicalChannelSubclass.PS);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
         };
     }
@@ -511,7 +511,7 @@ let PSChannel = class PSChannel extends channel_1.LogicalChannel {
 };
 exports.PSChannel = PSChannel;
 exports.PSChannel = PSChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.PS),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.PS),
     __metadata("design:paramtypes", [String, String])
 ], PSChannel);
 // ─────────────────────────────────────────────
@@ -519,20 +519,24 @@ exports.PSChannel = PSChannel = __decorate([
 // ─────────────────────────────────────────────
 let EthernetChannel = class EthernetChannel extends channel_1.LogicalChannel {
     constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.ETHERNET);
+        super(id, name, enums_1.LogicalChannelCategory.ETHERNET, enums_1.LogicalChannelSubclass.ETHERNET);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-            pblFilter: this.pblFilter, timeout: this.timeout,
+            pbIFilter: this.pbIFilter, timeout: this.timeout,
             timeStampPrecision: this.timeStampPrecision,
             timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
             snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,
             useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
-            removedDataLoggerMetaData: this.removedDataLoggerMetaData,
-            dataLoggerType: this.dataLoggerType
+            removeDataLoggerMetaData: this.removeDataLoggerMetaData,
+            dataLoggerType: this.dataLoggerType,
+            packetProcessingActive: this.packetProcessingActive,
+            packetIdentificationActive: this.packetIdentificationActive,
+            differentHandlerForTxAndRx: this.differentHandlerForTxAndRx,
+            tccmPacketizationActive: this.tccmPacketizationActive
         };
     }
     toJSON() {
@@ -551,7 +555,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], EthernetChannel.prototype, "pblFilter", void 0);
+], EthernetChannel.prototype, "pbIFilter", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
@@ -583,13 +587,29 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "removedDataLoggerMetaData", void 0);
+], EthernetChannel.prototype, "removeDataLoggerMetaData", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], EthernetChannel.prototype, "dataLoggerType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "packetProcessingActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "packetIdentificationActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "differentHandlerForTxAndRx", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], EthernetChannel.prototype, "tccmPacketizationActive", void 0);
 exports.EthernetChannel = EthernetChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelCategory.ETHERNET),
+    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.ETHERNET),
     __metadata("design:paramtypes", [String, String])
 ], EthernetChannel);
 //# sourceMappingURL=logicalChannels.js.map

@@ -18,16 +18,16 @@ const enums_1 = require("./enums");
 // ─────────────────────────────────────────────
 let LINCard = class LINCard extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT);
+        super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT, enums_1.HardwareChannelSubclass.LIN_CARD);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, hwModel: this.hwModel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: this.type, hwModel: this.hwModel, bmtStr: this.bmtStr, hwChannel: this.hwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel, bmtStr: this.bmtStr, hwChannel: this.hwChannel };
     }
 };
 exports.LINCard = LINCard;
@@ -48,7 +48,7 @@ __decorate([
     __metadata("design:type", Number)
 ], LINCard.prototype, "hwChannel", void 0);
 exports.LINCard = LINCard = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.SERIAL_PORT),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.LIN_CARD),
     __metadata("design:paramtypes", [String, String])
 ], LINCard);
 // ─────────────────────────────────────────────
@@ -56,7 +56,7 @@ exports.LINCard = LINCard = __decorate([
 // ─────────────────────────────────────────────
 let SerialPort = class SerialPort extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT);
+        super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT, enums_1.HardwareChannelSubclass.SERIAL_PORT);
         this.portName = '';
         this.baudRate = 9600;
         this.parity = 'None';
@@ -64,7 +64,7 @@ let SerialPort = class SerialPort extends channel_1.HardwareChannel {
         this.stopBits = '1';
         this.flowControl = 'None';
         this.messageTerminator = '';
-        this.separationTimes = 0;
+        this.separationTimeMs = 0;
         this.maxReceivedDataSize = 0;
     }
     canDelete(mappingIds) {
@@ -72,12 +72,12 @@ let SerialPort = class SerialPort extends channel_1.HardwareChannel {
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             portName: this.portName, baudRate: this.baudRate,
             parity: this.parity, dataBits: this.dataBits,
             stopBits: this.stopBits, flowControl: this.flowControl,
             messageTerminator: this.messageTerminator,
-            separationTimes: this.separationTimes,
+            separationTimeMs: this.separationTimeMs,
             maxReceivedDataSize: this.maxReceivedDataSize
         };
     }
@@ -117,13 +117,13 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], SerialPort.prototype, "separationTimes", void 0);
+], SerialPort.prototype, "separationTimeMs", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
 ], SerialPort.prototype, "maxReceivedDataSize", void 0);
 exports.SerialPort = SerialPort = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.SERIAL_PORT),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.SERIAL_PORT),
     __metadata("design:paramtypes", [String, String])
 ], SerialPort);
 // ─────────────────────────────────────────────
@@ -131,14 +131,14 @@ exports.SerialPort = SerialPort = __decorate([
 // ─────────────────────────────────────────────
 let HIDRelay = class HIDRelay extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.HID_RELAY);
+        super(id, name, enums_1.HardwareChannelCategory.HID_RELAY, enums_1.HardwareChannelSubclass.HID_RELAY);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             vendorId: this.vendorId, productId: this.productId,
             deviceSerial: this.deviceSerial, relays: this.relays
         };
@@ -165,7 +165,7 @@ __decorate([
     __metadata("design:type", Object)
 ], HIDRelay.prototype, "relays", void 0);
 exports.HIDRelay = HIDRelay = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.HID_RELAY),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.HID_RELAY),
     __metadata("design:paramtypes", [String, String])
 ], HIDRelay);
 // ─────────────────────────────────────────────
@@ -173,15 +173,15 @@ exports.HIDRelay = HIDRelay = __decorate([
 // ─────────────────────────────────────────────
 let RelayBoard = class RelayBoard extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.RELAY_BOARD);
+        super(id, name, enums_1.HardwareChannelCategory.RELAY_BOARD, enums_1.HardwareChannelSubclass.RELAY_BOARD);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
-            relayCount: this.relayCount, canChannelName: this.canChannelName,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
+            relayCount: this.relayCount, channelName: this.channelName,
             boardId: this.boardId, relays: this.relays
         };
     }
@@ -197,7 +197,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], RelayBoard.prototype, "canChannelName", void 0);
+], RelayBoard.prototype, "channelName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
@@ -207,7 +207,7 @@ __decorate([
     __metadata("design:type", Object)
 ], RelayBoard.prototype, "relays", void 0);
 exports.RelayBoard = RelayBoard = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.RELAY_BOARD),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.RELAY_BOARD),
     __metadata("design:paramtypes", [String, String])
 ], RelayBoard);
 // ─────────────────────────────────────────────
@@ -215,7 +215,7 @@ exports.RelayBoard = RelayBoard = __decorate([
 // ─────────────────────────────────────────────
 let EthernetAdapter = class EthernetAdapter extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.ETHERNET_ADAPTER);
+        super(id, name, enums_1.HardwareChannelCategory.ETHERNET_ADAPTER, enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER);
         this.macAddress = '';
         this.ipAddress = '';
         this.friendlyName = '';
@@ -239,7 +239,7 @@ let EthernetAdapter = class EthernetAdapter extends channel_1.HardwareChannel {
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             macAddress: this.macAddress, ipAddress: this.ipAddress,
             friendlyName: this.friendlyName, interface: this.interface,
             bufferSize: this.bufferSize, bpFilter: this.bpFilter,
@@ -327,7 +327,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], EthernetAdapter.prototype, "packetIdentificationActive", void 0);
 exports.EthernetAdapter = EthernetAdapter = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.ETHERNET_ADAPTER),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER),
     __metadata("design:paramtypes", [String, String])
 ], EthernetAdapter);
 // ─────────────────────────────────────────────
@@ -335,20 +335,21 @@ exports.EthernetAdapter = EthernetAdapter = __decorate([
 // ─────────────────────────────────────────────
 let AnalogDevice = class AnalogDevice extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.ANALOG_DEVICE);
+        super(id, name, enums_1.HardwareChannelCategory.ANALOG_DEVICE, enums_1.HardwareChannelSubclass.ANALOG_DEVICE);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             channels: this.channels, resolution: this.resolution,
             measurementAttribute: this.measurementAttribute, hwChannel: this.hwChannel,
-            inContactState: this.inContactState, gndContactState: this.gndContactState,
+            lineContactState: this.lineContactState, gndContactState: this.gndContactState,
             vbatContactState: this.vbatContactState, staticChannel: this.staticChannel,
             initValue: this.initValue, function: this.function,
-            channelType: this.channelType, pwmWindowTime: this.pwmWindowTime
+            channelType: this.channelType, pwmWindowTime: this.pwmWindowTime,
+            diagnostics: this.diagnostics
         };
     }
     toJSON() {
@@ -375,7 +376,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
-], AnalogDevice.prototype, "inContactState", void 0);
+], AnalogDevice.prototype, "lineContactState", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
@@ -404,8 +405,12 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], AnalogDevice.prototype, "pwmWindowTime", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], AnalogDevice.prototype, "diagnostics", void 0);
 exports.AnalogDevice = AnalogDevice = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.ANALOG_DEVICE),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.ANALOG_DEVICE),
     __metadata("design:paramtypes", [String, String])
 ], AnalogDevice);
 // ─────────────────────────────────────────────
@@ -413,13 +418,13 @@ exports.AnalogDevice = AnalogDevice = __decorate([
 // ─────────────────────────────────────────────
 let TEAnalog = class TEAnalog extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.TE_ANALOG);
+        super(id, name, enums_1.HardwareChannelCategory.TE_ANALOG, enums_1.HardwareChannelSubclass.TE_ANALOG);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, sensorType: this.sensorType, hwChannel: this.hwChannel, deviceId: this.deviceId };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, sensorType: this.sensorType, hwChannel: this.hwChannel, deviceId: this.deviceId };
     }
     toJSON() {
         return this.toYAML();
@@ -439,7 +444,7 @@ __decorate([
     __metadata("design:type", Number)
 ], TEAnalog.prototype, "deviceId", void 0);
 exports.TEAnalog = TEAnalog = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.TE_ANALOG),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.TE_ANALOG),
     __metadata("design:paramtypes", [String, String])
 ], TEAnalog);
 // ─────────────────────────────────────────────
@@ -447,7 +452,7 @@ exports.TEAnalog = TEAnalog = __decorate([
 // ─────────────────────────────────────────────
 let CANInterface = class CANInterface extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE);
+        super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CAN_INTERFACE);
         this.netChannel = 0;
         this.netHwChannel = 0;
     }
@@ -455,10 +460,10 @@ let CANInterface = class CANInterface extends channel_1.HardwareChannel {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: this.type, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
     }
 };
 exports.CANInterface = CANInterface;
@@ -471,7 +476,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CANInterface.prototype, "netHwChannel", void 0);
 exports.CANInterface = CANInterface = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.CAN_INTERFACE),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.CAN_INTERFACE),
     __metadata("design:paramtypes", [String, String])
 ], CANInterface);
 // ─────────────────────────────────────────────
@@ -479,16 +484,16 @@ exports.CANInterface = CANInterface = __decorate([
 // ─────────────────────────────────────────────
 let CIBInterface = class CIBInterface extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE);
+        super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CIB_INTERFACE);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, bitRate: this.bitRate };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, bitRate: this.bitRate };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: this.type, bitRate: this.bitRate, hwChannel: this.hwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, bitRate: this.bitRate, hwChannel: this.hwChannel };
     }
 };
 exports.CIBInterface = CIBInterface;
@@ -505,7 +510,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CIBInterface.prototype, "hwChannel2", void 0);
 exports.CIBInterface = CIBInterface = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.CAN_INTERFACE),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.CIB_INTERFACE),
     __metadata("design:paramtypes", [String, String])
 ], CIBInterface);
 // ─────────────────────────────────────────────
@@ -513,14 +518,14 @@ exports.CIBInterface = CIBInterface = __decorate([
 // ─────────────────────────────────────────────
 let CMInterface = class CMInterface extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.CM_INTERFACE);
+        super(id, name, enums_1.HardwareChannelCategory.CM_INTERFACE, enums_1.HardwareChannelSubclass.CM_INTERFACE);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             interfaceName: this.interfaceName, captureType: this.captureType,
             bitrate: this.bitrate, hwChannel: this.hwChannel
         };
@@ -547,7 +552,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CMInterface.prototype, "hwChannel", void 0);
 exports.CMInterface = CMInterface = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.CM_INTERFACE),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.CM_INTERFACE),
     __metadata("design:paramtypes", [String, String])
 ], CMInterface);
 // ─────────────────────────────────────────────
@@ -555,17 +560,17 @@ exports.CMInterface = CMInterface = __decorate([
 // ─────────────────────────────────────────────
 let HHLoad = class HHLoad extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.HH_LOAD);
+        super(id, name, enums_1.HardwareChannelCategory.HH_LOAD, enums_1.HardwareChannelSubclass.HH_LOAD);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type,
+            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             maxLoad: this.maxLoad, deviceId: this.deviceId,
             portName: this.portName, bitRate: this.bitRate,
-            loadType: this.loadType, channels: this.channels
+            loadType: this.loadType, flag: this.flag, channels: this.channels
         };
     }
     toJSON() {
@@ -587,6 +592,10 @@ __decorate([
 ], HHLoad.prototype, "portName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], HHLoad.prototype, "flag", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], HHLoad.prototype, "bitRate", void 0);
 __decorate([
@@ -598,7 +607,7 @@ __decorate([
     __metadata("design:type", Object)
 ], HHLoad.prototype, "channels", void 0);
 exports.HHLoad = HHLoad = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelCategory.HH_LOAD),
+    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.HH_LOAD),
     __metadata("design:paramtypes", [String, String])
 ], HHLoad);
 //# sourceMappingURL=hardwareChannels.js.map

@@ -4,7 +4,7 @@
  * Derived from the UML class diagram.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelCategory = exports.LogicalChannelCategory = void 0;
+exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelSubclass = exports.HardwareChannelCategory = exports.LogicalChannelSubclass = exports.ChannelType = exports.LogicalChannelCategory = void 0;
 var LogicalChannelCategory;
 (function (LogicalChannelCategory) {
     LogicalChannelCategory["CAN"] = "CAN";
@@ -15,7 +15,9 @@ var LogicalChannelCategory;
     LogicalChannelCategory["ETHERNET"] = "ETHERNET";
     LogicalChannelCategory["IOOUTPUT"] = "IOOUTPUT";
     LogicalChannelCategory["IOINPUT"] = "IOINPUT";
-    LogicalChannelCategory["IDSERIAL"] = "IDSERIAL";
+    LogicalChannelCategory["IOSERIAL"] = "IOSERIAL";
+    // Backward compatible alias
+    LogicalChannelCategory["IDSERIAL"] = "IOSERIAL";
     LogicalChannelCategory["SERIAL"] = "SERIAL";
     LogicalChannelCategory["I2C"] = "I2C";
     LogicalChannelCategory["BRIDGE"] = "BRIDGE";
@@ -23,6 +25,26 @@ var LogicalChannelCategory;
     LogicalChannelCategory["TE_ANALOG"] = "TE_ANALOG";
     LogicalChannelCategory["PS"] = "PS";
 })(LogicalChannelCategory || (exports.LogicalChannelCategory = LogicalChannelCategory = {}));
+var ChannelType;
+(function (ChannelType) {
+    ChannelType["HARDWARE"] = "HARDWARE";
+    ChannelType["LOGICAL"] = "LOGICAL";
+})(ChannelType || (exports.ChannelType = ChannelType = {}));
+var LogicalChannelSubclass;
+(function (LogicalChannelSubclass) {
+    LogicalChannelSubclass["FLEXRAY"] = "FlexRayChannel";
+    LogicalChannelSubclass["SERIAL"] = "SerialChannel";
+    LogicalChannelSubclass["CAN"] = "CANChannel";
+    LogicalChannelSubclass["CAN_FD"] = "CANFDChannel";
+    LogicalChannelSubclass["IOINPUT"] = "IOInputChannel";
+    LogicalChannelSubclass["IOOUTPUT"] = "IOOutputChannel";
+    LogicalChannelSubclass["LIN"] = "LINChannel";
+    LogicalChannelSubclass["IOSERIAL"] = "IOSerialChannel";
+    LogicalChannelSubclass["BRIDGE"] = "BridgeChannel";
+    LogicalChannelSubclass["ANALOG"] = "AnalogChannel";
+    LogicalChannelSubclass["PS"] = "PSChannel";
+    LogicalChannelSubclass["ETHERNET"] = "EthernetChannel";
+})(LogicalChannelSubclass || (exports.LogicalChannelSubclass = LogicalChannelSubclass = {}));
 var HardwareChannelCategory;
 (function (HardwareChannelCategory) {
     HardwareChannelCategory["SERIAL_PORT"] = "SERIAL_PORT";
@@ -36,6 +58,20 @@ var HardwareChannelCategory;
     HardwareChannelCategory["CM_INTERFACE"] = "CM_INTERFACE";
     HardwareChannelCategory["HH_LOAD"] = "HH_LOAD";
 })(HardwareChannelCategory || (exports.HardwareChannelCategory = HardwareChannelCategory = {}));
+var HardwareChannelSubclass;
+(function (HardwareChannelSubclass) {
+    HardwareChannelSubclass["LIN_CARD"] = "LINCard";
+    HardwareChannelSubclass["SERIAL_PORT"] = "SerialPort";
+    HardwareChannelSubclass["HID_RELAY"] = "HIDRelay";
+    HardwareChannelSubclass["RELAY_BOARD"] = "RelayBoard";
+    HardwareChannelSubclass["ETHERNET_ADAPTER"] = "EthernetAdapter";
+    HardwareChannelSubclass["ANALOG_DEVICE"] = "AnalogDevice";
+    HardwareChannelSubclass["TE_ANALOG"] = "TEAnalog";
+    HardwareChannelSubclass["CAN_INTERFACE"] = "CANInterface";
+    HardwareChannelSubclass["CIB_INTERFACE"] = "CIBInterface";
+    HardwareChannelSubclass["CM_INTERFACE"] = "CMInterface";
+    HardwareChannelSubclass["HH_LOAD"] = "HHLoad";
+})(HardwareChannelSubclass || (exports.HardwareChannelSubclass = HardwareChannelSubclass = {}));
 var CaptureType;
 (function (CaptureType) {
     CaptureType["FLEXRAY"] = "FLEXRAY";
