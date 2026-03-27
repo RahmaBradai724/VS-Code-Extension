@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EthernetChannel = exports.PSChannel = exports.AnalogChannel = exports.BridgeChannel = exports.IPSChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANFDChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = void 0;
+exports.EthernetChannel = exports.PSChannel = exports.AnalogChannel = exports.BridgeChannel = exports.IPSChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = void 0;
 const typeorm_1 = require("typeorm");
 const channel_1 = require("./channel");
 const enums_1 = require("./enums");
@@ -55,7 +55,7 @@ __decorate([
     __metadata("design:type", String)
 ], FlexRayChannel.prototype, "operationMode", void 0);
 exports.FlexRayChannel = FlexRayChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.FLEXRAY),
+    (0, typeorm_1.Entity)('logical_flexray_channels'),
     __metadata("design:paramtypes", [String, String])
 ], FlexRayChannel);
 // ─────────────────────────────────────────────
@@ -133,7 +133,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], SerialChannel.prototype, "serialChannelActivationOptional", void 0);
 exports.SerialChannel = SerialChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.SERIAL),
+    (0, typeorm_1.Entity)('logical_serial_channels'),
     __metadata("design:paramtypes", [String, String])
 ], SerialChannel);
 // ─────────────────────────────────────────────
@@ -164,40 +164,9 @@ __decorate([
     __metadata("design:type", String)
 ], CANChannel.prototype, "operationMode", void 0);
 exports.CANChannel = CANChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.CAN),
+    (0, typeorm_1.Entity)('logical_can_channels'),
     __metadata("design:paramtypes", [String, String])
 ], CANChannel);
-// ─────────────────────────────────────────────
-//  CAN FD Logical Channel
-// ─────────────────────────────────────────────
-let CANFDChannel = class CANFDChannel extends channel_1.LogicalChannel {
-    constructor(id, name) {
-        super(id, name, enums_1.LogicalChannelCategory.CAN_FD, enums_1.LogicalChannelSubclass.CAN_FD);
-    }
-    toYAML() {
-        return {
-            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            hwChannel: this.hwChannel, operationMode: this.operationMode
-        };
-    }
-    toJSON() {
-        return this.toYAML();
-    }
-};
-exports.CANFDChannel = CANFDChannel;
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], CANFDChannel.prototype, "hwChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], CANFDChannel.prototype, "operationMode", void 0);
-exports.CANFDChannel = CANFDChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.CAN_FD),
-    __metadata("design:paramtypes", [String, String])
-], CANFDChannel);
 // ─────────────────────────────────────────────
 //  IO Input Logical Channel
 // ─────────────────────────────────────────────
@@ -271,7 +240,7 @@ __decorate([
     __metadata("design:type", Object)
 ], IOInputChannel.prototype, "subscriptionConfig", void 0);
 exports.IOInputChannel = IOInputChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.IOINPUT),
+    (0, typeorm_1.Entity)('logical_io_input_channels'),
     __metadata("design:paramtypes", [String, String])
 ], IOInputChannel);
 // ─────────────────────────────────────────────
@@ -347,7 +316,7 @@ __decorate([
     __metadata("design:type", Object)
 ], IOOutputChannel.prototype, "subscriptionConfig", void 0);
 exports.IOOutputChannel = IOOutputChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.IOOUTPUT),
+    (0, typeorm_1.Entity)('logical_io_output_channels'),
     __metadata("design:paramtypes", [String, String])
 ], IOOutputChannel);
 // ─────────────────────────────────────────────
@@ -383,7 +352,7 @@ __decorate([
     __metadata("design:type", String)
 ], LINChannel.prototype, "operationMode", void 0);
 exports.LINChannel = LINChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.LIN),
+    (0, typeorm_1.Entity)('logical_lin_channels'),
     __metadata("design:paramtypes", [String, String])
 ], LINChannel);
 // ─────────────────────────────────────────────
@@ -421,7 +390,7 @@ __decorate([
     __metadata("design:type", String)
 ], IPSChannel.prototype, "openSessionFields", void 0);
 exports.IPSChannel = IPSChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.IOSERIAL),
+    (0, typeorm_1.Entity)('logical_io_serial_channels'),
     __metadata("design:paramtypes", [String, String])
 ], IPSChannel);
 // ─────────────────────────────────────────────
@@ -464,7 +433,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], BridgeChannel.prototype, "manipulatePackets", void 0);
 exports.BridgeChannel = BridgeChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.BRIDGE),
+    (0, typeorm_1.Entity)('logical_bridge_channels'),
     __metadata("design:paramtypes", [String, String])
 ], BridgeChannel);
 // ─────────────────────────────────────────────
@@ -495,7 +464,7 @@ __decorate([
     __metadata("design:type", Number)
 ], AnalogChannel.prototype, "deviceId", void 0);
 exports.AnalogChannel = AnalogChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.ANALOG),
+    (0, typeorm_1.Entity)('logical_analog_channels'),
     __metadata("design:paramtypes", [String, String])
 ], AnalogChannel);
 // ─────────────────────────────────────────────
@@ -517,7 +486,7 @@ let PSChannel = class PSChannel extends channel_1.LogicalChannel {
 };
 exports.PSChannel = PSChannel;
 exports.PSChannel = PSChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.PS),
+    (0, typeorm_1.Entity)('logical_ps_channels'),
     __metadata("design:paramtypes", [String, String])
 ], PSChannel);
 // ─────────────────────────────────────────────
@@ -627,7 +596,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], EthernetChannel.prototype, "tccmPacketizationActive", void 0);
 exports.EthernetChannel = EthernetChannel = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.LogicalChannelSubclass.ETHERNET),
+    (0, typeorm_1.Entity)('logical_ethernet_channels'),
     __metadata("design:paramtypes", [String, String])
 ], EthernetChannel);
 //# sourceMappingURL=logicalChannels.js.map

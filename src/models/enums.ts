@@ -29,7 +29,6 @@ export enum LogicalChannelSubclass {
   FLEXRAY = 'FlexRayChannel',
   SERIAL = 'SerialChannel',
   CAN = 'CANChannel',
-  CAN_FD = 'CANFDChannel',
   IOINPUT = 'IOInputChannel',
   IOOUTPUT = 'IOOutputChannel',
   LIN = 'LINChannel',

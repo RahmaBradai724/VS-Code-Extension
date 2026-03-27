@@ -48,7 +48,7 @@ __decorate([
     __metadata("design:type", Number)
 ], LINCard.prototype, "hwChannel", void 0);
 exports.LINCard = LINCard = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.LIN_CARD),
+    (0, typeorm_1.Entity)('hardware_lin_cards'),
     __metadata("design:paramtypes", [String, String])
 ], LINCard);
 // ─────────────────────────────────────────────
@@ -129,7 +129,7 @@ __decorate([
     __metadata("design:type", Number)
 ], SerialPort.prototype, "maxReceivedDataSize", void 0);
 exports.SerialPort = SerialPort = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.SERIAL_PORT),
+    (0, typeorm_1.Entity)('hardware_serial_ports'),
     __metadata("design:paramtypes", [String, String])
 ], SerialPort);
 // ─────────────────────────────────────────────
@@ -171,7 +171,7 @@ __decorate([
     __metadata("design:type", Object)
 ], HIDRelay.prototype, "relays", void 0);
 exports.HIDRelay = HIDRelay = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.HID_RELAY),
+    (0, typeorm_1.Entity)('hardware_hid_relays'),
     __metadata("design:paramtypes", [String, String])
 ], HIDRelay);
 // ─────────────────────────────────────────────
@@ -219,7 +219,7 @@ __decorate([
     __metadata("design:type", Object)
 ], RelayBoard.prototype, "relays", void 0);
 exports.RelayBoard = RelayBoard = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.RELAY_BOARD),
+    (0, typeorm_1.Entity)('hardware_relay_boards'),
     __metadata("design:paramtypes", [String, String])
 ], RelayBoard);
 // ─────────────────────────────────────────────
@@ -345,7 +345,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], EthernetAdapter.prototype, "packetIdentificationActive", void 0);
 exports.EthernetAdapter = EthernetAdapter = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER),
+    (0, typeorm_1.Entity)('hardware_ethernet_adapters'),
     __metadata("design:paramtypes", [String, String])
 ], EthernetAdapter);
 // ─────────────────────────────────────────────
@@ -434,7 +434,7 @@ __decorate([
     __metadata("design:type", Object)
 ], AnalogDevice.prototype, "diagnostics", void 0);
 exports.AnalogDevice = AnalogDevice = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.ANALOG_DEVICE),
+    (0, typeorm_1.Entity)('hardware_analog_devices'),
     __metadata("design:paramtypes", [String, String])
 ], AnalogDevice);
 // ─────────────────────────────────────────────
@@ -468,7 +468,7 @@ __decorate([
     __metadata("design:type", Number)
 ], TEAnalog.prototype, "deviceId", void 0);
 exports.TEAnalog = TEAnalog = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.TE_ANALOG),
+    (0, typeorm_1.Entity)('hardware_te_analog_channels'),
     __metadata("design:paramtypes", [String, String])
 ], TEAnalog);
 // ─────────────────────────────────────────────
@@ -500,7 +500,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CANInterface.prototype, "netHwChannel", void 0);
 exports.CANInterface = CANInterface = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.CAN_INTERFACE),
+    (0, typeorm_1.Entity)('hardware_can_interfaces'),
     __metadata("design:paramtypes", [String, String])
 ], CANInterface);
 // ─────────────────────────────────────────────
@@ -534,7 +534,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CIBInterface.prototype, "hwChannel2", void 0);
 exports.CIBInterface = CIBInterface = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.CIB_INTERFACE),
+    (0, typeorm_1.Entity)('hardware_cib_interfaces'),
     __metadata("design:paramtypes", [String, String])
 ], CIBInterface);
 // ─────────────────────────────────────────────
@@ -542,7 +542,7 @@ exports.CIBInterface = CIBInterface = __decorate([
 // ─────────────────────────────────────────────
 let CMInterface = class CMInterface extends channel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.CM_INTERFACE, enums_1.HardwareChannelSubclass.CM_INTERFACE);
+        super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CM_INTERFACE);
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
@@ -576,7 +576,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CMInterface.prototype, "hwChannel", void 0);
 exports.CMInterface = CMInterface = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.CM_INTERFACE),
+    (0, typeorm_1.Entity)('hardware_cm_interfaces'),
     __metadata("design:paramtypes", [String, String])
 ], CMInterface);
 // ─────────────────────────────────────────────
@@ -631,7 +631,7 @@ __decorate([
     __metadata("design:type", Object)
 ], HHLoad.prototype, "channels", void 0);
 exports.HHLoad = HHLoad = __decorate([
-    (0, typeorm_1.ChildEntity)(enums_1.HardwareChannelSubclass.HH_LOAD),
+    (0, typeorm_1.Entity)('hardware_hh_loads'),
     __metadata("design:paramtypes", [String, String])
 ], HHLoad);
 //# sourceMappingURL=hardwareChannels.js.map

@@ -7,7 +7,7 @@ import { StorageService } from '../services/storageService';
 import { ConfigGenerator } from '../services/configGenerator';
 import { AIValidator } from '../ai/aiValidator';
 import { saveConfigurationToDb } from '../services/databaseService';
-import { CANChannel, CANFDChannel, LINChannel, FlexRayChannel, EthernetChannel, SerialChannel, IOInputChannel, IOOutputChannel, BridgeChannel, AnalogChannel, PSChannel, IPSChannel } from '../models/logicalChannels';
+import { CANChannel, LINChannel, FlexRayChannel, EthernetChannel, SerialChannel, IOInputChannel, IOOutputChannel, BridgeChannel, AnalogChannel, PSChannel, IPSChannel } from '../models/logicalChannels';
 import { LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice, CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad } from '../models/hardwareChannels';
 import {
   ChannelType,
@@ -19,7 +19,6 @@ import {
 
 const logicalChannelFactories: Record<string, (id: string, name: string) => any> = {
   [LogicalChannelSubclass.CAN]: (id, name) => new CANChannel(id, name),
-  [LogicalChannelSubclass.CAN_FD]: (id, name) => new CANFDChannel(id, name),
   [LogicalChannelSubclass.LIN]: (id, name) => new LINChannel(id, name),
   [LogicalChannelSubclass.FLEXRAY]: (id, name) => new FlexRayChannel(id, name),
   [LogicalChannelSubclass.ETHERNET]: (id, name) => new EthernetChannel(id, name),
@@ -98,7 +97,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
       case 'createConfiguration': {
         const id = `config_${Date.now()}`;
-        this.currentConfig = new Configuration(id, message.name, message.userId || 'anonymous');
+        const currentUser = this.storageService.getCurrentUser() as any;
+        const userId = currentUser ? currentUser.id : null;
+        this.currentConfig = new Configuration(id, message.name, userId);
         this._saveCurrentConfig();
         webview.postMessage({ command: 'configurationCreated', data: this.currentConfig.toJSON() });
         break;
@@ -784,7 +785,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
       container.innerHTML = '';
       let html = '';
 
-      if (subclass === 'CANChannel' || subclass === 'CANFDChannel') {
+      if (subclass === 'CANChannel') {
         html += \`
           <div class="form-group">
             <label>Hardware Channel (Index)</label>

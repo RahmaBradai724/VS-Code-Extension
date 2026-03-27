@@ -15,36 +15,44 @@ export class Configuration {
   @Column()
   name: string;
 
-  @Column()
-  userId: string;
-  
+  @Column({ nullable: true })
+  userId!: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  data?: string;
+
   @Column()
   createdAt: string;
 
   @Column()
   updatedAt: string;
 
-  @OneToMany(() => LogicalChannel, (lc) => lc.configuration)
   logicalChannels: LogicalChannel[] = [];
-
-  @OneToMany(() => HardwareChannel, (hc) => hc.configuration)
   hardwareChannels: HardwareChannel[] = [];
 
   @OneToMany(() => Mapping, (m) => m.configuration)
-  mappings: Mapping[] = [];
+  mappings!: Mapping[];
 
   @OneToOne(() => FrameworkConfig, { cascade: true })
   @JoinColumn()
-  frameworkConfig: FrameworkConfig = new FrameworkConfig();
+  frameworkConfig!: FrameworkConfig;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
   user?: User;
 
-  constructor(id: string, name: string, userId: string) {
+  // ✅ Constructor accepts string | number | null and converts safely
+  constructor(id: string, name: string, userId?: string | number | null) {
     this.id = id;
     this.name = name;
-    this.userId = userId;
+
+    if (userId === null || userId === undefined || userId === '') {
+      this.userId = null;
+    } else {
+      const n = Number(userId);
+      this.userId = isNaN(n) ? null : n;
+    }
+
     this.createdAt = new Date().toISOString();
     this.updatedAt = new Date().toISOString();
   }
@@ -60,10 +68,10 @@ export class Configuration {
       userId: this.userId,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-      logicalChannels: this.logicalChannels.map(c => c.toJSON()),
-      hardwareChannels: this.hardwareChannels.map(c => c.toJSON()),
-      mappings: this.mappings.map(m => m.toJSON()),
-      frameworkConfig: this.frameworkConfig.toJSON(),
+      logicalChannels: this.logicalChannels ? this.logicalChannels.map(c => typeof c.toJSON === 'function' ? c.toJSON() : c) : [],
+      hardwareChannels: this.hardwareChannels ? this.hardwareChannels.map(c => typeof c.toJSON === 'function' ? c.toJSON() : c) : [],
+      mappings: this.mappings ? this.mappings.map(m => typeof m.toJSON === 'function' ? m.toJSON() : m) : [],
+      frameworkConfig: this.frameworkConfig ? (typeof this.frameworkConfig.toJSON === 'function' ? this.frameworkConfig.toJSON() : this.frameworkConfig) : {},
     };
   }
 }

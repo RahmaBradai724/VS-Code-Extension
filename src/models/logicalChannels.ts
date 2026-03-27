@@ -1,4 +1,4 @@
-import { ChildEntity, Column } from 'typeorm';
+import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from './channel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from './enums';
 
@@ -9,7 +9,7 @@ export interface TunTapAdapter {
 // ─────────────────────────────────────────────
 //  FlexRay Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.FLEXRAY)
+@Entity('logical_flexray_channels')
 export class FlexRayChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -48,7 +48,7 @@ export class FlexRayChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Serial Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.SERIAL)
+@Entity('logical_serial_channels')
 export class SerialChannel extends LogicalChannel {
   @Column()
   portName: string = '';
@@ -106,7 +106,7 @@ export class SerialChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  CAN Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.CAN)
+@Entity('logical_can_channels')
 export class CANChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -132,37 +132,9 @@ export class CANChannel extends LogicalChannel {
 }
 
 // ─────────────────────────────────────────────
-//  CAN FD Logical Channel
-// ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.CAN_FD)
-export class CANFDChannel extends LogicalChannel {
-  @Column({ nullable: true })
-  hwChannel?: number;
-
-  @Column({ nullable: true })
-  operationMode?: string;
-
-  constructor(id: string, name: string) {
-    super(id, name, LogicalChannelCategory.CAN_FD, LogicalChannelSubclass.CAN_FD);
-  }
-
-  toYAML(): object {
-    return {
-      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-      hwChannel: this.hwChannel, operationMode: this.operationMode
-    };
-  }
-
-  toJSON(): object {
-    return this.toYAML();
-  }
-}
-
-// ─────────────────────────────────────────────
 //  IO Input Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.IOINPUT)
+@Entity('logical_io_input_channels')
 export class IOInputChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -225,7 +197,7 @@ export class IOInputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IO Output Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.IOOUTPUT)
+@Entity('logical_io_output_channels')
 export class IOOutputChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -288,7 +260,7 @@ export class IOOutputChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  LIN Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.LIN)
+@Entity('logical_lin_channels')
 export class LINChannel extends LogicalChannel {
   @Column({ nullable: true })
   protocol?: string;
@@ -320,7 +292,7 @@ export class LINChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  IPS Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.IOSERIAL)
+@Entity('logical_io_serial_channels')
 export class IPSChannel extends LogicalChannel {
   @Column()
   openSession: number = 0;
@@ -351,7 +323,7 @@ export class IPSChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Bridge Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.BRIDGE)
+@Entity('logical_bridge_channels')
 export class BridgeChannel extends LogicalChannel {
   @Column({ nullable: true })
   bridgeName?: string;
@@ -395,7 +367,7 @@ export interface HardwareChannel_Ref {
 // ─────────────────────────────────────────────
 //  Analog Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.ANALOG)
+@Entity('logical_analog_channels')
 export class AnalogChannel extends LogicalChannel {
   @Column({ nullable: true })
   hwChannel?: number;
@@ -423,7 +395,7 @@ export class AnalogChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  PS Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.PS)
+@Entity('logical_ps_channels')
 export class PSChannel extends LogicalChannel {
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.PS, LogicalChannelSubclass.PS);
@@ -444,7 +416,7 @@ export class PSChannel extends LogicalChannel {
 // ─────────────────────────────────────────────
 //  Ethernet Logical Channel
 // ─────────────────────────────────────────────
-@ChildEntity(LogicalChannelSubclass.ETHERNET)
+@Entity('logical_ethernet_channels')
 export class EthernetChannel extends LogicalChannel {
   @Column({ nullable: true })
   ethernetName?: string;

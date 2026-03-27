@@ -255,12 +255,11 @@ let FrameworkConfig = class FrameworkConfig {
         this.publisherConfig = new PublisherConfig();
         this.diagnostics = new DiagnosticsConfig();
         this.ethernetConfig = new EthernetConfig();
-        this.tracing = [];
         this.connectedEcus = [];
         this.channelToEcusMapping = new Map();
     }
     toYAML() {
-        const tracers = this.tracing.map(t => t.toYAML());
+        const tracers = this.tracing ? this.tracing.map(t => t.toYAML()) : [];
         return {
             publisher: this.publisherConfig.toYAML(),
             diagnostics: this.diagnostics.toYAML(),
@@ -273,7 +272,7 @@ let FrameworkConfig = class FrameworkConfig {
             publisherConfig: this.publisherConfig.toJSON(),
             diagnostics: this.diagnostics.toJSON(),
             ethernetConfig: this.ethernetConfig.toJSON(),
-            tracing: this.tracing.map(t => t.toJSON()),
+            tracing: this.tracing ? this.tracing.map(t => t.toJSON()) : [],
             connectedEcus: this.connectedEcus,
             servicePack: this.servicePack,
             channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,

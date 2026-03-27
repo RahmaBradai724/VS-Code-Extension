@@ -16,14 +16,20 @@ const typeorm_1 = require("typeorm");
  * Represents a user of the Configuration Management System.
  */
 let User = User_1 = class User {
-    constructor(userId, name, email) {
-        this.userId = userId;
+    constructor(name, email) {
         this.name = name;
         this.email = email;
     }
-    getUserId() { return this.userId; }
-    getName() { return this.name; }
-    getEmail() { return this.email; }
+    /** String-based user ID for backward compatibility with StorageService / UI. */
+    getUserId() {
+        return String(this.id);
+    }
+    getName() {
+        return this.name;
+    }
+    getEmail() {
+        return this.email;
+    }
     createConfiguration(id, name) {
         // Implementation would go here
     }
@@ -32,20 +38,24 @@ let User = User_1 = class User {
     }
     toJSON() {
         return {
-            userId: this.userId,
+            id: this.id,
             name: this.name,
             email: this.email,
         };
     }
     static fromJSON(data) {
-        return new User_1(data.userId || data.id, data.name, data.email);
+        const u = new User_1(data.name, data.email);
+        if (data.id != null) {
+            u.id = data.id;
+        }
+        return u;
     }
 };
 exports.User = User;
 __decorate([
-    (0, typeorm_1.PrimaryColumn)(),
-    __metadata("design:type", String)
-], User.prototype, "userId", void 0);
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], User.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -56,6 +66,7 @@ __decorate([
 ], User.prototype, "email", void 0);
 exports.User = User = User_1 = __decorate([
     (0, typeorm_1.Entity)('users'),
-    __metadata("design:paramtypes", [String, String, String])
+    (0, typeorm_1.Index)(['name', 'email'], { unique: true }),
+    __metadata("design:paramtypes", [String, String])
 ], User);
 //# sourceMappingURL=user.js.map

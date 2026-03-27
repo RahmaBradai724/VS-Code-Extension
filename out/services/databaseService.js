@@ -33,104 +33,108 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getDataSource = getDataSource;
 exports.initializeDatabase = initializeDatabase;
 exports.testDatabaseConnection = testDatabaseConnection;
-exports.saveConfigurationToDb = saveConfigurationToDb;
 exports.saveUserToDb = saveUserToDb;
 exports.getUserById = getUserById;
 exports.findUserByNameAndEmail = findUserByNameAndEmail;
-const pg_1 = require("pg");
+exports.saveConfigurationToDb = saveConfigurationToDb;
+const typeorm_1 = require("typeorm");
 const vscode = __importStar(require("vscode"));
-const pool = new pg_1.Pool({
+const logicalChannels_1 = require("../models/logicalChannels");
+const hardwareChannels_1 = require("../models/hardwareChannels");
+const configuration_1 = require("../models/configuration");
+const user_1 = require("../models/user");
+const mapping_1 = require("../models/mapping");
+const frameworkConfig_1 = require("../models/frameworkConfig");
+// ── Database configuration ──────────────────────────────────────────────────
+const dbConfig = {
     host: 'localhost',
-    user: 'postgres',
-    password: '123',
-    database: 'VS_Code_Extension',
     port: 5432,
-});
+    database: 'VS_Code_Extension',
+    username: 'postgres',
+    password: '123',
+};
+// ── DataSource ──────────────────────────────────────────────────────────────
+let appDataSource = null;
 let initializationPromise = null;
-/**
- * Initializes the database by creating necessary tables if they don't exist.
- */
+function createDataSource() {
+    return new typeorm_1.DataSource({
+        type: 'postgres',
+        host: dbConfig.host,
+        port: dbConfig.port,
+        username: dbConfig.username,
+        password: dbConfig.password,
+        database: dbConfig.database,
+        synchronize: true,
+        logging: false,
+        entities: [
+            logicalChannels_1.FlexRayChannel,
+            logicalChannels_1.SerialChannel,
+            logicalChannels_1.CANChannel,
+            logicalChannels_1.IOInputChannel,
+            logicalChannels_1.IOOutputChannel,
+            logicalChannels_1.LINChannel,
+            logicalChannels_1.IPSChannel,
+            logicalChannels_1.BridgeChannel,
+            logicalChannels_1.AnalogChannel,
+            logicalChannels_1.EthernetChannel,
+            logicalChannels_1.PSChannel,
+            hardwareChannels_1.LINCard,
+            hardwareChannels_1.SerialPort,
+            hardwareChannels_1.HIDRelay,
+            hardwareChannels_1.RelayBoard,
+            hardwareChannels_1.EthernetAdapter,
+            hardwareChannels_1.AnalogDevice,
+            hardwareChannels_1.CANInterface,
+            hardwareChannels_1.CIBInterface,
+            hardwareChannels_1.TEAnalog,
+            hardwareChannels_1.CMInterface,
+            hardwareChannels_1.HHLoad,
+            frameworkConfig_1.Tracer,
+            frameworkConfig_1.PCAPTracer,
+            frameworkConfig_1.ASCIITracer,
+            frameworkConfig_1.FrameworkConfig,
+            configuration_1.Configuration,
+            user_1.User,
+            mapping_1.Mapping,
+        ],
+    });
+}
+function getDataSource() {
+    if (!appDataSource) {
+        appDataSource = createDataSource();
+    }
+    return appDataSource;
+}
 function initializeDatabase() {
     if (initializationPromise) {
         return initializationPromise;
     }
     initializationPromise = (async () => {
-        const createTablesQuery = `
-            CREATE TABLE IF NOT EXISTS configurations (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                data JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS users_name_email_uq ON users (name, email);
-
-            -- Repair legacy / TypeORM tables where id is NOT NULL but has no DEFAULT
-            DO $migrate$
-            DECLARE
-                col_type text;
-                seq_name text;
-                max_id bigint;
-            BEGIN
-                SELECT c.data_type INTO col_type
-                FROM information_schema.columns c
-                WHERE c.table_schema = 'public' AND c.table_name = 'users' AND c.column_name = 'id';
-
-                IF col_type IS NULL THEN
-                    RETURN;
-                END IF;
-
-                seq_name := pg_get_serial_sequence('public.users', 'id');
-
-                IF col_type IN ('integer', 'bigint', 'smallint') THEN
-                    IF seq_name IS NULL THEN
-                        CREATE SEQUENCE IF NOT EXISTS users_id_seq;
-                        SELECT COALESCE(MAX(id), 0) INTO max_id FROM users;
-                        PERFORM setval('users_id_seq', max_id);
-                        ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
-                        ALTER SEQUENCE users_id_seq OWNED BY users.id;
-                    ELSE
-                        EXECUTE format(
-                            'ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval(%L::regclass)',
-                            seq_name
-                        );
-                    END IF;
-                ELSIF col_type IN ('character varying', 'text') THEN
-                    ALTER TABLE users ALTER COLUMN id SET DEFAULT (gen_random_uuid()::text);
-                ELSIF col_type = 'uuid' THEN
-                    ALTER TABLE users ALTER COLUMN id SET DEFAULT gen_random_uuid();
-                END IF;
-            END
-            $migrate$;
-        `;
         try {
-            await pool.query(createTablesQuery);
-            console.log('Database initialized successfully.');
+            const ds = getDataSource();
+            if (!ds.isInitialized) {
+                await ds.initialize();
+            }
+            console.log('Database initialized successfully (TypeORM).');
         }
         catch (err) {
-            console.error('Error initializing database tables:', err);
-            const detail = err?.message ? ` ${err.message}` : '';
-            vscode.window.showErrorMessage(`Failed to initialize database schema.${detail}`);
+            console.error('Error initializing database:', err);
+            vscode.window.showErrorMessage(`Failed to initialize database schema. ${err?.message || ''}`);
             throw err;
         }
     })();
     return initializationPromise;
 }
-/**
- * Tests the connection to the PostgreSQL database.
- */
 async function testDatabaseConnection() {
     try {
-        const client = await pool.connect();
-        client.release();
+        const ds = getDataSource();
+        if (!ds.isInitialized) {
+            await ds.initialize();
+        }
+        await ds.query('SELECT 1');
         return true;
     }
     catch (err) {
@@ -139,73 +143,93 @@ async function testDatabaseConnection() {
         return false;
     }
 }
-/**
- * Save configuration
- */
-async function saveConfigurationToDb(configId, name, userId, data) {
-    const client = await pool.connect();
-    try {
-        const query = 'INSERT INTO configurations (config_id, name, user_id, config_data) VALUES ($1, $2, $3, $4) ON CONFLICT (config_id) DO UPDATE SET name = $2, user_id = $3, config_data = $4, updated_at = CURRENT_TIMESTAMP';
-        const values = [configId, name, userId, data];
-        await client.query(query, values);
-        console.log(`Configuration ${name} saved to DB.`);
-    }
-    finally {
-        client.release();
-    }
-}
-/**
- * Save a user to the database and return the saved user object (including ID)
- */
+// ── USER ─────────────────────────────────────────────────────────
 async function saveUserToDb(name, email) {
     await initializeDatabase();
-    const query = `
-        INSERT INTO users (name, email)
-        VALUES ($1, $2)
-        ON CONFLICT (name, email) DO UPDATE 
-        SET name = EXCLUDED.name, email = EXCLUDED.email
-        RETURNING *;
-    `;
-    const values = [name, email];
-    try {
-        const res = await pool.query(query, values);
-        console.log('User saved:', res.rows[0].id);
-        return res.rows[0];
-    }
-    catch (err) {
-        console.error('Error saving user:', err);
-        vscode.window.showErrorMessage(`Failed to save user to database: ${err.message}`);
-        throw err;
-    }
+    const repo = getDataSource().getRepository(user_1.User);
+    let user = await repo.findOneBy({ name, email });
+    if (user)
+        return user;
+    user = new user_1.User(name, email);
+    return repo.save(user);
 }
-/**
- * Get a user from the database
- */
 async function getUserById(id) {
-    const query = 'SELECT * FROM users WHERE id = $1;';
-    try {
-        const res = await pool.query(query, [id]);
-        return res.rows[0] || null;
-    }
-    catch (err) {
-        console.error('Error fetching user:', err);
-        return null;
-    }
+    await initializeDatabase();
+    return getDataSource().getRepository(user_1.User).findOneBy({ id });
 }
-/**
- * Find a user by name and email
- */
 async function findUserByNameAndEmail(name, email) {
     await initializeDatabase();
-    const query = 'SELECT * FROM users WHERE name = $1 AND email = $2 LIMIT 1;';
-    try {
-        const res = await pool.query(query, [name, email]);
-        return res.rows[0] || null;
-    }
-    catch (err) {
-        console.error('Error finding user:', err);
-        return null;
-    }
+    return getDataSource().getRepository(user_1.User).findOneBy({ name, email });
 }
-exports.default = pool;
+// ── CONFIGURATION (FIXED) ─────────────────────────────────────────
+async function saveConfigurationToDb(configId, name, userId, // ✅ FIX HERE
+data) {
+    await initializeDatabase();
+    const repo = getDataSource().getRepository(configuration_1.Configuration);
+    // ✅ SAFE CONVERSION
+    const safeUserId = userId !== null && userId !== undefined && userId !== ''
+        ? Number(userId)
+        : null;
+    let config = await repo.findOneBy({ id: configId });
+    if (config) {
+        config.name = name;
+        config.userId = safeUserId;
+        config.data = data;
+        config.touch();
+    }
+    else {
+        config = new configuration_1.Configuration(configId, name, safeUserId);
+        config.data = data;
+    }
+    await repo.save(config);
+    // Persist individual channels (extract from JSON data)
+    const parsedData = JSON.parse(data);
+    const ds = getDataSource();
+    // Helper map from subclass string to Entity class
+    const logicalMap = {
+        'FlexRayChannel': logicalChannels_1.FlexRayChannel,
+        'SerialChannel': logicalChannels_1.SerialChannel,
+        'CANChannel': logicalChannels_1.CANChannel,
+        'IOInputChannel': logicalChannels_1.IOInputChannel,
+        'IOOutputChannel': logicalChannels_1.IOOutputChannel,
+        'LINChannel': logicalChannels_1.LINChannel,
+        'IOSerialChannel': logicalChannels_1.IPSChannel,
+        'BridgeChannel': logicalChannels_1.BridgeChannel,
+        'AnalogChannel': logicalChannels_1.AnalogChannel,
+        'EthernetChannel': logicalChannels_1.EthernetChannel,
+        'PSChannel': logicalChannels_1.PSChannel
+    };
+    const hardwareMap = {
+        'LINCard': hardwareChannels_1.LINCard,
+        'SerialPort': hardwareChannels_1.SerialPort,
+        'HIDRelay': hardwareChannels_1.HIDRelay,
+        'RelayBoard': hardwareChannels_1.RelayBoard,
+        'EthernetAdapter': hardwareChannels_1.EthernetAdapter,
+        'AnalogDevice': hardwareChannels_1.AnalogDevice,
+        'TEAnalog': hardwareChannels_1.TEAnalog,
+        'CANInterface': hardwareChannels_1.CANInterface,
+        'CIBInterface': hardwareChannels_1.CIBInterface,
+        'CMInterface': hardwareChannels_1.CMInterface,
+        'HHLoad': hardwareChannels_1.HHLoad
+    };
+    if (parsedData.logicalChannels) {
+        for (const ch of parsedData.logicalChannels) {
+            const EntityClass = logicalMap[ch.subclass];
+            if (EntityClass) {
+                const chRepo = ds.getRepository(EntityClass);
+                await chRepo.save(chRepo.create(ch));
+            }
+        }
+    }
+    if (parsedData.hardwareChannels) {
+        for (const ch of parsedData.hardwareChannels) {
+            const EntityClass = hardwareMap[ch.subclass];
+            if (EntityClass) {
+                const chRepo = ds.getRepository(EntityClass);
+                await chRepo.save(chRepo.create(ch));
+            }
+        }
+    }
+    console.log(`Configuration ${name} saved to DB.`);
+}
 //# sourceMappingURL=databaseService.js.map

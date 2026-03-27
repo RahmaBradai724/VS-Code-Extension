@@ -11,7 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Configuration = void 0;
 const typeorm_1 = require("typeorm");
-const channel_1 = require("./channel");
 const frameworkConfig_1 = require("./frameworkConfig");
 const mapping_1 = require("./mapping");
 const user_1 = require("./user");
@@ -19,14 +18,19 @@ const user_1 = require("./user");
  * Top-level configuration entity.
  */
 let Configuration = class Configuration {
+    // ✅ Constructor accepts string | number | null and converts safely
     constructor(id, name, userId) {
         this.logicalChannels = [];
         this.hardwareChannels = [];
-        this.mappings = [];
-        this.frameworkConfig = new frameworkConfig_1.FrameworkConfig();
         this.id = id;
         this.name = name;
-        this.userId = userId;
+        if (userId === null || userId === undefined || userId === '') {
+            this.userId = null;
+        }
+        else {
+            const n = Number(userId);
+            this.userId = isNaN(n) ? null : n;
+        }
         this.createdAt = new Date().toISOString();
         this.updatedAt = new Date().toISOString();
     }
@@ -40,10 +44,10 @@ let Configuration = class Configuration {
             userId: this.userId,
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
-            logicalChannels: this.logicalChannels.map(c => c.toJSON()),
-            hardwareChannels: this.hardwareChannels.map(c => c.toJSON()),
-            mappings: this.mappings.map(m => m.toJSON()),
-            frameworkConfig: this.frameworkConfig.toJSON(),
+            logicalChannels: this.logicalChannels ? this.logicalChannels.map(c => typeof c.toJSON === 'function' ? c.toJSON() : c) : [],
+            hardwareChannels: this.hardwareChannels ? this.hardwareChannels.map(c => typeof c.toJSON === 'function' ? c.toJSON() : c) : [],
+            mappings: this.mappings ? this.mappings.map(m => typeof m.toJSON === 'function' ? m.toJSON() : m) : [],
+            frameworkConfig: this.frameworkConfig ? (typeof this.frameworkConfig.toJSON === 'function' ? this.frameworkConfig.toJSON() : this.frameworkConfig) : {},
         };
     }
 };
@@ -57,9 +61,13 @@ __decorate([
     __metadata("design:type", String)
 ], Configuration.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Object)
 ], Configuration.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Configuration.prototype, "data", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -68,14 +76,6 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Configuration.prototype, "updatedAt", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => channel_1.LogicalChannel, (lc) => lc.configuration),
-    __metadata("design:type", Array)
-], Configuration.prototype, "logicalChannels", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => channel_1.HardwareChannel, (hc) => hc.configuration),
-    __metadata("design:type", Array)
-], Configuration.prototype, "hardwareChannels", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => mapping_1.Mapping, (m) => m.configuration),
     __metadata("design:type", Array)
@@ -92,6 +92,6 @@ __decorate([
 ], Configuration.prototype, "user", void 0);
 exports.Configuration = Configuration = __decorate([
     (0, typeorm_1.Entity)('configurations'),
-    __metadata("design:paramtypes", [String, String, String])
+    __metadata("design:paramtypes", [String, String, Object])
 ], Configuration);
 //# sourceMappingURL=configuration.js.map

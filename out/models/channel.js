@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HardwareChannel = exports.LogicalChannel = exports.Channel = void 0;
 const typeorm_1 = require("typeorm");
 const enums_1 = require("./enums");
-const configuration_1 = require("./configuration");
 /**
  * Abstract base class for all channels.
  */
@@ -48,21 +47,16 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
 ], Channel.prototype, "type", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => configuration_1.Configuration),
-    (0, typeorm_1.JoinColumn)({ name: 'config_id' }),
-    __metadata("design:type", configuration_1.Configuration)
-], Channel.prototype, "configuration", void 0);
 /**
  * Abstract base class for all logical channels.
  */
-let LogicalChannel = class LogicalChannel extends Channel {
+class LogicalChannel extends Channel {
     constructor(id, name, category, subclass) {
         super(id, name, enums_1.ChannelType.LOGICAL);
         this.category = category;
         this.subclass = subclass;
     }
-};
+}
 exports.LogicalChannel = LogicalChannel;
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
@@ -84,15 +78,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
     __metadata("design:type", Array)
 ], LogicalChannel.prototype, "alias", void 0);
-exports.LogicalChannel = LogicalChannel = __decorate([
-    (0, typeorm_1.Entity)('logical_channels'),
-    (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'discriminator' } }),
-    __metadata("design:paramtypes", [String, String, String, String])
-], LogicalChannel);
 /**
  * Abstract base class for all hardware channels.
  */
-let HardwareChannel = class HardwareChannel extends Channel {
+class HardwareChannel extends Channel {
     constructor(id, name, category, subclass) {
         super(id, name, enums_1.ChannelType.HARDWARE);
         this.category = category;
@@ -104,7 +93,7 @@ let HardwareChannel = class HardwareChannel extends Channel {
     setStatus(status) {
         this.status = status;
     }
-};
+}
 exports.HardwareChannel = HardwareChannel;
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
@@ -118,9 +107,4 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], HardwareChannel.prototype, "status", void 0);
-exports.HardwareChannel = HardwareChannel = __decorate([
-    (0, typeorm_1.Entity)('hardware_channels'),
-    (0, typeorm_1.TableInheritance)({ column: { type: 'varchar', name: 'discriminator' } }),
-    __metadata("design:paramtypes", [String, String, String, String])
-], HardwareChannel);
 //# sourceMappingURL=channel.js.map

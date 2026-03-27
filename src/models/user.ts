@@ -1,12 +1,13 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
 /**
  * Represents a user of the Configuration Management System.
  */
 @Entity('users')
+@Index(['name', 'email'], { unique: true })
 export class User {
-  @PrimaryColumn()
-  userId: string; // Stored as string in the model for consistency with Extension APIs
+  @PrimaryGeneratedColumn()
+  id!: number;
 
   @Column()
   name: string;
@@ -14,15 +15,21 @@ export class User {
   @Column()
   email: string;
 
-  constructor(userId: string, name: string, email: string) {
-    this.userId = userId;
+  constructor(name: string, email: string) {
     this.name = name;
     this.email = email;
   }
 
-  getUserId(): string { return this.userId; }
-  getName(): string { return this.name; }
-  getEmail(): string { return this.email; }
+  /** String-based user ID for backward compatibility with StorageService / UI. */
+  getUserId(): string {
+    return String(this.id);
+  }
+  getName(): string {
+    return this.name;
+  }
+  getEmail(): string {
+    return this.email;
+  }
 
   createConfiguration(id: string, name: string): void {
     // Implementation would go here
@@ -34,13 +41,17 @@ export class User {
 
   toJSON(): object {
     return {
-      userId: this.userId,
+      id: this.id,
       name: this.name,
       email: this.email,
     };
   }
 
   static fromJSON(data: any): User {
-    return new User(data.userId || data.id, data.name, data.email);
+    const u = new User(data.name, data.email);
+    if (data.id != null) {
+      u.id = data.id;
+    }
+    return u;
   }
 }

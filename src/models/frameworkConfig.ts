@@ -216,7 +216,7 @@ export class FrameworkConfig {
   ethernetConfig: EthernetConfig = new EthernetConfig();
 
   @OneToMany(() => Tracer, (t) => t.configuration)
-  tracing: Tracer[] = [];
+  tracing!: Tracer[];
 
   @Column({ type: 'jsonb', default: [] })
   connectedEcus: string[] = [];
@@ -228,7 +228,7 @@ export class FrameworkConfig {
   channelToEcusMapping: Map<string, string[]> = new Map();
 
   toYAML(): object {
-    const tracers: object[] = this.tracing.map(t => t.toYAML());
+    const tracers: object[] = this.tracing ? this.tracing.map(t => t.toYAML()) : [];
     return {
       publisher: this.publisherConfig.toYAML(),
       diagnostics: this.diagnostics.toYAML(),
@@ -242,7 +242,7 @@ export class FrameworkConfig {
       publisherConfig: this.publisherConfig.toJSON(),
       diagnostics: this.diagnostics.toJSON(),
       ethernetConfig: this.ethernetConfig.toJSON(),
-      tracing: this.tracing.map(t => t.toJSON()),
+      tracing: this.tracing ? this.tracing.map(t => t.toJSON()) : [],
       connectedEcus: this.connectedEcus,
       servicePack: this.servicePack,
       channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,

@@ -1,176 +1,248 @@
-import { Pool } from 'pg';
+import { DataSource } from 'typeorm';
 import * as vscode from 'vscode';
+import {
+  FlexRayChannel,
+  SerialChannel,
+  CANChannel,
+  IOInputChannel,
+  IOOutputChannel,
+  LINChannel,
+  IPSChannel,
+  BridgeChannel,
+  AnalogChannel,
+  EthernetChannel,
+  PSChannel,
+} from '../models/logicalChannels';
+import {
+  LINCard,
+  SerialPort,
+  HIDRelay,
+  RelayBoard,
+  EthernetAdapter,
+  AnalogDevice,
+  CANInterface,
+  CIBInterface,
+  TEAnalog,
+  CMInterface,
+  HHLoad,
+} from '../models/hardwareChannels';
+import { Configuration } from '../models/configuration';
+import { User } from '../models/user';
+import { Mapping } from '../models/mapping';
+import { FrameworkConfig, PCAPTracer, ASCIITracer, Tracer } from '../models/frameworkConfig';
 
-const pool = new Pool({
-    host: 'localhost',
-    user: 'postgres',
-    password: '123',
-    database: 'VS_Code_Extension',
-    port: 5432,
-});
+// ── Database configuration ──────────────────────────────────────────────────
+const dbConfig = {
+  host: 'localhost',
+  port: 5432,
+  database: 'VS_Code_Extension',
+  username: 'postgres',
+  password: '123',
+} as const;
 
+// ── DataSource ──────────────────────────────────────────────────────────────
+let appDataSource: DataSource | null = null;
 let initializationPromise: Promise<void> | null = null;
 
-/**
- * Initializes the database by creating necessary tables if they don't exist.
- */
+function createDataSource(): DataSource {
+  return new DataSource({
+    type: 'postgres',
+    host: dbConfig.host,
+    port: dbConfig.port,
+    username: dbConfig.username,
+    password: dbConfig.password,
+    database: dbConfig.database,
+    synchronize: true,
+    logging: false,
+    entities: [
+      FlexRayChannel,
+      SerialChannel,
+      CANChannel,
+      IOInputChannel,
+      IOOutputChannel,
+      LINChannel,
+      IPSChannel,
+      BridgeChannel,
+      AnalogChannel,
+      EthernetChannel,
+      PSChannel,
+      LINCard,
+      SerialPort,
+      HIDRelay,
+      RelayBoard,
+      EthernetAdapter,
+      AnalogDevice,
+      CANInterface,
+      CIBInterface,
+      TEAnalog,
+      CMInterface,
+      HHLoad,
+      Tracer,
+      PCAPTracer,
+      ASCIITracer,
+      FrameworkConfig,
+      Configuration,
+      User,
+      Mapping,
+    ],
+  });
+}
+
+export function getDataSource(): DataSource {
+  if (!appDataSource) {
+    appDataSource = createDataSource();
+  }
+  return appDataSource;
+}
+
 export function initializeDatabase(): Promise<void> {
-    if (initializationPromise) {
-        return initializationPromise;
-    }
-
-    initializationPromise = (async () => {
-        const createTablesQuery = `
-            CREATE TABLE IF NOT EXISTS configurations (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                data JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS users_name_email_uq ON users (name, email);
-
-            -- Repair legacy / TypeORM tables where id is NOT NULL but has no DEFAULT
-            DO $migrate$
-            DECLARE
-                col_type text;
-                seq_name text;
-                max_id bigint;
-            BEGIN
-                SELECT c.data_type INTO col_type
-                FROM information_schema.columns c
-                WHERE c.table_schema = 'public' AND c.table_name = 'users' AND c.column_name = 'id';
-
-                IF col_type IS NULL THEN
-                    RETURN;
-                END IF;
-
-                seq_name := pg_get_serial_sequence('public.users', 'id');
-
-                IF col_type IN ('integer', 'bigint', 'smallint') THEN
-                    IF seq_name IS NULL THEN
-                        CREATE SEQUENCE IF NOT EXISTS users_id_seq;
-                        SELECT COALESCE(MAX(id), 0) INTO max_id FROM users;
-                        PERFORM setval('users_id_seq', max_id);
-                        ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
-                        ALTER SEQUENCE users_id_seq OWNED BY users.id;
-                    ELSE
-                        EXECUTE format(
-                            'ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval(%L::regclass)',
-                            seq_name
-                        );
-                    END IF;
-                ELSIF col_type IN ('character varying', 'text') THEN
-                    ALTER TABLE users ALTER COLUMN id SET DEFAULT (gen_random_uuid()::text);
-                ELSIF col_type = 'uuid' THEN
-                    ALTER TABLE users ALTER COLUMN id SET DEFAULT gen_random_uuid();
-                END IF;
-            END
-            $migrate$;
-        `;
-
-        try {
-            await pool.query(createTablesQuery);
-            console.log('Database initialized successfully.');
-        } catch (err: any) {
-            console.error('Error initializing database tables:', err);
-            const detail = err?.message ? ` ${err.message}` : '';
-            vscode.window.showErrorMessage(`Failed to initialize database schema.${detail}`);
-            throw err;
-        }
-    })();
-
+  if (initializationPromise) {
     return initializationPromise;
-}
+  }
 
-/**
- * Tests the connection to the PostgreSQL database.
- */
-export async function testDatabaseConnection(): Promise<boolean> {
+  initializationPromise = (async () => {
     try {
-        const client = await pool.connect();
-        client.release();
-        return true;
-    } catch (err) {
-        console.error('Error connecting to the database:', err);
-        vscode.window.showErrorMessage('Failed to connect to PostgreSQL.');
-        return false;
+      const ds = getDataSource();
+      if (!ds.isInitialized) {
+        await ds.initialize();
+      }
+      console.log('Database initialized successfully (TypeORM).');
+    } catch (err: any) {
+      console.error('Error initializing database:', err);
+      vscode.window.showErrorMessage(
+        `Failed to initialize database schema. ${err?.message || ''}`
+      );
+      throw err;
     }
+  })();
+
+  return initializationPromise;
 }
 
-/**
- * Save configuration
- */
-export async function saveConfigurationToDb(configId: string, name: string, userId: string, data: string) {
-  const client = await pool.connect();
+export async function testDatabaseConnection(): Promise<boolean> {
   try {
-    const query = 'INSERT INTO configurations (config_id, name, user_id, config_data) VALUES ($1, $2, $3, $4) ON CONFLICT (config_id) DO UPDATE SET name = $2, user_id = $3, config_data = $4, updated_at = CURRENT_TIMESTAMP';
-    const values = [configId, name, userId, data];
-    await client.query(query, values);
-    console.log(`Configuration ${name} saved to DB.`);
-  } finally {
-    client.release();
+    const ds = getDataSource();
+    if (!ds.isInitialized) {
+      await ds.initialize();
+    }
+    await ds.query('SELECT 1');
+    return true;
+  } catch (err) {
+    console.error('Error connecting to the database:', err);
+    vscode.window.showErrorMessage('Failed to connect to PostgreSQL.');
+    return false;
   }
 }
 
-/**
- * Save a user to the database and return the saved user object (including ID)
- */
-export async function saveUserToDb(name: string, email: string): Promise<any> {
-    await initializeDatabase();
-    const query = `
-        INSERT INTO users (name, email)
-        VALUES ($1, $2)
-        ON CONFLICT (name, email) DO UPDATE 
-        SET name = EXCLUDED.name, email = EXCLUDED.email
-        RETURNING *;
-    `;
-    const values = [name, email];
+// ── USER ─────────────────────────────────────────────────────────
 
-    try {
-        const res = await pool.query(query, values);
-        console.log('User saved:', res.rows[0].id);
-        return res.rows[0];
-    } catch (err: any) {
-        console.error('Error saving user:', err);
-        vscode.window.showErrorMessage(`Failed to save user to database: ${err.message}`);
-        throw err;
-    }
+export async function saveUserToDb(name: string, email: string): Promise<User> {
+  await initializeDatabase();
+  const repo = getDataSource().getRepository(User);
+
+  let user = await repo.findOneBy({ name, email });
+  if (user) return user;
+
+  user = new User(name, email);
+  return repo.save(user);
 }
 
-/**
- * Get a user from the database
- */
-export async function getUserById(id: number): Promise<any | null> {
-    const query = 'SELECT * FROM users WHERE id = $1;';
-    try {
-        const res = await pool.query(query, [id]);
-        return res.rows[0] || null;
-    } catch (err) {
-        console.error('Error fetching user:', err);
-        return null;
-    }
+export async function getUserById(id: number): Promise<User | null> {
+  await initializeDatabase();
+  return getDataSource().getRepository(User).findOneBy({ id });
 }
 
-/**
- * Find a user by name and email
- */
-export async function findUserByNameAndEmail(name: string, email: string): Promise<any | null> {
-    await initializeDatabase();
-    const query = 'SELECT * FROM users WHERE name = $1 AND email = $2 LIMIT 1;';
-    try {
-        const res = await pool.query(query, [name, email]);
-        return res.rows[0] || null;
-    } catch (err) {
-        console.error('Error finding user:', err);
-        return null;
-    }
+export async function findUserByNameAndEmail(
+  name: string,
+  email: string
+): Promise<User | null> {
+  await initializeDatabase();
+  return getDataSource().getRepository(User).findOneBy({ name, email });
 }
 
-export default pool;
+// ── CONFIGURATION (FIXED) ─────────────────────────────────────────
+
+export async function saveConfigurationToDb(
+  configId: string,
+  name: string,
+  userId: string | number | null, // ✅ FIX HERE
+  data: string
+): Promise<void> {
+  await initializeDatabase();
+  const repo = getDataSource().getRepository(Configuration);
+
+  // ✅ SAFE CONVERSION
+  const safeUserId: number | null =
+    userId !== null && userId !== undefined && userId !== ''
+      ? Number(userId)
+      : null;
+
+  let config = await repo.findOneBy({ id: configId });
+
+  if (config) {
+    config.name = name;
+    config.userId = safeUserId;
+    config.data = data;
+    config.touch();
+  } else {
+    config = new Configuration(configId, name, safeUserId);
+    config.data = data;
+  }
+
+  await repo.save(config);
+  
+  // Persist individual channels (extract from JSON data)
+  const parsedData = JSON.parse(data);
+  const ds = getDataSource();
+
+  // Helper map from subclass string to Entity class
+  const logicalMap: Record<string, any> = {
+    'FlexRayChannel': FlexRayChannel,
+    'SerialChannel': SerialChannel,
+    'CANChannel': CANChannel,
+    'IOInputChannel': IOInputChannel,
+    'IOOutputChannel': IOOutputChannel,
+    'LINChannel': LINChannel,
+    'IOSerialChannel': IPSChannel,
+    'BridgeChannel': BridgeChannel,
+    'AnalogChannel': AnalogChannel,
+    'EthernetChannel': EthernetChannel,
+    'PSChannel': PSChannel
+  };
+
+  const hardwareMap: Record<string, any> = {
+    'LINCard': LINCard,
+    'SerialPort': SerialPort,
+    'HIDRelay': HIDRelay,
+    'RelayBoard': RelayBoard,
+    'EthernetAdapter': EthernetAdapter,
+    'AnalogDevice': AnalogDevice,
+    'TEAnalog': TEAnalog,
+    'CANInterface': CANInterface,
+    'CIBInterface': CIBInterface,
+    'CMInterface': CMInterface,
+    'HHLoad': HHLoad
+  };
+
+  if (parsedData.logicalChannels) {
+    for (const ch of parsedData.logicalChannels) {
+      const EntityClass = logicalMap[ch.subclass];
+      if (EntityClass) {
+        const chRepo = ds.getRepository(EntityClass);
+        await chRepo.save(chRepo.create(ch));
+      }
+    }
+  }
+
+  if (parsedData.hardwareChannels) {
+    for (const ch of parsedData.hardwareChannels) {
+      const EntityClass = hardwareMap[ch.subclass];
+      if (EntityClass) {
+        const chRepo = ds.getRepository(EntityClass);
+        await chRepo.save(chRepo.create(ch));
+      }
+    }
+  }
+
+  console.log(`Configuration ${name} saved to DB.`);
+}

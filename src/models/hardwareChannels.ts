@@ -1,11 +1,11 @@
-import { ChildEntity, Column } from 'typeorm';
+import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from './channel';
 import { HardwareChannelCategory, HardwareChannelSubclass, CaptureType } from './enums';
 
 // ─────────────────────────────────────────────
 //  LIN Card Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.LIN_CARD)
+@Entity('hardware_lin_cards')
 export class LINCard extends HardwareChannel {
   @Column({ nullable: true })
   hwModel?: number;
@@ -39,7 +39,7 @@ export class LINCard extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  Serial Port Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.SERIAL_PORT)
+@Entity('hardware_serial_ports')
 export class SerialPort extends HardwareChannel {
   @Column()
   portName: string = '';
@@ -104,7 +104,7 @@ export class SerialPort extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  HID Relay Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.HID_RELAY)
+@Entity('hardware_hid_relays')
 export class HIDRelay extends HardwareChannel {
   @Column({ nullable: true })
   vendorId?: string;
@@ -142,7 +142,7 @@ export class HIDRelay extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  Relay Board Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.RELAY_BOARD)
+@Entity('hardware_relay_boards')
 export class RelayBoard extends HardwareChannel {
   @Column({ nullable: true })
   relayCount?: number;
@@ -188,7 +188,7 @@ export class RelayBoard extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  Ethernet Adapter Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.ETHERNET_ADAPTER)
+@Entity('hardware_ethernet_adapters')
 export class EthernetAdapter extends HardwareChannel {
   @Column()
   macAddress: string = '';
@@ -282,7 +282,7 @@ export class EthernetAdapter extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  IO Analog Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.ANALOG_DEVICE)
+@Entity('hardware_analog_devices')
 export class AnalogDevice extends HardwareChannel {
   @Column({ nullable: true })
   channels?: number;
@@ -360,7 +360,7 @@ export class AnalogDevice extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  TEAnalog Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.TE_ANALOG)
+@Entity('hardware_te_analog_channels')
 export class TEAnalog extends HardwareChannel {
   @Column({ nullable: true })
   sensorType?: string;
@@ -391,7 +391,7 @@ export class TEAnalog extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  CAN Interface Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.CAN_INTERFACE)
+@Entity('hardware_can_interfaces')
 export class CANInterface extends HardwareChannel {
   @Column()
   netChannel: number = 0;
@@ -419,7 +419,7 @@ export class CANInterface extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  CIB Interface Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.CIB_INTERFACE)
+@Entity('hardware_cib_interfaces')
 export class CIBInterface extends HardwareChannel {
   @Column({ nullable: true })
   bitRate?: number;
@@ -450,7 +450,7 @@ export class CIBInterface extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  CMInterface Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.CM_INTERFACE)
+@Entity('hardware_cm_interfaces')
 export class CMInterface extends HardwareChannel {
   @Column({ nullable: true })
   interfaceName?: string;
@@ -465,7 +465,7 @@ export class CMInterface extends HardwareChannel {
   hwChannel?: number;
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.CM_INTERFACE, HardwareChannelSubclass.CM_INTERFACE);
+    super(id, name, HardwareChannelCategory.CAN_INTERFACE, HardwareChannelSubclass.CM_INTERFACE);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -488,7 +488,7 @@ export class CMInterface extends HardwareChannel {
 // ─────────────────────────────────────────────
 //  HHLoad Hardware Channel
 // ─────────────────────────────────────────────
-@ChildEntity(HardwareChannelSubclass.HH_LOAD)
+@Entity('hardware_hh_loads')
 export class HHLoad extends HardwareChannel {
   @Column({ type: 'float', nullable: true })
   maxLoad?: number;

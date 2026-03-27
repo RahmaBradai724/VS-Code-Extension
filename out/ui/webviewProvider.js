@@ -47,7 +47,6 @@ const hardwareChannels_1 = require("../models/hardwareChannels");
 const enums_1 = require("../models/enums");
 const logicalChannelFactories = {
     [enums_1.LogicalChannelSubclass.CAN]: (id, name) => new logicalChannels_1.CANChannel(id, name),
-    [enums_1.LogicalChannelSubclass.CAN_FD]: (id, name) => new logicalChannels_1.CANFDChannel(id, name),
     [enums_1.LogicalChannelSubclass.LIN]: (id, name) => new logicalChannels_1.LINChannel(id, name),
     [enums_1.LogicalChannelSubclass.FLEXRAY]: (id, name) => new logicalChannels_1.FlexRayChannel(id, name),
     [enums_1.LogicalChannelSubclass.ETHERNET]: (id, name) => new logicalChannels_1.EthernetChannel(id, name),
@@ -103,7 +102,9 @@ class WebviewProvider {
                 break;
             case 'createConfiguration': {
                 const id = `config_${Date.now()}`;
-                this.currentConfig = new models_1.Configuration(id, message.name, message.userId || 'anonymous');
+                const currentUser = this.storageService.getCurrentUser();
+                const userId = currentUser ? currentUser.id : null;
+                this.currentConfig = new models_1.Configuration(id, message.name, userId);
                 this._saveCurrentConfig();
                 webview.postMessage({ command: 'configurationCreated', data: this.currentConfig.toJSON() });
                 break;
@@ -764,7 +765,7 @@ class WebviewProvider {
       container.innerHTML = '';
       let html = '';
 
-      if (subclass === 'CANChannel' || subclass === 'CANFDChannel') {
+      if (subclass === 'CANChannel') {
         html += \`
           <div class="form-group">
             <label>Hardware Channel (Index)</label>
