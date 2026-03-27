@@ -4,6 +4,7 @@ exports.ConfigurationRepository = void 0;
 const logicalChannels_1 = require("../../models/logicalChannels");
 const hardwareChannels_1 = require("../../models/hardwareChannels");
 const configuration_1 = require("../../models/configuration");
+const mapping_1 = require("../../models/mapping");
 const DataSourceProvider_1 = require("./DataSourceProvider");
 const LOGICAL_MAP = {
     'FlexRayChannel': logicalChannels_1.FlexRayChannel,
@@ -73,6 +74,12 @@ class ConfigurationRepository {
                     const chRepo = ds.getRepository(EntityClass);
                     await chRepo.save(chRepo.create(ch));
                 }
+            }
+        }
+        if (parsedData.mappings) {
+            const mappingRepo = ds.getRepository(mapping_1.Mapping);
+            for (const m of parsedData.mappings) {
+                await mappingRepo.save(mappingRepo.create(m));
             }
         }
         console.log(`Configuration ${name} saved to DB.`);

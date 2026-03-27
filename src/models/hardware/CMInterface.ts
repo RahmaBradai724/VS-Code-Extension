@@ -1,23 +1,20 @@
 import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
-import { HardwareChannelCategory, HardwareChannelSubclass, CaptureType } from '../enums';
+import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
 // ─────────────────────────────────────────────
-//  CMInterface Hardware Channel
+//  CMInterface Hardware Channel (CM CAN_Combo type)
 // ─────────────────────────────────────────────
 @Entity('hardware_cm_interfaces')
 export class CMInterface extends HardwareChannel {
-  @Column({ nullable: true })
-  interfaceName?: string;
+  @Column()
+  cmId: number = 0;
 
-  @Column({ type: 'varchar', nullable: true })
-  captureType?: CaptureType;
+  @Column()
+  cmType: string = 'CAN_Combo';
 
   @Column({ nullable: true })
   bitrate?: number;
-
-  @Column({ nullable: true })
-  hwChannel?: number;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.CAN_INTERFACE, HardwareChannelSubclass.CM_INTERFACE);
@@ -28,14 +25,10 @@ export class CMInterface extends HardwareChannel {
   }
 
   toYAML(): object {
-    return {
-      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-      interfaceName: this.interfaceName, captureType: this.captureType,
-      bitrate: this.bitrate, hwChannel: this.hwChannel
-    };
+    return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType, bitrate: this.bitrate };
   }
 
   toJSON(): object {
-    return this.toYAML();
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType, bitrate: this.bitrate };
   }
 }

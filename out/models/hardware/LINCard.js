@@ -14,39 +14,33 @@ const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
 // ─────────────────────────────────────────────
-//  LIN Card Hardware Channel
+//  LIN Card Hardware Channel (CM LIN_Combo)
 // ─────────────────────────────────────────────
 let LINCard = class LINCard extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
-        super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT, enums_1.HardwareChannelSubclass.LIN_CARD);
+        super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.LIN_CARD);
+        this.cmId = 0;
+        this.cmType = 'LIN_Combo';
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel };
+        return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel, bmtStr: this.bmtStr, hwChannel: this.hwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
     }
 };
 exports.LINCard = LINCard;
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], LINCard.prototype, "hwModel", void 0);
+], LINCard.prototype, "cmId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], LINCard.prototype, "bmtStr", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], LINCard.prototype, "bmtList", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], LINCard.prototype, "hwChannel", void 0);
+], LINCard.prototype, "cmType", void 0);
 exports.LINCard = LINCard = __decorate([
     (0, typeorm_1.Entity)('hardware_lin_cards'),
     __metadata("design:paramtypes", [String, String])

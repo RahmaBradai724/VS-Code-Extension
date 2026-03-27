@@ -36,10 +36,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfigGenerator = void 0;
 const yaml = __importStar(require("js-yaml"));
 const ConfigValidator_1 = require("./ConfigValidator");
+const enums_1 = require("../../models/enums");
+/** Subclasses that represent CM (Capture Module) devices */
+const CM_SUBCLASSES = [
+    enums_1.HardwareChannelSubclass.CAN_INTERFACE,
+    enums_1.HardwareChannelSubclass.CIB_INTERFACE,
+    enums_1.HardwareChannelSubclass.CM_INTERFACE,
+    enums_1.HardwareChannelSubclass.LIN_CARD,
+];
 /**
- * ConfigGenerator serializes a Configuration object into a config.yaml string.
- * SRP: generation and serialization only — validation delegated to ConfigValidator.
- * DIP: accepts ConfigValidator via constructor for testability.
+ * ConfigGenerator serializes a Configuration object into an MTF-compatible config.yaml.
+ * Channels → logical channels only (Id, Type, Protocol, loggingName, TracerName, Alias)
+ * Mappings → CM devices and PCAP adapters grouped by hardware type
+ * FrameworkConfig → Tracing, Publisher, etc.
  */
 class ConfigGenerator {
     constructor(config, mappingManager, validator = new ConfigValidator_1.ConfigValidator()) {
@@ -55,7 +64,7 @@ class ConfigGenerator {
         return this.validator.validate(this.config, this.mappingManager);
     }
     /**
-     * Generates the config.yaml string.
+     * Generates the MTF-spec config.yaml string.
      * Throws if pre-validation fails.
      */
     generate() {
@@ -63,45 +72,157 @@ class ConfigGenerator {
         if (errors.length > 0) {
             throw new Error(`Cannot generate config.yaml:\n${errors.map(e => `  • ${e}`).join('\n')}`);
         }
-        const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
-        const configObj = {
-            id: this.config.id,
-            name: this.config.name,
-            channels: this.config.logicalChannels.reduce((acc, ch) => {
-                acc[ch.name] = ch.toYAML();
-                return acc;
-            }, {}),
-            hardware: this.config.hardwareChannels.reduce((acc, hw) => {
-                acc[hw.name] = hw.toYAML();
-                return acc;
-            }, {}),
-            mappings: mappings.map(m => ({
-                logicalChannel: m.logicalChannelName,
-                hardwareChannel: m.hardwareChannelName || m.hardwareChannelId,
-            })),
-            frameworkConfig: this.config.frameworkConfig.toYAML(),
-        };
-        return yaml.dump(configObj, { indent: 2, lineWidth: 120, noRefs: true });
+        const raw = yaml.dump(this._buildMtfObject(), { indent: 2, lineWidth: 120, noRefs: true });
+        // MTF expects integer keys (1:) not quoted string keys ('1':)
+        return raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
     }
     /**
-     * Returns the raw object (useful for preview/display).
+     * Returns the raw MTF object (useful for preview/display).
      */
     generateAsObject() {
+        return this._buildMtfObject();
+    }
+    // ─── Private: build MTF object ────────────────────────────────────────
+    _buildMtfObject() {
         const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
-        return {
-            id: this.config.id,
-            name: this.config.name,
-            channels: this.config.logicalChannels.reduce((acc, ch) => {
-                acc[ch.name] = ch.toYAML();
-                return acc;
-            }, {}),
-            hardware: this.config.hardwareChannels.reduce((acc, hw) => {
-                acc[hw.name] = hw.toYAML();
-                return acc;
-            }, {}),
-            mappings: mappings.map(m => m.toYAML()),
-            frameworkConfig: this.config.frameworkConfig.toYAML(),
+        // Index: hardwareChannelId → mappings[]
+        const mappingsByHwId = new Map();
+        for (const m of mappings) {
+            const arr = mappingsByHwId.get(m.hardwareChannelId) ?? [];
+            arr.push(m);
+            mappingsByHwId.set(m.hardwareChannelId, arr);
+        }
+        // ── Channels section (logical channels only) ──────────────────────
+        const channelsSection = {};
+        this.config.logicalChannels.forEach((ch, index) => {
+            const obj = {
+                Id: index + 1,
+                Type: ch.category,
+            };
+            const protocol = ch.protocol;
+            if (protocol) {
+                obj.Protocol = protocol;
+            }
+            if (ch.loggingName) {
+                obj.LoggingName = ch.loggingName;
+            }
+            if (ch.tracerName) {
+                obj.TracerName = ch.tracerName;
+            }
+            if (ch.alias?.length) {
+                obj.Alias = ch.alias;
+            }
+            channelsSection[ch.name] = obj;
+        });
+        // ── Mappings section ──────────────────────────────────────────────
+        const mappingsSection = {};
+        // CM devices (CANInterface, CIBInterface, CMInterface, LINCard)
+        const cmHardware = this.config.hardwareChannels.filter(hw => CM_SUBCLASSES.includes(hw.subclass));
+        if (cmHardware.length > 0) {
+            const cmDevices = {};
+            cmHardware.forEach((hw, idx) => {
+                const hwAny = hw;
+                const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+                const buses = {};
+                for (const m of hwMappings) {
+                    const busObj = {};
+                    if (m.hwChannel !== undefined && m.hwChannel !== null) {
+                        busObj.HWChannel = m.hwChannel;
+                    }
+                    if (m.operationMode) {
+                        busObj.OperationMode = m.operationMode;
+                    }
+                    if (m.keySlot !== undefined && m.keySlot !== null) {
+                        busObj.KeySlot = m.keySlot;
+                    }
+                    if (m.nodeType) {
+                        busObj.NodeType = m.nodeType;
+                    }
+                    if (m.wakeUpCluster !== undefined && m.wakeUpCluster !== null) {
+                        busObj.WakeUpCluster = m.wakeUpCluster;
+                    }
+                    buses[m.logicalChannelName] = busObj;
+                }
+                cmDevices[idx + 1] = {
+                    Id: hwAny.cmId ?? 0,
+                    Type: hwAny.cmType ?? 'CAN_Combo',
+                    Buses: buses,
+                };
+            });
+            mappingsSection.CM = { Devices: cmDevices };
+        }
+        // PCAP (EthernetAdapter)
+        const pcapHardware = this.config.hardwareChannels.filter(hw => hw.subclass === enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER);
+        if (pcapHardware.length > 0) {
+            const pcapSection = {};
+            pcapHardware.forEach((hw, idx) => {
+                const a = hw;
+                const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+                const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
+                const adapterObj = { Name: logicalChannelName };
+                if (a.friendlyName) {
+                    adapterObj.FriendlyName = a.friendlyName;
+                }
+                if (a.bufferSize) {
+                    adapterObj.BufferSize = a.bufferSize;
+                }
+                if (a.bpFilter !== undefined) {
+                    adapterObj.BpfFilter = a.bpFilter;
+                }
+                if (a.timeout !== undefined) {
+                    adapterObj.Timeout = a.timeout;
+                }
+                if (a.timeStampPrecision) {
+                    adapterObj.TimeStampPrecision = a.timeStampPrecision;
+                }
+                if (a.timeStampSource) {
+                    adapterObj.TimeStampSource = a.timeStampSource;
+                }
+                if (a.immediateMode !== undefined) {
+                    adapterObj.ImmediateMode = a.immediateMode;
+                }
+                if (a.snapshotLength) {
+                    adapterObj.SnapshotLength = a.snapshotLength;
+                }
+                if (a.pcapDeviceMode) {
+                    adapterObj.PcapDeviceMode = a.pcapDeviceMode;
+                }
+                if (a.useDataLoggerTimeStamp !== undefined) {
+                    adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp;
+                }
+                if (a.removeDataLoggerMetaData !== undefined) {
+                    adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData;
+                }
+                if (a.dataLoggerType) {
+                    adapterObj.DataLoggerType = a.dataLoggerType;
+                }
+                if (a.packetProcessingActive !== undefined) {
+                    adapterObj.PacketProcessingActive = a.packetProcessingActive;
+                }
+                if (a.packetIdentificationActive !== undefined) {
+                    adapterObj.PacketIdentificationActive = a.packetIdentificationActive;
+                }
+                pcapSection[idx + 1] = { Adapter: adapterObj };
+            });
+            mappingsSection.PCAP = pcapSection;
+        }
+        // ── FrameworkConfig section ───────────────────────────────────────
+        const frameworkSection = {};
+        if (this.config.frameworkConfig?.tracing?.length) {
+            const tracing = {};
+            for (const t of this.config.frameworkConfig.tracing) {
+                tracing[t.name] = t.toYAML();
+            }
+            frameworkSection.Tracing = tracing;
+        }
+        const result = {
+            Channels: channelsSection,
+            Mappings: mappingsSection,
         };
+        if (Object.keys(frameworkSection).length) {
+            result.FrameworkConfig = frameworkSection;
+        }
+        return result;
     }
 }
 exports.ConfigGenerator = ConfigGenerator;

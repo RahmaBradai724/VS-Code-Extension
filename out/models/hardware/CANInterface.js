@@ -14,33 +14,33 @@ const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
 // ─────────────────────────────────────────────
-//  CAN Interface Hardware Channel
+//  CAN Interface Hardware Channel (CM CAN_Combo)
 // ─────────────────────────────────────────────
 let CANInterface = class CANInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CAN_INTERFACE);
-        this.netChannel = 0;
-        this.netHwChannel = 0;
+        this.cmId = 0;
+        this.cmType = 'CAN_Combo';
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+        return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
     }
 };
 exports.CANInterface = CANInterface;
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], CANInterface.prototype, "netChannel", void 0);
+], CANInterface.prototype, "cmId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], CANInterface.prototype, "netHwChannel", void 0);
+    __metadata("design:type", String)
+], CANInterface.prototype, "cmType", void 0);
 exports.CANInterface = CANInterface = __decorate([
     (0, typeorm_1.Entity)('hardware_can_interfaces'),
     __metadata("design:paramtypes", [String, String])

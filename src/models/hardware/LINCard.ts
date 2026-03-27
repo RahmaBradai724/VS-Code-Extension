@@ -3,24 +3,18 @@ import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
 // ─────────────────────────────────────────────
-//  LIN Card Hardware Channel
+//  LIN Card Hardware Channel (CM LIN_Combo)
 // ─────────────────────────────────────────────
 @Entity('hardware_lin_cards')
 export class LINCard extends HardwareChannel {
-  @Column({ nullable: true })
-  hwModel?: number;
+  @Column()
+  cmId: number = 0;
 
-  @Column({ nullable: true })
-  bmtStr?: string;
-
-  @Column({ nullable: true })
-  bmtList?: string;
-
-  @Column({ nullable: true })
-  hwChannel?: number;
+  @Column()
+  cmType: string = 'LIN_Combo';
 
   constructor(id: string, name: string) {
-    super(id, name, HardwareChannelCategory.SERIAL_PORT, HardwareChannelSubclass.LIN_CARD);
+    super(id, name, HardwareChannelCategory.CAN_INTERFACE, HardwareChannelSubclass.LIN_CARD);
   }
 
   canDelete(mappingIds: string[]): boolean {
@@ -28,10 +22,10 @@ export class LINCard extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel };
+    return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, hwModel: this.hwModel, bmtStr: this.bmtStr, hwChannel: this.hwChannel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
   }
 }

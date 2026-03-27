@@ -14,43 +14,37 @@ const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
 // ─────────────────────────────────────────────
-//  CMInterface Hardware Channel
+//  CMInterface Hardware Channel (CM CAN_Combo type)
 // ─────────────────────────────────────────────
 let CMInterface = class CMInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CM_INTERFACE);
+        this.cmId = 0;
+        this.cmType = 'CAN_Combo';
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return {
-            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            interfaceName: this.interfaceName, captureType: this.captureType,
-            bitrate: this.bitrate, hwChannel: this.hwChannel
-        };
+        return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType, bitrate: this.bitrate };
     }
     toJSON() {
-        return this.toYAML();
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType, bitrate: this.bitrate };
     }
 };
 exports.CMInterface = CMInterface;
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], CMInterface.prototype, "interfaceName", void 0);
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], CMInterface.prototype, "cmId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], CMInterface.prototype, "captureType", void 0);
+], CMInterface.prototype, "cmType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], CMInterface.prototype, "bitrate", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], CMInterface.prototype, "hwChannel", void 0);
 exports.CMInterface = CMInterface = __decorate([
     (0, typeorm_1.Entity)('hardware_cm_interfaces'),
     __metadata("design:paramtypes", [String, String])

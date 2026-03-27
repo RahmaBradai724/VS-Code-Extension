@@ -1,0 +1,28 @@
+Channels:
+  test2:
+    Id: 1
+    Type: ETHERNET
+    loggingName: test2
+    TracerName: test2
+    Alias:
+      - test2
+      - test2
+Mappings:
+  PCAP:
+    '1':
+      Adapter:
+        Name: test2
+        FriendlyName: test2
+        BufferSize: 2222222
+        BpfFilter: test2
+        Timeout: 2222222
+        TimeStampPrecision: '2222222222'
+        TimeStampSource: '333333'
+        ImmediateMode: true
+        SnapshotLength: 330
+        PcapDeviceMode: test2
+        UseDataLoggerTimeStamp: false
+        RemoveDataLoggerMetaData: true
+        DataLoggerType: test2
+        PacketProcessingActive: true
+        PacketIdentificationActive: false

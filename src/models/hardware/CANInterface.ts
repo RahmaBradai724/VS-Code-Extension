@@ -3,15 +3,15 @@ import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
 // ─────────────────────────────────────────────
-//  CAN Interface Hardware Channel
+//  CAN Interface Hardware Channel (CM CAN_Combo)
 // ─────────────────────────────────────────────
 @Entity('hardware_can_interfaces')
 export class CANInterface extends HardwareChannel {
   @Column()
-  netChannel: number = 0;
+  cmId: number = 0;
 
   @Column()
-  netHwChannel: number = 0;
+  cmType: string = 'CAN_Combo';
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.CAN_INTERFACE, HardwareChannelSubclass.CAN_INTERFACE);
@@ -22,10 +22,10 @@ export class CANInterface extends HardwareChannel {
   }
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+    return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, netChannel: this.netChannel, netHwChannel: this.netHwChannel };
+    return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType };
   }
 }

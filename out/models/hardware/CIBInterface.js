@@ -14,35 +14,37 @@ const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
 // ─────────────────────────────────────────────
-//  CIB Interface Hardware Channel
+//  CIB Interface Hardware Channel (CM CAN_Combo)
 // ─────────────────────────────────────────────
 let CIBInterface = class CIBInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CIB_INTERFACE);
+        this.cmId = 0;
+        this.cmType = 'CAN_Combo';
     }
     canDelete(mappingIds) {
         return !mappingIds.includes(this.id);
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, bitRate: this.bitRate };
+        return { id: this.id, name: this.name, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType, bitRate: this.bitRate };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, bitRate: this.bitRate, hwChannel: this.hwChannel };
+        return { id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass, cmId: this.cmId, cmType: this.cmType, bitRate: this.bitRate };
     }
 };
 exports.CIBInterface = CIBInterface;
 __decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], CIBInterface.prototype, "cmId", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], CIBInterface.prototype, "cmType", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], CIBInterface.prototype, "bitRate", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], CIBInterface.prototype, "hwChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], CIBInterface.prototype, "hwChannel2", void 0);
 exports.CIBInterface = CIBInterface = __decorate([
     (0, typeorm_1.Entity)('hardware_cib_interfaces'),
     __metadata("design:paramtypes", [String, String])

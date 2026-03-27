@@ -31,6 +31,22 @@ export class Mapping {
   @Column({ nullable: true })
   comment?: string;
 
+  // Per-bus CM mapping parameters
+  @Column({ nullable: true })
+  hwChannel?: number;
+
+  @Column({ nullable: true })
+  operationMode?: string;
+
+  @Column({ nullable: true })
+  keySlot?: number;
+
+  @Column({ nullable: true })
+  nodeType?: string;
+
+  @Column({ nullable: true })
+  wakeUpCluster?: boolean;
+
   @Column()
   createdAt: string;
 
@@ -78,6 +94,11 @@ export class Mapping {
       hardwareChannelId: this.hardwareChannelId,
       frameworkConfigId: this.frameworkConfigId,
       hardwareChannelName: this.hardwareChannelName,
+      hwChannel: this.hwChannel,
+      operationMode: this.operationMode,
+      keySlot: this.keySlot,
+      nodeType: this.nodeType,
+      wakeUpCluster: this.wakeUpCluster,
       comment: this.comment,
       createdAt: this.createdAt,
       logicalChannelType: this.logicalChannelType,
@@ -96,6 +117,11 @@ export class Mapping {
     m.createdAt = data.createdAt;
     m.logicalChannelType = data.logicalChannelType;
     m.hardwareChannelType = data.hardwareChannelType;
+    m.hwChannel = data.hwChannel;
+    m.operationMode = data.operationMode;
+    m.keySlot = data.keySlot;
+    m.nodeType = data.nodeType;
+    m.wakeUpCluster = data.wakeUpCluster;
     return m;
   }
 }

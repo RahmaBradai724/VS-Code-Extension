@@ -212,7 +212,7 @@ class WebviewProvider {
                     if (!this.currentConfig) {
                         throw new Error('No configuration loaded.');
                     }
-                    const mapping = this.mappingManager.addMapping(message.logicalChannelId, message.hardwareChannelId, message.configurationId);
+                    const mapping = this.mappingManager.addMapping(message.logicalChannelId, message.hardwareChannelId, message.configurationId, message.params);
                     this.currentConfig.mappings.push(mapping);
                     this._saveCurrentConfig();
                     webview.postMessage({ command: 'success', action: 'addMapping', data: mapping.toJSON() });
@@ -458,6 +458,42 @@ class WebviewProvider {
         <label>Hardware Channel</label>
         <select id="map-hardware"><option value="">-- Select --</option></select>
       </div>
+      <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+        <p style="font-size:11px;opacity:0.7;margin-bottom:6px">CM Bus Parameters (required for CM devices)</p>
+        <div class="form-group">
+          <label>HW Channel (CM port ID)</label>
+          <input id="map-hwChannel" type="number" placeholder="e.g. 619" />
+        </div>
+        <div class="form-group">
+          <label>Operation Mode</label>
+          <select id="map-operationMode">
+            <option value="">-- None --</option>
+            <option value="Normal">Normal</option>
+            <option value="Spy">Spy</option>
+            <option value="TxOnly">TxOnly</option>
+            <option value="RxOnly">RxOnly</option>
+          </select>
+        </div>
+        <p style="font-size:11px;opacity:0.7;margin-bottom:6px;margin-top:6px">FlexRay only</p>
+        <div class="form-group">
+          <label>Key Slot</label>
+          <input id="map-keySlot" type="number" placeholder="e.g. 1" />
+        </div>
+        <div class="form-group">
+          <label>Node Type</label>
+          <select id="map-nodeType">
+            <option value="">-- None --</option>
+            <option value="ColdStartLeading">ColdStartLeading</option>
+            <option value="ColdStartFollowing">ColdStartFollowing</option>
+            <option value="NonColdStartNonSync">NonColdStartNonSync</option>
+            <option value="NonColdStartSync">NonColdStartSync</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Wake Up Cluster</label>
+          <input id="map-wakeUpCluster" type="checkbox" style="width:auto" />
+        </div>
+      </div>
       <button id="btn-add-mapping">+ Create Mapping</button>
     </div>
     <div id="map-list"><p class="list-empty">No mappings defined.</p></div>
@@ -662,13 +698,16 @@ class WebviewProvider {
     ];
 
     const HARDWARE_SUBCLASS_OPTIONS = [
-      { value: 'AnalogDevice', label: 'AnalogDevice', category: 'ANALOG_DEVICE' },
-      { value: 'TEAnalog', label: 'TEAnalog', category: 'TE_ANALOG' },
-      { value: 'EthernetAdapter', label: 'EthernetAdapter', category: 'ETHERNET_ADAPTER' },
+      { value: 'CANInterface', label: 'CANInterface (CM CAN_Combo)', category: 'CAN_INTERFACE' },
+      { value: 'CIBInterface', label: 'CIBInterface (CM CAN_Combo)', category: 'CAN_INTERFACE' },
+      { value: 'CMInterface', label: 'CMInterface (CM CAN_Combo)', category: 'CAN_INTERFACE' },
+      { value: 'LINCard', label: 'LINCard (CM LIN_Combo)', category: 'CAN_INTERFACE' },
+      { value: 'EthernetAdapter', label: 'EthernetAdapter (PCAP)', category: 'ETHERNET_ADAPTER' },
+      { value: 'SerialPort', label: 'SerialPort', category: 'SERIAL_PORT' },
       { value: 'RelayBoard', label: 'RelayBoard', category: 'RELAY_BOARD' },
       { value: 'HIDRelay', label: 'HIDRelay', category: 'HID_RELAY' },
-      { value: 'SerialPort', label: 'SerialPort', category: 'SERIAL_PORT' },
-      { value: 'CMInterface', label: 'CMInterface', category: 'CM_INTERFACE' },
+      { value: 'AnalogDevice', label: 'AnalogDevice', category: 'ANALOG_DEVICE' },
+      { value: 'TEAnalog', label: 'TEAnalog', category: 'TE_ANALOG' },
       { value: 'HHLoad', label: 'HHLoad', category: 'HH_LOAD' },
     ];
 
@@ -966,12 +1005,17 @@ class WebviewProvider {
           <div class="form-group"><label>Device Serial</label><input id="hw-attr-deviceSerial" type="text" /></div>
           <div class="form-group"><label>Relays</label><textarea id="hw-attr-relays" data-format="json" placeholder='{"relay1":{"state":true}}'></textarea></div>
         \`;
-      } else if (subclass === 'CMInterface') {
+      } else if (subclass === 'CANInterface' || subclass === 'CIBInterface' || subclass === 'CMInterface') {
+        const defaultBitRate = subclass === 'CMInterface' ? 'bitrate' : 'bitRate';
         html += \`
-          <div class="form-group"><label>Interface Name</label><input id="hw-attr-interfaceName" type="text" /></div>
-          <div class="form-group"><label>Type</label><select id="hw-attr-captureType"><option value="FLEXRAY">FLEXRAY</option><option value="ETHERNET">ETHERNET</option><option value="CAN">CAN</option></select></div>
-          <div class="form-group"><label>Bitrate</label><input id="hw-attr-bitrate" type="number" /></div>
-          <div class="form-group"><label>HW Channel</label><input id="hw-attr-hwChannel" type="number" /></div>
+          <div class="form-group"><label>CM ID</label><input id="hw-attr-cmId" type="number" placeholder="e.g. 1" /></div>
+          <div class="form-group"><label>CM Type</label><select id="hw-attr-cmType"><option value="CAN_Combo">CAN_Combo</option><option value="LIN_Combo">LIN_Combo</option></select></div>
+          <div class="form-group"><label>Bit Rate</label><input id="hw-attr-\${defaultBitRate}" type="number" placeholder="e.g. 500000" /></div>
+        \`;
+      } else if (subclass === 'LINCard') {
+        html += \`
+          <div class="form-group"><label>CM ID</label><input id="hw-attr-cmId" type="number" placeholder="e.g. 1" /></div>
+          <div class="form-group"><label>CM Type</label><select id="hw-attr-cmType"><option value="LIN_Combo">LIN_Combo</option><option value="CAN_Combo">CAN_Combo</option></select></div>
         \`;
       }
 
@@ -1053,7 +1097,18 @@ class WebviewProvider {
       const hardwareId = document.getElementById('map-hardware').value;
       if (!logicalId || !hardwareId) { showGlobal('Select both channels.', 'error'); return; }
       if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
-      vscode.postMessage({ command: 'addMapping', logicalChannelId: logicalId, hardwareChannelId: hardwareId, configurationId: state.selectedConfigId });
+      const hwChannelRaw = document.getElementById('map-hwChannel').value;
+      const operationMode = document.getElementById('map-operationMode').value;
+      const keySlotRaw = document.getElementById('map-keySlot').value;
+      const nodeType = document.getElementById('map-nodeType').value;
+      const wakeUpCluster = document.getElementById('map-wakeUpCluster').checked;
+      const params = {};
+      if (hwChannelRaw !== '') { params.hwChannel = parseInt(hwChannelRaw, 10); }
+      if (operationMode) { params.operationMode = operationMode; }
+      if (keySlotRaw !== '') { params.keySlot = parseInt(keySlotRaw, 10); }
+      if (nodeType) { params.nodeType = nodeType; }
+      params.wakeUpCluster = wakeUpCluster;
+      vscode.postMessage({ command: 'addMapping', logicalChannelId: logicalId, hardwareChannelId: hardwareId, configurationId: state.selectedConfigId, params });
     });
 
     document.getElementById('btn-add-tracer').addEventListener('click', () => {

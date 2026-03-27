@@ -29,7 +29,18 @@ export class MappingManager {
 
   // ─── Create ───────────────────────────────────────────────────────────
 
-  addMapping(logicalChannelId: string, hardwareChannelId: string, configurationId: string): Mapping {
+  addMapping(
+    logicalChannelId: string,
+    hardwareChannelId: string,
+    configurationId: string,
+    params?: {
+      hwChannel?: number;
+      operationMode?: string;
+      keySlot?: number;
+      nodeType?: string;
+      wakeUpCluster?: boolean;
+    },
+  ): Mapping {
     const logical = this.channelManager.getLogicalChannel(logicalChannelId);
     const hardware = this.channelManager.getHardwareChannel(hardwareChannelId);
 
@@ -55,6 +66,14 @@ export class MappingManager {
     mapping.hardwareChannelName = hardware.name;
     mapping.logicalChannelType = logical.category;
     mapping.hardwareChannelType = hardware.category;
+
+    if (params) {
+      if (params.hwChannel !== undefined) mapping.hwChannel = params.hwChannel;
+      if (params.operationMode !== undefined) mapping.operationMode = params.operationMode;
+      if (params.keySlot !== undefined) mapping.keySlot = params.keySlot;
+      if (params.nodeType !== undefined) mapping.nodeType = params.nodeType;
+      if (params.wakeUpCluster !== undefined) mapping.wakeUpCluster = params.wakeUpCluster;
+    }
 
     this.mappings.set(mappingId, mapping);
     this.channelManager.registerMappingForChannel(logicalChannelId, mappingId);

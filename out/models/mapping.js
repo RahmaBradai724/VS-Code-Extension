@@ -42,6 +42,11 @@ let Mapping = Mapping_1 = class Mapping {
             hardwareChannelId: this.hardwareChannelId,
             frameworkConfigId: this.frameworkConfigId,
             hardwareChannelName: this.hardwareChannelName,
+            hwChannel: this.hwChannel,
+            operationMode: this.operationMode,
+            keySlot: this.keySlot,
+            nodeType: this.nodeType,
+            wakeUpCluster: this.wakeUpCluster,
             comment: this.comment,
             createdAt: this.createdAt,
             logicalChannelType: this.logicalChannelType,
@@ -55,6 +60,11 @@ let Mapping = Mapping_1 = class Mapping {
         m.createdAt = data.createdAt;
         m.logicalChannelType = data.logicalChannelType;
         m.hardwareChannelType = data.hardwareChannelType;
+        m.hwChannel = data.hwChannel;
+        m.operationMode = data.operationMode;
+        m.keySlot = data.keySlot;
+        m.nodeType = data.nodeType;
+        m.wakeUpCluster = data.wakeUpCluster;
         return m;
     }
 };
@@ -91,6 +101,26 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Mapping.prototype, "comment", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], Mapping.prototype, "hwChannel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Mapping.prototype, "operationMode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], Mapping.prototype, "keySlot", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Mapping.prototype, "nodeType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], Mapping.prototype, "wakeUpCluster", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

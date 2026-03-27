@@ -25,6 +25,7 @@ import {
   HHLoad,
 } from '../../models/hardwareChannels';
 import { Configuration } from '../../models/configuration';
+import { Mapping } from '../../models/mapping';
 import { getDataSource, initializeDatabase } from './DataSourceProvider';
 
 const LOGICAL_MAP: Record<string, any> = {
@@ -109,6 +110,13 @@ export class ConfigurationRepository {
           const chRepo = ds.getRepository(EntityClass);
           await chRepo.save(chRepo.create(ch));
         }
+      }
+    }
+
+    if (parsedData.mappings) {
+      const mappingRepo = ds.getRepository(Mapping);
+      for (const m of parsedData.mappings) {
+        await mappingRepo.save(mappingRepo.create(m));
       }
     }
 
