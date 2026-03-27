@@ -1,0 +1,24 @@
+import { Entity } from 'typeorm';
+import { LogicalChannel } from '../LogicalChannel';
+import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
+
+// ─────────────────────────────────────────────
+//  PS Logical Channel
+// ─────────────────────────────────────────────
+@Entity('logical_ps_channels')
+export class PSChannel extends LogicalChannel {
+  constructor(id: string, name: string) {
+    super(id, name, LogicalChannelCategory.PS, LogicalChannelSubclass.PS);
+  }
+
+  toYAML(): object {
+    return {
+      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
+      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
+    };
+  }
+
+  toJSON(): object {
+    return this.toYAML();
+  }
+}

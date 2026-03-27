@@ -1,0 +1,12 @@
+export { FlexRayChannel } from './FlexRayChannel';
+export { SerialChannel } from './SerialChannel';
+export { CANChannel } from './CANChannel';
+export { IOInputChannel } from './IOInputChannel';
+export { IOOutputChannel } from './IOOutputChannel';
+export { LINChannel } from './LINChannel';
+export { IPSChannel } from './IPSChannel';
+export { BridgeChannel, TunTapAdapter } from './BridgeChannel';
+export { AnalogChannel } from './AnalogChannel';
+export { PSChannel } from './PSChannel';
+export { EthernetChannel } from './EthernetChannel';
+export { HardwareChannel_Ref } from './HardwareChannelRef';

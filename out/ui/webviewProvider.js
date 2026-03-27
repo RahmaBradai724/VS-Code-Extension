@@ -731,11 +731,9 @@ class WebviewProvider {
       const selectedOption = LOGICAL_SUBCLASS_OPTIONS.find(o => o.value === selected);
       if (selectedOption) {
         subclassInput.value = selectedOption.value;
-        categoryInput.value = selectedOption.category;
         fieldsWrapper.style.display = 'block';
         renderDynamicLogicalFields(selectedOption.value);
       } else {
-        categoryInput.value = categoryInput.value || '';
         fieldsWrapper.style.display = 'none';
         document.getElementById('lc-dynamic-attrs').innerHTML = '';
       }
@@ -743,9 +741,7 @@ class WebviewProvider {
       list.querySelectorAll('.logical-subclass-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const subclass = btn.dataset.subclass;
-          const category = btn.dataset.category;
           subclassInput.value = subclass;
-          categoryInput.value = category;
           renderDynamicLogicalFields(subclass);
           syncLogicalSubclassOptions();
         });
@@ -869,7 +865,6 @@ class WebviewProvider {
 
       const selectedOption = HARDWARE_SUBCLASS_OPTIONS.find(o => o.value === selected);
       if (selectedOption) {
-        categoryInput.value = selectedOption.category;
         renderDynamicHardwareFields(selectedOption.value);
       } else {
         attrsContainer.innerHTML = '';
@@ -878,7 +873,6 @@ class WebviewProvider {
       list.querySelectorAll('.hardware-subclass-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           subclassInput.value = btn.dataset.subclass;
-          categoryInput.value = btn.dataset.category;
           syncHardwareSubclassOptions();
         });
       });
@@ -1052,11 +1046,7 @@ class WebviewProvider {
       }
     });
 
-    document.getElementById('hw-category').addEventListener('change', () => {
-      document.getElementById('hw-subclass').value = '';
-      document.getElementById('hw-dynamic-attrs').innerHTML = '';
-      syncHardwareSubclassOptions();
-    });
+
 
     document.getElementById('btn-add-mapping').addEventListener('click', () => {
       const logicalId = document.getElementById('map-logical').value;
