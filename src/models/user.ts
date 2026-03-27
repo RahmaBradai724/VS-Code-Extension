@@ -14,8 +14,6 @@ export class User {
 
   @Column()
   email: string;
-    @Column()
-  password: string | undefined;
 
   constructor(name: string, email: string) {
     this.name = name;
