@@ -9,9 +9,10 @@ import {
 
 /**
  * Abstract base class for all channels.
- */
+ */   
 export abstract class Channel {
   @PrimaryColumn()
+
   id: string;
 
   @Column()
@@ -19,6 +20,7 @@ export abstract class Channel {
 
   @Column({ type: 'varchar' })
   type: ChannelType;
+  
 
   constructor(id: string, name: string, type: ChannelType) {
     this.id = id;

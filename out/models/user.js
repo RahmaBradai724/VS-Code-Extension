@@ -64,6 +64,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Object)
+], User.prototype, "password", void 0);
 exports.User = User = User_1 = __decorate([
     (0, typeorm_1.Entity)('users'),
     (0, typeorm_1.Index)(['name', 'email'], { unique: true }),
