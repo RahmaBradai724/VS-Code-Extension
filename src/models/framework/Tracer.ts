@@ -9,7 +9,7 @@ import { Configuration } from '../configuration';
 @TableInheritance({ column: { type: 'varchar', name: 'type' } })
 export abstract class Tracer {
   @PrimaryGeneratedColumn()
-  id_internal!: number; // For internal DB primary key if id is not unique across types
+  id_internal!: number;
 
   @Column()
   id: string;

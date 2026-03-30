@@ -150,13 +150,112 @@ export class ConfigGenerator {
     }
 
     // ── FrameworkConfig section ───────────────────────────────────────
+    const fc = this.config.frameworkConfig as any;
     const frameworkSection: Record<string, any> = {};
-    if (this.config.frameworkConfig?.tracing?.length) {
+
+    // Tracing
+    const rawTracers: any[] = fc?.tracers || [];
+    if (rawTracers.length > 0) {
       const tracing: Record<string, any> = {};
-      for (const t of this.config.frameworkConfig.tracing) {
-        tracing[t.name] = t.toYAML();
+      for (const t of rawTracers) {
+        const entry: Record<string, any> = { Type: t.type };
+        if (t.timestamp) { entry.Timestamp = t.timestamp; }
+
+        if (t.type === 'PCAP') {
+          if (t.loggingType) { entry.LoggingType = t.loggingType; }
+          const loggerConfig: Record<string, any> = {};
+          if (t.loggerConfiguration?.bufferConfig && Object.keys(t.loggerConfiguration.bufferConfig).length) {
+            const bc = t.loggerConfiguration.bufferConfig;
+            const bufOut: Record<string, any> = {};
+            if (bc.bufferSize  !== undefined) { bufOut.BufferSize     = bc.bufferSize; }
+            if (bc.bufferNumber !== undefined) { bufOut.BufferNumber   = bc.bufferNumber; }
+            if (bc.writeBurstSize !== undefined) { bufOut.WriteBurstSize = bc.writeBurstSize; }
+            loggerConfig.BufferConfig = bufOut;
+          }
+          if (t.loggerConfiguration?.fileConfig && Object.keys(t.loggerConfiguration.fileConfig).length) {
+            const fc2 = t.loggerConfiguration.fileConfig;
+            const fileOut: Record<string, any> = {};
+            if (fc2.baseFileName !== undefined)    { fileOut.BaseFileName    = fc2.baseFileName; }
+            if (fc2.extension !== undefined)       { fileOut.Extension       = fc2.extension; }
+            if (fc2.maxFile !== undefined)         { fileOut.MaxFile         = fc2.maxFile; }
+            if (fc2.maxFileSize !== undefined)     { fileOut.MaxFileSize     = fc2.maxFileSize; }
+            if (fc2.compressionLevel !== undefined) { fileOut.CompressionLevel = fc2.compressionLevel; }
+            loggerConfig.FileConfig = fileOut;
+          }
+          if (Object.keys(loggerConfig).length) { entry.LoggerConfiguration = loggerConfig; }
+        } else if (t.type === 'ASCII') {
+          if (t.base)             { entry.Base                = t.base; }
+          if (t.timeStampSetting) { entry.TimeStampSetting    = t.timeStampSetting; }
+          if (t.internalEventLogged !== undefined) { entry.InternalEventLogged = t.internalEventLogged; }
+          if (t.loggerConfiguration?.fileConfig && Object.keys(t.loggerConfiguration.fileConfig).length) {
+            const fc2 = t.loggerConfiguration.fileConfig;
+            const fileOut: Record<string, any> = {};
+            if (fc2.baseFileName !== undefined) { fileOut.BaseFileName = fc2.baseFileName; }
+            if (fc2.extension !== undefined)    { fileOut.Extension    = fc2.extension; }
+            if (fc2.maxFile !== undefined)      { fileOut.MaxFile      = fc2.maxFile; }
+            if (fc2.maxFileSize !== undefined)  { fileOut.MaxFileSize  = fc2.maxFileSize; }
+            entry.LoggerConfiguration = { FileConfig: fileOut };
+          }
+        }
+
+        tracing[t.name] = entry;
       }
       frameworkSection.Tracing = tracing;
+    }
+
+    // PublisherConfig
+    if (fc?.publisherType) {
+      const pub: Record<string, any> = { PublisherType: fc.publisherType };
+      if (fc.publisherType === 'MultiThreaded' && fc.channelsGroups?.length) {
+        pub.ChannelsGroups = fc.channelsGroups;
+      }
+      frameworkSection.PublisherConfig = pub;
+    }
+
+    // ConnectedEcus
+    if (fc?.connectedEcus?.length) {
+      frameworkSection.ConnectedEcus = fc.connectedEcus;
+    }
+
+    // ServicePack
+    if (fc?.servicePack) {
+      frameworkSection.ServicePack = fc.servicePack;
+    }
+
+    // EthernetConfig (from model if present)
+    if (fc?.ethernetConfig) {
+      const ec = fc.ethernetConfig as any;
+      const ethOut: Record<string, any> = {};
+      if (ec.considerOnlyEthernetTopologyEcus !== undefined) { ethOut.ConsiderOnlyEthernetTopologyEcus = ec.considerOnlyEthernetTopologyEcus; }
+      if (ec.npduConfig) {
+        const n = ec.npduConfig;
+        const npduOut: Record<string, any> = {};
+        if (n.manageVlansInCom           !== undefined) { npduOut.ManageVlansInCom            = n.manageVlansInCom; }
+        if (n.restrictedNPduChannelsInCom !== undefined) { npduOut.RestrictedNPduChannelsInCom = n.restrictedNPduChannelsInCom; }
+        if (n.ipMacTable?.length)  { npduOut.IPMacTable = n.ipMacTable; }
+        if (n.vLans) {
+          const vlansOut: Record<string, any> = {};
+          if (n.vLans.innerTags?.length) { vlansOut.InnerTags = n.vLans.innerTags; }
+          if (n.vLans.outerTags?.length) { vlansOut.OuterTags = n.vLans.outerTags; }
+          if (Object.keys(vlansOut).length) { npduOut.VLans = vlansOut; }
+        }
+        if (Object.keys(npduOut).length) { ethOut.NPduConfig = npduOut; }
+      }
+      if (ec.someIPConfig) {
+        const s = ec.someIPConfig;
+        const someipOut: Record<string, any> = {};
+        if (s.serverToClientPortRangeMapping) {
+          someipOut.ServerToClientPortRangeMapping = {
+            ServerPorts: s.serverToClientPortRangeMapping.serverPorts,
+            ClientPorts: s.serverToClientPortRangeMapping.clientPorts,
+          };
+        }
+        if (s.endpointImplementation) { someipOut.EndpointImplementation = s.endpointImplementation; }
+        if (s.adapterName)            { someipOut.AdapterName            = s.adapterName; }
+        if (Object.keys(someipOut).length) { ethOut.SomeIPConfig = someipOut; }
+      }
+      if (ec.appLayerPorts) { ethOut.AppLayerPorts = ec.appLayerPorts; }
+      if (Object.keys(ethOut).length) { frameworkSection.EthernetConfig = ethOut; }
     }
 
     const result: Record<string, any> = {

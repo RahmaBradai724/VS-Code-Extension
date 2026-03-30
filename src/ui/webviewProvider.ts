@@ -256,6 +256,21 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
           break;
         }
         try {
+          // Merge framework data from UI into the configuration before generation
+          if (message.frameworkData) {
+            const fw = message.frameworkData;
+            if (!this.currentConfig.frameworkConfig) {
+              (this.currentConfig as any).frameworkConfig = {};
+            }
+            const fc = this.currentConfig.frameworkConfig as any;
+            fc.tracers = fw.tracers || [];
+            fc.publisherType = fw.publisherType;
+            fc.channelsGroups = fw.channelsGroups || [];
+            fc.connectedEcus = fw.connectedEcus || [];
+            if (fw.servicePack) { fc.servicePack = fw.servicePack; }
+            if (fw.ethernetConfig) { fc.ethernetConfig = fw.ethernetConfig; }
+            this._saveCurrentConfig();
+          }
           const generator = new ConfigGenerator(this.currentConfig, this.mappingManager);
           const yamlContent = generator.generate();
           webview.postMessage({ command: 'configGenerated', yaml: yamlContent });
@@ -523,25 +538,217 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
   <!-- FRAMEWORK PANEL -->
   <div id="panel-framework" class="panel">
     <h3>Framework Configuration</h3>
+
+    <!-- Publisher Config -->
     <div class="card">
+      <h3>Publisher Config</h3>
       <div class="form-group">
-        <label>Publisher Mode</label>
-        <select id="fw-publisher-mode">
-          <option value="SingleThreaded">Single Threaded</option>
-          <option value="MultiThreaded">Multi Threaded</option>
+        <label>Publisher Type</label>
+        <select id="fw-publisher-type">
+          <option value="SingleThreaded">SingleThreaded</option>
+          <option value="MultiThreaded">MultiThreaded</option>
+        </select>
+      </div>
+      <div id="fw-channels-groups-wrapper" style="display:none">
+        <div class="form-group">
+          <label>Channels Groups (one group per line, comma-separated channel names)</label>
+          <textarea id="fw-channels-groups" rows="3" placeholder="Ch_CAN1, Ch_CAN2, Ch_CAN3&#10;ETH_SPY"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connected ECUs / ServicePack -->
+    <div class="card">
+      <h3>Connected ECUs &amp; Service Pack</h3>
+      <div class="form-group">
+        <label>Connected ECUs (one per line)</label>
+        <textarea id="fw-connected-ecus" rows="3" placeholder="ECU1&#10;ECU2&#10;ECU3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Service Pack (optional, instead of Connected ECUs)</label>
+        <input id="fw-service-pack" type="text" placeholder="e.g. ServicePack_name" />
+      </div>
+    </div>
+
+    <!-- Tracers -->
+    <div class="card">
+      <h3>Tracers</h3>
+      <!-- Tracer form -->
+      <div style="border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:10px">
+        <div class="form-group">
+          <label>Tracer Name</label>
+          <input id="tracer-name" type="text" placeholder="e.g. PCAP_Tracer_1" />
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="tracer-type">
+            <option value="PCAP">PCAP</option>
+            <option value="ASCII">ASCII</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Timestamp Precision</label>
+          <select id="tracer-timestamp">
+            <option value="Microsecond">Microsecond</option>
+            <option value="Nanosecond">Nanosecond</option>
+          </select>
+        </div>
+
+        <!-- PCAP-specific fields -->
+        <div id="tracer-pcap-fields">
+          <div class="form-group">
+            <label>Logging Type</label>
+            <select id="tracer-logging-type">
+              <option value="MultipleAdapterMode">MultipleAdapterMode</option>
+              <option value="PerformanceMode">PerformanceMode</option>
+              <option value="StandardMode">StandardMode</option>
+            </select>
+          </div>
+          <p style="font-size:11px;font-weight:600;margin-bottom:4px">BufferConfig</p>
+          <div class="form-group">
+            <label>Buffer Size (MB)</label>
+            <input id="tracer-buffer-size" type="number" placeholder="e.g. 200" />
+          </div>
+          <div id="tracer-perf-fields" style="display:none">
+            <div class="form-group">
+              <label>Buffer Number</label>
+              <input id="tracer-buffer-number" type="number" placeholder="e.g. 4" />
+            </div>
+            <div class="form-group">
+              <label>Write Burst Size</label>
+              <input id="tracer-write-burst-size" type="number" placeholder="e.g. 128" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ASCII-specific fields -->
+        <div id="tracer-ascii-fields" style="display:none">
+          <div class="form-group">
+            <label>Base</label>
+            <select id="tracer-base">
+              <option value="Hex">Hex</option>
+              <option value="Decimal">Decimal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Timestamp Setting</label>
+            <select id="tracer-timestamp-setting">
+              <option value="Absolute">Absolute</option>
+              <option value="Relative">Relative</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Internal Event Logged</label>
+            <input id="tracer-internal-event" type="checkbox" style="width:auto" />
+          </div>
+        </div>
+
+        <!-- FileConfig (shared) -->
+        <p style="font-size:11px;font-weight:600;margin-bottom:4px;margin-top:8px">FileConfig</p>
+        <div class="form-group">
+          <label>Base File Name</label>
+          <input id="tracer-base-filename" type="text" placeholder="e.g. trace_eth_1" />
+        </div>
+        <div class="form-group">
+          <label>Extension</label>
+          <input id="tracer-extension" type="text" placeholder="e.g. .pcapng or .asc" />
+        </div>
+        <div class="form-group">
+          <label>Max File</label>
+          <input id="tracer-max-file" type="number" placeholder="e.g. 150" />
+        </div>
+        <div class="form-group">
+          <label>Max File Size (MB)</label>
+          <input id="tracer-max-file-size" type="number" placeholder="e.g. 1024" />
+        </div>
+        <div id="tracer-compression-wrapper" style="display:none">
+          <div class="form-group">
+            <label>Compression Level (MultipleAdapterMode + .zst only)</label>
+            <input id="tracer-compression-level" type="number" placeholder="e.g. 5" min="1" max="9" />
+          </div>
+        </div>
+
+        <button id="btn-add-tracer">+ Add Tracer</button>
+      </div>
+      <div id="tracer-list"><p class="list-empty">No tracers defined.</p></div>
+    </div>
+
+    <!-- EthernetConfig -->
+    <div class="card">
+      <h3>Ethernet Config <span style="font-size:11px;font-weight:400;opacity:0.7">(optional)</span></h3>
+      <div class="form-group">
+        <label>Consider Only Ethernet Topology ECUs</label>
+        <input id="eth-consider-topology" type="checkbox" style="width:auto" />
+      </div>
+
+      <p style="font-size:11px;font-weight:600;margin:8px 0 4px">NPdu Config <span style="font-weight:400;opacity:0.7">(optional)</span></p>
+      <div class="form-group">
+        <label>Manage VLANs in COM</label>
+        <input id="eth-manage-vlans" type="checkbox" style="width:auto" />
+      </div>
+      <div class="form-group">
+        <label>Restrict NPdu Channels in COM</label>
+        <input id="eth-restrict-npdu" type="checkbox" style="width:auto" />
+      </div>
+      <div class="form-group">
+        <label>IP/MAC Table (one pair per line: IP, MAC)</label>
+        <textarea id="eth-ip-mac-table" rows="3" placeholder="160.48.199.57, 00:00:00:00:00:39&#10;160.48.199.100, 00:00:00:00:00:64"></textarea>
+      </div>
+      <div class="form-group">
+        <label>VLANs — Inner Tags (one per line: ID, Priority, IP1 IP2 …)</label>
+        <textarea id="eth-vlans-inner" rows="3" placeholder="68, 1, 160.48.199.57 160.48.199.100"></textarea>
+      </div>
+      <div class="form-group">
+        <label>VLANs — Outer Tags (one per line: ID, Priority, IP1 IP2 …)</label>
+        <textarea id="eth-vlans-outer" rows="3" placeholder="19, 7, 160.48.199.57&#10;20, 1, 160.48.199.100"></textarea>
+      </div>
+
+      <p style="font-size:11px;font-weight:600;margin:8px 0 4px">SomeIP Config <span style="font-weight:400;opacity:0.7">(optional)</span></p>
+      <div class="form-group">
+        <label>Server Ports (ranges, comma-separated brackets, e.g. [30501,30599],[31501,31599])</label>
+        <input id="eth-someip-server-ports" type="text" placeholder="[30501,30599],[31501,31599]" />
+      </div>
+      <div class="form-group">
+        <label>Client Ports (same length as Server Ports)</label>
+        <input id="eth-someip-client-ports" type="text" placeholder="[30491,30499],[31491,31499]" />
+      </div>
+      <div class="form-group">
+        <label>Endpoint Implementation</label>
+        <select id="eth-someip-endpoint">
+          <option value="">-- default (boost) --</option>
+          <option value="boost">boost</option>
+          <option value="lwip">lwip</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Server URL</label>
-        <input id="fw-server-url" type="text" placeholder="http://localhost:8080" />
+        <label>Adapter Name (lwip only)</label>
+        <input id="eth-someip-adapter-name" type="text" placeholder="e.g. eth0" />
       </div>
-      <h3 style="margin-top:10px">Tracers</h3>
-      <div style="display:flex;gap:8px">
-        <select id="tracer-type"><option value="PCAP">PCAP Tracer</option><option value="ASCII">ASCII Tracer</option></select>
-        <input id="tracer-name" type="text" placeholder="Tracer name" style="margin:0"/>
-        <button id="btn-add-tracer" style="white-space:nowrap">+ Add</button>
+
+      <p style="font-size:11px;font-weight:600;margin:8px 0 4px">App Layer Ports <span style="font-weight:400;opacity:0.7">(optional)</span></p>
+      <div class="form-group">
+        <label>NPdu ports (comma-separated integers/ranges e.g. 3000,[3100,3200])</label>
+        <input id="eth-app-npdu" type="text" placeholder="3000,[3100,3200],3208" />
       </div>
-      <div id="tracer-list" style="margin-top:8px"><p class="list-empty">No tracers.</p></div>
+      <div class="form-group">
+        <label>SomeIp ports</label>
+        <input id="eth-app-someip" type="text" placeholder="[500,503],1000" />
+      </div>
+      <div class="form-group">
+        <label>UDPNM ports</label>
+        <input id="eth-app-udpnm" type="text" placeholder="4100" />
+      </div>
+      <div class="form-group">
+        <label>DLT ports</label>
+        <input id="eth-app-dlt" type="text" placeholder="5000,5001" />
+      </div>
+      <div class="form-group">
+        <label>SomeIpSD ports</label>
+        <input id="eth-app-someipsd" type="text" placeholder="30490" />
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button id="btn-save-framework">Save Framework Config</button>
+      </div>
     </div>
   </div>
 
@@ -582,6 +789,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
       logicalChannels: [],
       hardwareChannels: [],
       mappings: [],
+      tracers: [],
     };
 
     // ── Tab navigation ──────────────────────────────────────────────────
@@ -638,7 +846,8 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             state.logicalChannels = msg.data.logicalChannels || [];
             state.hardwareChannels = msg.data.hardwareChannels || [];
             state.mappings = msg.data.mappings || [];
-            renderLogicalList(); renderHardwareList(); renderMappingList();
+            state.tracers = msg.data.frameworkConfig?.tracers || [];
+            renderLogicalList(); renderHardwareList(); renderMappingList(); renderTracerList();
             showGlobal('Configuration "' + msg.data.name + '" loaded.', 'success');
           }
           break;
@@ -1132,21 +1341,234 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ command: 'addMapping', logicalChannelId: logicalId, hardwareChannelId: hardwareId, configurationId: state.selectedConfigId, params });
     });
 
-    document.getElementById('btn-add-tracer').addEventListener('click', () => {
+    // ── Tracer form — toggle visible fields based on type/loggingType ──
+    function syncTracerFields() {
       const type = document.getElementById('tracer-type').value;
+      const loggingType = document.getElementById('tracer-logging-type').value;
+      document.getElementById('tracer-pcap-fields').style.display  = type === 'PCAP'  ? 'block' : 'none';
+      document.getElementById('tracer-ascii-fields').style.display = type === 'ASCII' ? 'block' : 'none';
+      document.getElementById('tracer-perf-fields').style.display  = (type === 'PCAP' && loggingType === 'PerformanceMode') ? 'block' : 'none';
+      const ext = document.getElementById('tracer-extension').value.trim();
+      const showCompression = type === 'PCAP' && loggingType === 'MultipleAdapterMode' && ext.includes('.zst');
+      document.getElementById('tracer-compression-wrapper').style.display = showCompression ? 'block' : 'none';
+    }
+    document.getElementById('tracer-type').addEventListener('change', syncTracerFields);
+    document.getElementById('tracer-logging-type').addEventListener('change', syncTracerFields);
+    document.getElementById('tracer-extension').addEventListener('input', syncTracerFields);
+
+    // ── Publisher type — show/hide ChannelsGroups ───────────────────────
+    document.getElementById('fw-publisher-type').addEventListener('change', function() {
+      document.getElementById('fw-channels-groups-wrapper').style.display = this.value === 'MultiThreaded' ? 'block' : 'none';
+    });
+
+    document.getElementById('btn-add-tracer').addEventListener('click', () => {
       const name = document.getElementById('tracer-name').value.trim();
-      if (!name) return;
-      const li = document.createElement('div');
-      li.className = 'card';
-      li.innerHTML = '<div class="card-header"><span>' + name + ' <span class="badge">' + type + '</span></span><button class="secondary" onclick="this.parentElement.parentElement.remove()">✕</button></div>';
-      document.getElementById('tracer-list').appendChild(li);
-      const empty = document.querySelector('#tracer-list .list-empty');
-      if (empty) empty.remove();
+      if (!name) { showGlobal('Enter a tracer name.', 'error'); return; }
+      if (state.tracers.find(t => t.name === name)) { showGlobal('A tracer with that name already exists.', 'error'); return; }
+
+      const type        = document.getElementById('tracer-type').value;
+      const timestamp   = document.getElementById('tracer-timestamp').value;
+      const bufferSize  = document.getElementById('tracer-buffer-size').value;
+      const baseFileName = document.getElementById('tracer-base-filename').value.trim();
+      const extension   = document.getElementById('tracer-extension').value.trim();
+      const maxFile     = document.getElementById('tracer-max-file').value;
+      const maxFileSize = document.getElementById('tracer-max-file-size').value;
+
+      const tracer = { name, type, timestamp };
+
+      if (type === 'PCAP') {
+        tracer.loggingType = document.getElementById('tracer-logging-type').value;
+        const bufConfig = {};
+        if (bufferSize) { bufConfig.bufferSize = parseInt(bufferSize); }
+        if (tracer.loggingType === 'PerformanceMode') {
+          const bn = document.getElementById('tracer-buffer-number').value;
+          const wb = document.getElementById('tracer-write-burst-size').value;
+          if (bn) { bufConfig.bufferNumber = parseInt(bn); }
+          if (wb) { bufConfig.writeBurstSize = parseInt(wb); }
+        }
+        const fileConfig = {};
+        if (baseFileName) { fileConfig.baseFileName = baseFileName; }
+        if (extension)    { fileConfig.extension = extension; }
+        if (maxFile)      { fileConfig.maxFile = parseInt(maxFile); }
+        if (maxFileSize)  { fileConfig.maxFileSize = parseInt(maxFileSize); }
+        if (tracer.loggingType === 'MultipleAdapterMode' && extension.includes('.zst')) {
+          const cl = document.getElementById('tracer-compression-level').value;
+          if (cl) { fileConfig.compressionLevel = parseInt(cl); }
+        }
+        tracer.loggerConfiguration = {};
+        if (Object.keys(bufConfig).length)  { tracer.loggerConfiguration.bufferConfig = bufConfig; }
+        if (Object.keys(fileConfig).length) { tracer.loggerConfiguration.fileConfig = fileConfig; }
+      } else {
+        tracer.base             = document.getElementById('tracer-base').value;
+        tracer.timeStampSetting = document.getElementById('tracer-timestamp-setting').value;
+        tracer.internalEventLogged = document.getElementById('tracer-internal-event').checked;
+        const fileConfig = {};
+        if (baseFileName) { fileConfig.baseFileName = baseFileName; }
+        if (extension)    { fileConfig.extension = extension; }
+        if (maxFile)      { fileConfig.maxFile = parseInt(maxFile); }
+        if (maxFileSize)  { fileConfig.maxFileSize = parseInt(maxFileSize); }
+        tracer.loggerConfiguration = {};
+        if (Object.keys(fileConfig).length) { tracer.loggerConfiguration.fileConfig = fileConfig; }
+      }
+
+      state.tracers.push(tracer);
+      renderTracerList();
+
+      // Reset form
       document.getElementById('tracer-name').value = '';
+      document.getElementById('tracer-base-filename').value = '';
+      document.getElementById('tracer-extension').value = '';
+      document.getElementById('tracer-max-file').value = '';
+      document.getElementById('tracer-max-file-size').value = '';
+      document.getElementById('tracer-buffer-size').value = '';
+      document.getElementById('tracer-buffer-number').value = '';
+      document.getElementById('tracer-write-burst-size').value = '';
+      document.getElementById('tracer-compression-level').value = '';
+      document.getElementById('tracer-internal-event').checked = false;
+    });
+
+    function renderTracerList() {
+      const container = document.getElementById('tracer-list');
+      if (state.tracers.length === 0) { container.innerHTML = '<p class="list-empty">No tracers defined.</p>'; return; }
+      container.innerHTML = state.tracers.map((t, i) =>
+        '<div class="card"><div class="card-header">' +
+        '<span><strong>' + t.name + '</strong> <span class="badge">' + t.type + '</span>' +
+        (t.loggingType ? ' <span class="badge" style="background:transparent;border:1px solid var(--border);color:var(--fg)">' + t.loggingType + '</span>' : '') +
+        '</span>' +
+        '<button class="secondary btn-remove-tracer" data-idx="' + i + '">✕</button>' +
+        '</div></div>'
+      ).join('');
+      container.querySelectorAll('.btn-remove-tracer').forEach(b => b.addEventListener('click', () => {
+        state.tracers.splice(parseInt(b.dataset.idx), 1);
+        renderTracerList();
+      }));
+    }
+
+    function parsePortList(raw) {
+      // Parses "3000,[3100,3200],3208" into [3000,[3100,3200],3208]
+      if (!raw.trim()) { return undefined; }
+      const result = [];
+      const str = raw.replace(/\\s/g, '');
+      let i = 0;
+      while (i < str.length) {
+        if (str[i] === '[') {
+          const end = str.indexOf(']', i);
+          const pair = str.slice(i+1, end).split(',').map(Number);
+          result.push(pair);
+          i = end + 2; // skip ]
+        } else {
+          const comma = str.indexOf(',', i);
+          const token = comma === -1 ? str.slice(i) : str.slice(i, comma);
+          if (token && !isNaN(Number(token))) { result.push(Number(token)); }
+          i = comma === -1 ? str.length : comma + 1;
+        }
+      }
+      return result.length ? result : undefined;
+    }
+
+    function parsePortRanges(raw) {
+      // Parses "[30501,30599],[31501,31599]" into [[30501,30599],[31501,31599]]
+      if (!raw.trim()) { return undefined; }
+      const result = [];
+      const matches = raw.match(/\\[([^\\]]+)\\]/g);
+      if (matches) { matches.forEach(m => { result.push(m.slice(1,-1).split(',').map(Number)); }); }
+      return result.length ? result : undefined;
+    }
+
+    function parseVlanTags(raw) {
+      if (!raw.trim()) { return undefined; }
+      return raw.trim().split('\\n').map(line => {
+        const parts = line.split(',').map(s => s.trim());
+        const id = parseInt(parts[0]);
+        const priority = parseInt(parts[1]);
+        const ipList = parts.slice(2).join(',').trim().split(/\\s+/).filter(Boolean);
+        return { ID: id, Priority: priority, IPList: ipList };
+      }).filter(t => !isNaN(t.ID) && !isNaN(t.Priority) && t.IPList.length > 0);
+    }
+
+    function collectEthernetConfig() {
+      const considerOnly = document.getElementById('eth-consider-topology').checked;
+      const manageVlans  = document.getElementById('eth-manage-vlans').checked;
+      const restrictNpdu = document.getElementById('eth-restrict-npdu').checked;
+      const ipMacRaw     = document.getElementById('eth-ip-mac-table').value.trim();
+      const innerRaw     = document.getElementById('eth-vlans-inner').value.trim();
+      const outerRaw     = document.getElementById('eth-vlans-outer').value.trim();
+      const serverPortsRaw = document.getElementById('eth-someip-server-ports').value.trim();
+      const clientPortsRaw = document.getElementById('eth-someip-client-ports').value.trim();
+      const endpointImpl   = document.getElementById('eth-someip-endpoint').value;
+      const adapterName    = document.getElementById('eth-someip-adapter-name').value.trim();
+      const appNpduRaw     = document.getElementById('eth-app-npdu').value.trim();
+      const appSomeipRaw   = document.getElementById('eth-app-someip').value.trim();
+      const appUdpnmRaw    = document.getElementById('eth-app-udpnm').value.trim();
+      const appDltRaw      = document.getElementById('eth-app-dlt').value.trim();
+      const appSomeipsdRaw = document.getElementById('eth-app-someipsd').value.trim();
+
+      const eth = {};
+      if (considerOnly) { eth.considerOnlyEthernetTopologyEcus = true; }
+
+      // NPduConfig
+      const npdu = {};
+      if (manageVlans)  { npdu.manageVlansInCom = true; }
+      if (restrictNpdu) { npdu.restrictedNPduChannelsInCom = true; }
+      if (ipMacRaw) {
+        npdu.ipMacTable = ipMacRaw.split('\\n').map(line => line.split(',').map(s => s.trim())).filter(p => p.length === 2);
+      }
+      const innerTags = parseVlanTags(innerRaw);
+      const outerTags = parseVlanTags(outerRaw);
+      if (innerTags?.length || outerTags?.length) {
+        npdu.vLans = {};
+        if (innerTags?.length) { npdu.vLans.innerTags = innerTags; }
+        if (outerTags?.length) { npdu.vLans.outerTags = outerTags; }
+      }
+      if (Object.keys(npdu).length) { eth.npduConfig = npdu; }
+
+      // SomeIPConfig
+      const serverPorts = parsePortRanges(serverPortsRaw);
+      const clientPorts = parsePortRanges(clientPortsRaw);
+      if (serverPorts || clientPorts || endpointImpl || adapterName) {
+        const someip = {};
+        if (serverPorts && clientPorts) { someip.serverToClientPortRangeMapping = { serverPorts, clientPorts }; }
+        if (endpointImpl) { someip.endpointImplementation = endpointImpl; }
+        if (adapterName)  { someip.adapterName = adapterName; }
+        eth.someIPConfig = someip;
+      }
+
+      // AppLayerPorts
+      const appPorts = {};
+      const parsedNpdu    = parsePortList(appNpduRaw);
+      const parsedSomeip  = parsePortList(appSomeipRaw);
+      const parsedUdpnm   = parsePortList(appUdpnmRaw);
+      const parsedDlt     = parsePortList(appDltRaw);
+      const parsedSipsd   = parsePortList(appSomeipsdRaw);
+      if (parsedNpdu)   { appPorts.NPdu     = parsedNpdu; }
+      if (parsedSomeip) { appPorts.SomeIp   = parsedSomeip; }
+      if (parsedUdpnm)  { appPorts.UDPNM    = parsedUdpnm; }
+      if (parsedDlt)    { appPorts.DLT      = parsedDlt; }
+      if (parsedSipsd)  { appPorts.SomeIpSD = parsedSipsd; }
+      if (Object.keys(appPorts).length) { eth.appLayerPorts = appPorts; }
+
+      return Object.keys(eth).length ? eth : undefined;
+    }
+
+    function collectFrameworkData() {
+      const publisherType = document.getElementById('fw-publisher-type').value;
+      const channelsGroupsRaw = document.getElementById('fw-channels-groups').value.trim();
+      const channelsGroups = publisherType === 'MultiThreaded' && channelsGroupsRaw
+        ? channelsGroupsRaw.split('\\n').map(line => line.split(',').map(s => s.trim()).filter(Boolean)).filter(g => g.length)
+        : [];
+      const connectedEcusRaw = document.getElementById('fw-connected-ecus').value.trim();
+      const connectedEcus = connectedEcusRaw ? connectedEcusRaw.split('\\n').map(s => s.trim()).filter(Boolean) : [];
+      const servicePack = document.getElementById('fw-service-pack').value.trim() || undefined;
+      const ethernetConfig = collectEthernetConfig();
+      return { publisherType, channelsGroups, connectedEcus, servicePack, tracers: state.tracers, ethernetConfig };
+    }
+
+    document.getElementById('btn-save-framework').addEventListener('click', () => {
+      vscode.postMessage({ command: 'generateConfig', frameworkData: collectFrameworkData() });
     });
 
     document.getElementById('btn-generate-config').addEventListener('click', () => {
-      vscode.postMessage({ command: 'generateConfig' });
+      vscode.postMessage({ command: 'generateConfig', frameworkData: collectFrameworkData() });
     });
 
     document.getElementById('btn-run-ai-validation').addEventListener('click', () => {
