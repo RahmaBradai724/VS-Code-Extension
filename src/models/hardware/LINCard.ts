@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  LIN Card Hardware Channel (CM LIN_Combo)
-// ─────────────────────────────────────────────
 @Entity('hardware_lin_cards')
 export class LINCard extends HardwareChannel {
   @Column()

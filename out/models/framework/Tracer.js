@@ -12,9 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tracer = void 0;
 const typeorm_1 = require("typeorm");
 const configuration_1 = require("../configuration");
-// ─────────────────────────────────────────────
-//  Tracer Models
-// ─────────────────────────────────────────────
 let Tracer = class Tracer {
     constructor(id, name, userId) {
         this.id = id;

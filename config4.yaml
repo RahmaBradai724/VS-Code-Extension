@@ -1,0 +1,44 @@
+Channels:
+  CAN_FD_BUS1:
+    Id: 1
+    Type: CANFD
+    TracerName: Tracer_CAN
+  LIN_BUS1:
+    Id: 2
+    Type: LIN
+    TracerName: Tracer_LIN
+  FR_BUS1:
+    Id: 3
+    Type: FLEXRAY
+    TracerName: Tracer_FR
+Mappings:
+  CM:
+    Devices:
+      1:
+        Id: 64
+        Type: CAN_Combo
+        Buses:
+          CAN_FD_BUS1:
+            HWChannel: 1
+            OperationMode: Normal
+          FR_BUS1:
+            HWChannel: 3
+            OperationMode: Normal
+            KeySlot: 1
+            NodeType: ColdStartLeading
+            WakeUpCluster: true
+      2:
+        Id: 65
+        Type: LIN_Combo
+        Buses:
+          LIN_BUS1:
+            HWChannel: 2
+            OperationMode: Spy
+FrameworkConfig:
+  Tracing:
+    Tracer_CAN:
+      Type: PCAP
+      Timestamp: Microsecond
+      LoggingType: MultipleAdapterMode
+  PublisherConfig:
+    PublisherType: SingleThreaded

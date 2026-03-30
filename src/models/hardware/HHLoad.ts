@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  HHLoad Hardware Channel
-// ─────────────────────────────────────────────
 @Entity('hardware_hh_loads')
 export class HHLoad extends HardwareChannel {
   @Column({ type: 'float', nullable: true })

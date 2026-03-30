@@ -1,10 +1,6 @@
 import { Entity, Column, TableInheritance, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { Configuration } from '../configuration';
 
-// ─────────────────────────────────────────────
-//  Tracer Models
-// ─────────────────────────────────────────────
-
 @Entity('tracers')
 @TableInheritance({ column: { type: 'varchar', name: 'type' } })
 export abstract class Tracer {

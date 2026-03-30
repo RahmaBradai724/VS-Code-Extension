@@ -13,9 +13,6 @@ exports.AnalogDevice = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  IO Analog Hardware Channel
-// ─────────────────────────────────────────────
 let AnalogDevice = class AnalogDevice extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.ANALOG_DEVICE, enums_1.HardwareChannelSubclass.ANALOG_DEVICE);

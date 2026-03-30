@@ -15,9 +15,6 @@ const Tracer_1 = require("./Tracer");
 const PublisherConfig_1 = require("./PublisherConfig");
 const DiagnosticsConfig_1 = require("./DiagnosticsConfig");
 const EthernetConfig_1 = require("./EthernetConfig");
-// ─────────────────────────────────────────────
-//  Framework Config
-// ─────────────────────────────────────────────
 let FrameworkConfig = class FrameworkConfig {
     constructor() {
         this.keys = new Map();
@@ -25,6 +22,7 @@ let FrameworkConfig = class FrameworkConfig {
         this.publisherConfig = new PublisherConfig_1.PublisherConfig();
         this.diagnostics = new DiagnosticsConfig_1.DiagnosticsConfig();
         this.ethernetConfig = new EthernetConfig_1.EthernetConfig();
+        this.tracers = [];
         this.connectedEcus = [];
         this.channelToEcusMapping = new Map();
     }
@@ -43,6 +41,7 @@ let FrameworkConfig = class FrameworkConfig {
             diagnostics: this.diagnostics.toJSON(),
             ethernetConfig: this.ethernetConfig.toJSON(),
             tracing: this.tracing ? this.tracing.map(t => t.toJSON()) : [],
+            tracers: this.tracers ?? [],
             connectedEcus: this.connectedEcus,
             servicePack: this.servicePack,
             channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,
@@ -78,6 +77,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => Tracer_1.Tracer, (t) => t.configuration),
     __metadata("design:type", Array)
 ], FrameworkConfig.prototype, "tracing", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
+    __metadata("design:type", Array)
+], FrameworkConfig.prototype, "tracers", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
     __metadata("design:type", Array)

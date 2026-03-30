@@ -14,9 +14,6 @@ exports.Mapping = void 0;
 const typeorm_1 = require("typeorm");
 const enums_1 = require("./enums");
 const configuration_1 = require("./configuration");
-/**
- * Represents a mapping between a logical channel and a hardware channel.
- */
 let Mapping = Mapping_1 = class Mapping {
     constructor(mappingId, configurationId, logicalChannelId, logicalChannelName, hardwareChannelId, frameworkConfigId) {
         this.mappingId = mappingId;

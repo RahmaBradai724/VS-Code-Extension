@@ -1,9 +1,7 @@
 import { Column } from 'typeorm';
 import { PublisherMode } from '../enums';
 
-// ─────────────────────────────────────────────
-//  Publisher Config
-// ─────────────────────────────────────────────
+
 export class PublisherConfig {
   @Column()
   publisherType: string = PublisherMode.SingleThreaded;

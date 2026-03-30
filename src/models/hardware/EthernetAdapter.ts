@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  Ethernet Adapter Hardware Channel
-// ─────────────────────────────────────────────
 @Entity('hardware_ethernet_adapters')
 export class EthernetAdapter extends HardwareChannel {
   @Column()

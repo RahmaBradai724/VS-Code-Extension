@@ -2,9 +2,7 @@ import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  Serial Logical Channel
-// ─────────────────────────────────────────────
+
 @Entity('logical_serial_channels')
 export class SerialChannel extends LogicalChannel {
   @Column()

@@ -11,9 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EthernetConfig = void 0;
 const typeorm_1 = require("typeorm");
-// ─────────────────────────────────────────────
-//  Ethernet Config
-// ─────────────────────────────────────────────
 class EthernetConfig {
     toYAML() {
         return {

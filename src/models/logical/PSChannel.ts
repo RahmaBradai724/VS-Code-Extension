@@ -2,9 +2,7 @@ import { Entity } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  PS Logical Channel
-// ─────────────────────────────────────────────
+
 @Entity('logical_ps_channels')
 export class PSChannel extends LogicalChannel {
   constructor(id: string, name: string) {

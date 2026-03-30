@@ -13,9 +13,6 @@ exports.CANChannel = void 0;
 const typeorm_1 = require("typeorm");
 const LogicalChannel_1 = require("../LogicalChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  CAN Logical Channel
-// ─────────────────────────────────────────────
 let CANChannel = class CANChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.CAN, enums_1.LogicalChannelSubclass.CAN);
@@ -24,7 +21,7 @@ let CANChannel = class CANChannel extends LogicalChannel_1.LogicalChannel {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            hwChannel: this.hwChannel, operationMode: this.operationMode
+            protocol: this.protocol, hwChannel: this.hwChannel, operationMode: this.operationMode
         };
     }
     toJSON() {
@@ -32,6 +29,10 @@ let CANChannel = class CANChannel extends LogicalChannel_1.LogicalChannel {
     }
 };
 exports.CANChannel = CANChannel;
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], CANChannel.prototype, "protocol", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)

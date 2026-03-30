@@ -11,9 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiagnosticsConfig = void 0;
 const typeorm_1 = require("typeorm");
-// ─────────────────────────────────────────────
-//  Diagnostics Config
-// ─────────────────────────────────────────────
 class DiagnosticsConfig {
     constructor() {
         this.ecuIpAddress = '';

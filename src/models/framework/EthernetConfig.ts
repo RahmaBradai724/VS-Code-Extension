@@ -1,8 +1,5 @@
 import { Column } from 'typeorm';
 
-// ─────────────────────────────────────────────
-//  Ethernet Config
-// ─────────────────────────────────────────────
 export class EthernetConfig {
   @Column({ nullable: true })
   autoDetectEthSettings?: boolean;

@@ -17,6 +17,18 @@ class MappingValidator {
             errors.push(`Protocol mismatch: logical category "${logical.category}" is not compatible with hardware category "${hardware.category}". ` +
                 `Compatible hardware types: ${compatible.join(', ')}.`);
         }
+        // CM device type-specific check: CAN_Combo vs LIN_Combo
+        const hwAny = hardware;
+        if (hwAny.cmType) {
+            const CAN_COMBO_CATEGORIES = ['CAN', 'CANFD', 'FR', 'FLEXRAY'];
+            const LIN_COMBO_CATEGORIES = ['LIN'];
+            if (hwAny.cmType === 'LIN_Combo' && !LIN_COMBO_CATEGORIES.includes(logical.category)) {
+                errors.push(`CM type mismatch: LIN_Combo only supports LIN channels, but got "${logical.category}". Use a CAN_Combo device for this channel.`);
+            }
+            else if (hwAny.cmType === 'CAN_Combo' && !CAN_COMBO_CATEGORIES.includes(logical.category)) {
+                errors.push(`CM type mismatch: CAN_Combo does not support "${logical.category}" channels. Use a LIN_Combo device for LIN channels.`);
+            }
+        }
         return { valid: errors.length === 0, errors };
     }
     validateMappingRules(mappings) {

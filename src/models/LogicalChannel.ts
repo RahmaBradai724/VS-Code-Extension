@@ -6,9 +6,7 @@ import {
   LogicalChannelSubclass,
 } from './enums';
 
-/**
- * Abstract base class for all logical channels.
- */
+
 export abstract class LogicalChannel extends Channel {
   @Column({ type: 'varchar' })
   category: LogicalChannelCategory;

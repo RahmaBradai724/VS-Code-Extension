@@ -1,14 +1,10 @@
 "use strict";
-/**
- * Enumerations for the Configuration Management System.
- * Derived from the UML class diagram.
- */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelSubclass = exports.HardwareChannelCategory = exports.LogicalChannelSubclass = exports.ChannelType = exports.LogicalChannelCategory = void 0;
 var LogicalChannelCategory;
 (function (LogicalChannelCategory) {
     LogicalChannelCategory["CAN"] = "CAN";
-    LogicalChannelCategory["CAN_FD"] = "CAN-FD";
+    LogicalChannelCategory["CAN_FD"] = "CANFD";
     LogicalChannelCategory["LIN"] = "LIN";
     LogicalChannelCategory["FR"] = "FR";
     LogicalChannelCategory["FLEXRAY"] = "FLEXRAY";

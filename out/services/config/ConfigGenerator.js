@@ -97,7 +97,8 @@ class ConfigGenerator {
         this.config.logicalChannels.forEach((ch, index) => {
             const obj = {
                 Id: index + 1,
-                Type: ch.category,
+                // MTF spec uses 'FR' — normalize both FLEXRAY and FR enum values
+                Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
             };
             const protocol = ch.protocol;
             if (protocol) {
@@ -132,14 +133,18 @@ class ConfigGenerator {
                     if (m.operationMode) {
                         busObj.OperationMode = m.operationMode;
                     }
-                    if (m.keySlot !== undefined && m.keySlot !== null) {
-                        busObj.KeySlot = m.keySlot;
-                    }
-                    if (m.nodeType) {
-                        busObj.NodeType = m.nodeType;
-                    }
-                    if (m.wakeUpCluster !== undefined && m.wakeUpCluster !== null) {
-                        busObj.WakeUpCluster = m.wakeUpCluster;
+                    // KeySlot, NodeType, WakeUpCluster are FlexRay-only fields
+                    const isFlexRay = m.logicalChannelType === 'FR' || m.logicalChannelType === 'FLEXRAY';
+                    if (isFlexRay) {
+                        if (m.keySlot !== undefined && m.keySlot !== null) {
+                            busObj.KeySlot = m.keySlot;
+                        }
+                        if (m.nodeType) {
+                            busObj.NodeType = m.nodeType;
+                        }
+                        if (m.wakeUpCluster !== undefined && m.wakeUpCluster !== null) {
+                            busObj.WakeUpCluster = m.wakeUpCluster;
+                        }
                     }
                     buses[m.logicalChannelName] = busObj;
                 }
@@ -166,10 +171,10 @@ class ConfigGenerator {
                 if (a.bufferSize) {
                     adapterObj.BufferSize = a.bufferSize;
                 }
-                if (a.bpFilter !== undefined) {
+                if (a.bpFilter) {
                     adapterObj.BpfFilter = a.bpFilter;
                 }
-                if (a.timeout !== undefined) {
+                if (a.timeout) {
                     adapterObj.Timeout = a.timeout;
                 }
                 if (a.timeStampPrecision) {
@@ -178,7 +183,7 @@ class ConfigGenerator {
                 if (a.timeStampSource) {
                     adapterObj.TimeStampSource = a.timeStampSource;
                 }
-                if (a.immediateMode !== undefined) {
+                if (a.immediateMode) {
                     adapterObj.ImmediateMode = a.immediateMode;
                 }
                 if (a.snapshotLength) {
@@ -187,19 +192,19 @@ class ConfigGenerator {
                 if (a.pcapDeviceMode) {
                     adapterObj.PcapDeviceMode = a.pcapDeviceMode;
                 }
-                if (a.useDataLoggerTimeStamp !== undefined) {
+                if (a.useDataLoggerTimeStamp) {
                     adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp;
                 }
-                if (a.removeDataLoggerMetaData !== undefined) {
+                if (a.removeDataLoggerMetaData) {
                     adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData;
                 }
                 if (a.dataLoggerType) {
                     adapterObj.DataLoggerType = a.dataLoggerType;
                 }
-                if (a.packetProcessingActive !== undefined) {
+                if (a.packetProcessingActive) {
                     adapterObj.PacketProcessingActive = a.packetProcessingActive;
                 }
-                if (a.packetIdentificationActive !== undefined) {
+                if (a.packetIdentificationActive) {
                     adapterObj.PacketIdentificationActive = a.packetIdentificationActive;
                 }
                 pcapSection[idx + 1] = { Adapter: adapterObj };

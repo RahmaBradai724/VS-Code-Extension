@@ -31,6 +31,33 @@ export class ConfigValidator {
     const mappingValidation = mappingManager.validateMappingRules();
     errors.push(...mappingValidation.errors);
 
+    // Validate tracers
+    const fc = config.frameworkConfig as any;
+    const tracers: any[] = fc?.tracers || [];
+    const definedTracerNames = new Set(tracers.map((t: any) => t.name));
+
+    // Check all tracerNames referenced in channels exist in framework tracers
+    for (const ch of config.logicalChannels) {
+      if (ch.tracerName && !definedTracerNames.has(ch.tracerName)) {
+        errors.push(
+          `Channel "${ch.name}" references tracer "${ch.tracerName}" which is not defined in Framework > Tracers.`
+        );
+      }
+    }
+
+    // Check PCAP tracers have a FileConfig with at least a BaseFileName
+    for (const t of tracers) {
+      if (t.type === 'PCAP') {
+        const fileConfig = t.loggerConfiguration?.fileConfig;
+        if (!fileConfig?.baseFileName) {
+          errors.push(
+            `PCAP tracer "${t.name}" is missing LoggerConfiguration.FileConfig.BaseFileName. ` +
+            `Set a Base File Name in the tracer form.`
+          );
+        }
+      }
+    }
+
     return errors;
   }
 }

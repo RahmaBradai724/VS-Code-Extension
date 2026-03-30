@@ -2,11 +2,12 @@ import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  CAN Logical Channel
-// ─────────────────────────────────────────────
+
 @Entity('logical_can_channels')
 export class CANChannel extends LogicalChannel {
+  @Column({ nullable: true })
+  protocol?: string;
+
   @Column({ nullable: true })
   hwChannel?: number;
 
@@ -21,7 +22,7 @@ export class CANChannel extends LogicalChannel {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-      hwChannel: this.hwChannel, operationMode: this.operationMode
+      protocol: this.protocol, hwChannel: this.hwChannel, operationMode: this.operationMode
     };
   }
 

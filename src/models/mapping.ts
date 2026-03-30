@@ -2,9 +2,7 @@ import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { LogicalChannelCategory, HardwareChannelCategory } from './enums';
 import { Configuration } from './configuration';
 
-/**
- * Represents a mapping between a logical channel and a hardware channel.
- */
+
 @Entity('mappings')
 export class Mapping {
   @PrimaryColumn()

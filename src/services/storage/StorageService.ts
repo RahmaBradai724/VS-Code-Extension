@@ -5,11 +5,7 @@ import { IConfigurationStorage, IUserStorage } from '../interfaces/IStorage';
 const STORAGE_KEY_CONFIGS = 'channelConfig.configurations';
 const STORAGE_KEY_CURRENT_USER = 'channelConfig.currentUser';
 
-/**
- * StorageService handles persistence of all configuration data
- * using VS Code's globalState (ExtensionContext).
- * Implements IConfigurationStorage and IUserStorage (ISP).
- */
+
 export class StorageService implements IConfigurationStorage, IUserStorage {
   private context: vscode.ExtensionContext;
 

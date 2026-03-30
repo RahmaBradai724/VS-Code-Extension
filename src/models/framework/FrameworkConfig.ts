@@ -4,9 +4,7 @@ import { PublisherConfig } from './PublisherConfig';
 import { DiagnosticsConfig } from './DiagnosticsConfig';
 import { EthernetConfig } from './EthernetConfig';
 
-// ─────────────────────────────────────────────
-//  Framework Config
-// ─────────────────────────────────────────────
+
 @Entity('framework_configs')
 export class FrameworkConfig {
   @PrimaryGeneratedColumn()
@@ -29,6 +27,9 @@ export class FrameworkConfig {
 
   @OneToMany(() => Tracer, (t) => t.configuration)
   tracing!: Tracer[];
+
+  @Column({ type: 'jsonb', default: [] })
+  tracers: object[] = [];
 
   @Column({ type: 'jsonb', default: [] })
   connectedEcus: string[] = [];
@@ -55,6 +56,7 @@ export class FrameworkConfig {
       diagnostics: this.diagnostics.toJSON(),
       ethernetConfig: this.ethernetConfig.toJSON(),
       tracing: this.tracing ? this.tracing.map(t => t.toJSON()) : [],
+      tracers: (this as any).tracers ?? [],
       connectedEcus: this.connectedEcus,
       servicePack: this.servicePack,
       channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,

@@ -1,0 +1,104 @@
+Channels:
+  LC_CAN1:
+    Id: 1
+    Type: CAN
+    Protocol: CANFD
+    LoggingName: Logging_CAN
+    TracerName: Tracer_CAN
+  LC_LIN1:
+    Id: 2
+    Type: LIN
+    Protocol: '2.1'
+    LoggingName: Logging_LIN
+    TracerName: Tracer_CAN
+  LC_FR1:
+    Id: 3
+    Type: FR
+    LoggingName: Logging_FR
+    TracerName: Tracer_FR
+  LC_ETH1:
+    Id: 4
+    Type: ETHERNET
+    LoggingName: Logging_ETH
+    TracerName: Tracer_ETH
+Mappings:
+  CM:
+    Devices:
+      1:
+        Id: 1
+        Type: CAN_Combo
+        Buses:
+          LC_CAN1:
+            HWChannel: 0
+            OperationMode: Normal
+      2:
+        Id: 2
+        Type: LIN_Combo
+        Buses:
+          LC_LIN1:
+            HWChannel: 0
+      3:
+        Id: 3
+        Type: CAN_Combo
+        Buses:
+          LC_FR1:
+            HWChannel: 0
+            WakeUpCluster: false
+  PCAP:
+    1:
+      Adapter:
+        Name: LC_ETH1
+        BpfFilter: ''
+        Timeout: 0
+        ImmediateMode: false
+        UseDataLoggerTimeStamp: false
+        RemoveDataLoggerMetaData: false
+        PacketProcessingActive: false
+        PacketIdentificationActive: false
+FrameworkConfig:
+  Tracing:
+    Tracer_ETH:
+      Type: ASCII
+      Timestamp: Microsecond
+      Base: Hex
+      TimeStampSetting: Absolute
+      InternalEventLogged: false
+      LoggerConfiguration:
+        FileConfig:
+          Extension: .asc
+          MaxFile: 150
+          MaxFileSize: 1023
+    Tracer_CAN2:
+      Type: ASCII
+      Timestamp: Microsecond
+      Base: Hex
+      TimeStampSetting: Relative
+      InternalEventLogged: false
+      LoggerConfiguration:
+        FileConfig:
+          BaseFileName: trace_can
+          Extension: .asc
+    Tracer_FR:
+      Type: ASCII
+      Timestamp: Microsecond
+      Base: Hex
+      TimeStampSetting: Relative
+      InternalEventLogged: false
+      LoggerConfiguration:
+        FileConfig:
+          BaseFileName: trace_fr
+          Extension: .asc
+    Tracer_CAN:
+      Type: PCAP
+      Timestamp: Microsecond
+      LoggingType: MultipleAdapterMode
+      LoggerConfiguration:
+        BufferConfig:
+          BufferSize: 200
+        FileConfig:
+          BaseFileName: trace_can
+          Extension: .pcapng
+          MaxFile: 150
+          MaxFileSize: 1024
+  PublisherConfig:
+    PublisherType: SingleThreaded

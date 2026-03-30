@@ -3,8 +3,8 @@ import { ICompatibilityStrategy } from '../interfaces/ICompatibilityStrategy';
 // Protocol compatibility table: logical category → compatible hardware categories
 const PROTOCOL_COMPATIBILITY: Record<string, string[]> = {
   'CAN':      ['CAN_INTERFACE'],
-  'CAN-FD':   ['CAN_INTERFACE'],
-  'LIN':      ['SERIAL_PORT'],
+  'CANFD':    ['CAN_INTERFACE'],
+  'LIN':      ['CAN_INTERFACE', 'SERIAL_PORT'],
   'FLEXRAY':  ['CAN_INTERFACE', 'ETHERNET_ADAPTER'],
   'FR':       ['CAN_INTERFACE', 'ETHERNET_ADAPTER'],
   'ETHERNET': ['ETHERNET_ADAPTER'],

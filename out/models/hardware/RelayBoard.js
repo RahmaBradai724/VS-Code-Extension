@@ -13,9 +13,6 @@ exports.RelayBoard = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  Relay Board Hardware Channel
-// ─────────────────────────────────────────────
 let RelayBoard = class RelayBoard extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.RELAY_BOARD, enums_1.HardwareChannelSubclass.RELAY_BOARD);

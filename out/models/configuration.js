@@ -14,9 +14,6 @@ const typeorm_1 = require("typeorm");
 const frameworkConfig_1 = require("./frameworkConfig");
 const mapping_1 = require("./mapping");
 const user_1 = require("./user");
-/**
- * Top-level configuration entity.
- */
 let Configuration = class Configuration {
     // ✅ Constructor accepts string | number | null and converts safely
     constructor(id, name, userId) {

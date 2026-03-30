@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  Relay Board Hardware Channel
-// ─────────────────────────────────────────────
 @Entity('hardware_relay_boards')
 export class RelayBoard extends HardwareChannel {
   @Column({ nullable: true })

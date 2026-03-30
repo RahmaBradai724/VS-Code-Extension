@@ -6,9 +6,6 @@ export interface TunTapAdapter {
   [key: string]: unknown;
 }
 
-// ─────────────────────────────────────────────
-//  Bridge Logical Channel
-// ─────────────────────────────────────────────
 @Entity('logical_bridge_channels')
 export class BridgeChannel extends LogicalChannel {
   @Column({ nullable: true })

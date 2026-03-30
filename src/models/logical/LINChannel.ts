@@ -2,9 +2,7 @@ import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  LIN Logical Channel
-// ─────────────────────────────────────────────
+
 @Entity('logical_lin_channels')
 export class LINChannel extends LogicalChannel {
   @Column({ nullable: true })

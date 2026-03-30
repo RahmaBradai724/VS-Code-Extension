@@ -125,6 +125,33 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
           this.currentConfig.hardwareChannels = raw.hardwareChannels || [];
           this.currentConfig.mappings = raw.mappings || [];
           this.currentConfig.frameworkConfig = raw.frameworkConfig || {};
+
+          // Re-populate in-memory ChannelManager (lost on extension reload)
+          this.channelManager = new ChannelManager();
+          this.mappingManager = new MappingManager(this.channelManager);
+
+          for (const ch of this.currentConfig.logicalChannels) {
+            const factory = logicalChannelFactories[(ch as any).subclass];
+            if (factory) {
+              const rebuilt: any = factory(ch.id, ch.name);
+              Object.assign(rebuilt, ch);
+              this.channelManager.addLogicalChannel(rebuilt);
+            }
+          }
+          for (const hw of this.currentConfig.hardwareChannels) {
+            const factory = hardwareChannelFactories[(hw as any).subclass];
+            if (factory) {
+              const rebuilt: any = factory(hw.id, hw.name);
+              Object.assign(rebuilt, hw);
+              this.channelManager.addHardwareChannel(rebuilt);
+            }
+          }
+          // Re-populate mappings into MappingManager's internal map
+          for (const m of this.currentConfig.mappings) {
+            (this.mappingManager as any).mappings.set(m.mappingId, m);
+            this.channelManager.registerMappingForChannel(m.logicalChannelId, m.mappingId);
+            this.channelManager.registerMappingForChannel(m.hardwareChannelId, m.mappingId);
+          }
         }
 
         webview.postMessage({ command: 'configurationLoaded', data: raw });
@@ -267,7 +294,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             fc.publisherType = fw.publisherType;
             fc.channelsGroups = fw.channelsGroups || [];
             fc.connectedEcus = fw.connectedEcus || [];
-            if (fw.servicePack) { fc.servicePack = fw.servicePack; }
+            fc.servicePack = fw.servicePack;
             if (fw.ethernetConfig) { fc.ethernetConfig = fw.ethernetConfig; }
             this._saveCurrentConfig();
           }
@@ -466,6 +493,10 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     <h3>Hardware Channels</h3>
     <div class="card">
       <div class="form-group">
+        <label>Name</label>
+        <input id="hw-name" type="text" placeholder="e.g. HW_CAN_1" />
+      </div>
+      <div class="form-group">
         <label>Category</label>
         <select id="hw-category"></select>
       </div>
@@ -601,7 +632,6 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             <select id="tracer-logging-type">
               <option value="MultipleAdapterMode">MultipleAdapterMode</option>
               <option value="PerformanceMode">PerformanceMode</option>
-              <option value="StandardMode">StandardMode</option>
             </select>
           </div>
           <p style="font-size:11px;font-weight:600;margin-bottom:4px">BufferConfig</p>
@@ -846,7 +876,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
             state.logicalChannels = msg.data.logicalChannels || [];
             state.hardwareChannels = msg.data.hardwareChannels || [];
             state.mappings = msg.data.mappings || [];
-            state.tracers = msg.data.frameworkConfig?.tracers || [];
+            state.tracers = msg.data.frameworkConfig?.tracers || msg.data.frameworkConfig?.tracing || [];
             renderLogicalList(); renderHardwareList(); renderMappingList(); renderTracerList();
             showGlobal('Configuration "' + msg.data.name + '" loaded.', 'success');
           }
@@ -1032,6 +1062,16 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
       if (subclass === 'CANChannel') {
         html += \`
+          <div class="form-group">
+            <label>Protocol <span style="opacity:0.6">(required for bus channels)</span></label>
+            <select id="lc-attr-protocol">
+              <option value="">-- None (CAN2.0 default) --</option>
+              <option value="CAN2.0">CAN2.0</option>
+              <option value="CANFD">CANFD</option>
+              <option value="CANFD-IDENTICAL-ArbPh-DataPh">CANFD-IDENTICAL-ArbPh-DataPh</option>
+              <option value="CAN-IB500">CAN-IB500</option>
+            </select>
+          </div>
           <div class="form-group">
             <label>Hardware Channel (Index)</label>
             <input id="lc-attr-hwChannel" type="number" placeholder="0" />
@@ -1299,6 +1339,7 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
     document.getElementById('btn-add-hardware').addEventListener('click', () => {
       try {
+        const nameInput = document.getElementById('hw-name').value.trim();
         const category = document.getElementById('hw-category').value;
         const subclass = document.getElementById('hw-subclass').value;
         if (!state.selectedConfigId) { showGlobal('Load a configuration first.', 'error'); return; }
@@ -1307,13 +1348,14 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         const id = 'hw_' + Date.now();
         const channelData = {
           id,
-          name: buildAutoHardwareName(subclass),
+          name: nameInput || buildAutoHardwareName(subclass),
           type: CHANNEL_TYPES.HARDWARE,
           category,
           subclass,
           ...collectDynamicValues('hw-dynamic-attrs', 'hw-attr-'),
         };
         vscode.postMessage({ command: 'addHardwareChannel', channel: channelData });
+        document.getElementById('hw-name').value = '';
         resetHardwareSubclassSelection();
       } catch (error) {
         showGlobal(error.message || 'Unable to collect hardware channel attributes.', 'error');

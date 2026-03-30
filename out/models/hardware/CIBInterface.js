@@ -13,9 +13,6 @@ exports.CIBInterface = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  CIB Interface Hardware Channel (CM CAN_Combo)
-// ─────────────────────────────────────────────
 let CIBInterface = class CIBInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CIB_INTERFACE);

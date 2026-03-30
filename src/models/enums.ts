@@ -1,11 +1,6 @@
-/**
- * Enumerations for the Configuration Management System.
- * Derived from the UML class diagram.
- */
-
 export enum LogicalChannelCategory {
   CAN = 'CAN',
-  CAN_FD = 'CAN-FD',
+  CAN_FD = 'CANFD',
   LIN = 'LIN',
   FR = 'FR',
   FLEXRAY = 'FLEXRAY',

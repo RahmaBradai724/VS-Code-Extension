@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  CIB Interface Hardware Channel (CM CAN_Combo)
-// ─────────────────────────────────────────────
 @Entity('hardware_cib_interfaces')
 export class CIBInterface extends HardwareChannel {
   @Column()

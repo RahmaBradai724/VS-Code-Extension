@@ -13,9 +13,6 @@ exports.TEAnalog = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  TEAnalog Hardware Channel
-// ─────────────────────────────────────────────
 let TEAnalog = class TEAnalog extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.TE_ANALOG, enums_1.HardwareChannelSubclass.TE_ANALOG);

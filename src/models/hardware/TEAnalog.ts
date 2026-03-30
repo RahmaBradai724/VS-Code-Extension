@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { HardwareChannel } from '../HardwareChannel';
 import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  TEAnalog Hardware Channel
-// ─────────────────────────────────────────────
 @Entity('hardware_te_analog_channels')
 export class TEAnalog extends HardwareChannel {
   @Column({ nullable: true })

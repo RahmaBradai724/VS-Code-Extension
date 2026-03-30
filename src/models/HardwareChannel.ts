@@ -6,9 +6,7 @@ import {
   HardwareChannelSubclass,
 } from './enums';
 
-/**
- * Abstract base class for all hardware channels.
- */
+
 export abstract class HardwareChannel extends Channel {
   @Column({ type: 'varchar' })
   category: HardwareChannelCategory;

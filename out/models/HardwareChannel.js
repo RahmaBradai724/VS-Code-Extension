@@ -13,9 +13,6 @@ exports.HardwareChannel = void 0;
 const typeorm_1 = require("typeorm");
 const ChannelBase_1 = require("./ChannelBase");
 const enums_1 = require("./enums");
-/**
- * Abstract base class for all hardware channels.
- */
 class HardwareChannel extends ChannelBase_1.Channel {
     constructor(id, name, category, subclass) {
         super(id, name, enums_1.ChannelType.HARDWARE);

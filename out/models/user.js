@@ -12,15 +12,11 @@ var User_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
-/**
- * Represents a user of the Configuration Management System.
- */
 let User = User_1 = class User {
     constructor(name, email) {
         this.name = name;
         this.email = email;
     }
-    /** String-based user ID for backward compatibility with StorageService / UI. */
     getUserId() {
         return String(this.id);
     }
@@ -31,10 +27,8 @@ let User = User_1 = class User {
         return this.email;
     }
     createConfiguration(id, name) {
-        // Implementation would go here
     }
     manageConfiguration(config) {
-        // Implementation would go here
     }
     toJSON() {
         return {

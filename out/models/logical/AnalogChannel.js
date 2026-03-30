@@ -13,9 +13,6 @@ exports.AnalogChannel = void 0;
 const typeorm_1 = require("typeorm");
 const LogicalChannel_1 = require("../LogicalChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  Analog Logical Channel
-// ─────────────────────────────────────────────
 let AnalogChannel = class AnalogChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.ANALOG, enums_1.LogicalChannelSubclass.ANALOG);

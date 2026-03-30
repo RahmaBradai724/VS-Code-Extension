@@ -13,9 +13,6 @@ exports.IPSChannel = void 0;
 const typeorm_1 = require("typeorm");
 const LogicalChannel_1 = require("../LogicalChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  IPS Logical Channel
-// ─────────────────────────────────────────────
 let IPSChannel = class IPSChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOSERIAL, enums_1.LogicalChannelSubclass.IOSERIAL);
@@ -27,11 +24,12 @@ let IPSChannel = class IPSChannel extends LogicalChannel_1.LogicalChannel {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            openSession: this.openSession
+            openSession: this.openSession, openInterface: this.openInterface,
+            openSessionFields: this.openSessionFields
         };
     }
     toJSON() {
-        return { ...this.toYAML(), openInterface: this.openInterface };
+        return this.toYAML();
     }
 };
 exports.IPSChannel = IPSChannel;

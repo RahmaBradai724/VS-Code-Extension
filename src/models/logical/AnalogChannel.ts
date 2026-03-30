@@ -2,9 +2,6 @@ import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  Analog Logical Channel
-// ─────────────────────────────────────────────
 @Entity('logical_analog_channels')
 export class AnalogChannel extends LogicalChannel {
   @Column({ nullable: true })

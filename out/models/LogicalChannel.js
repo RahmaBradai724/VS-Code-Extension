@@ -13,9 +13,6 @@ exports.LogicalChannel = void 0;
 const typeorm_1 = require("typeorm");
 const ChannelBase_1 = require("./ChannelBase");
 const enums_1 = require("./enums");
-/**
- * Abstract base class for all logical channels.
- */
 class LogicalChannel extends ChannelBase_1.Channel {
     constructor(id, name, category, subclass) {
         super(id, name, enums_1.ChannelType.LOGICAL);

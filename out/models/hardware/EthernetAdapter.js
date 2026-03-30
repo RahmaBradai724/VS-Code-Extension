@@ -13,9 +13,6 @@ exports.EthernetAdapter = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  Ethernet Adapter Hardware Channel
-// ─────────────────────────────────────────────
 let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.ETHERNET_ADAPTER, enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER);

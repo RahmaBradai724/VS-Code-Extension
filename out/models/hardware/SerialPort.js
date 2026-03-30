@@ -13,9 +13,6 @@ exports.SerialPort = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  Serial Port Hardware Channel
-// ─────────────────────────────────────────────
 let SerialPort = class SerialPort extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT, enums_1.HardwareChannelSubclass.SERIAL_PORT);

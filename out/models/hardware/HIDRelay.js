@@ -13,9 +13,6 @@ exports.HIDRelay = void 0;
 const typeorm_1 = require("typeorm");
 const HardwareChannel_1 = require("../HardwareChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  HID Relay Hardware Channel
-// ─────────────────────────────────────────────
 let HIDRelay = class HIDRelay extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.HID_RELAY, enums_1.HardwareChannelSubclass.HID_RELAY);

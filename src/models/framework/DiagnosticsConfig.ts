@@ -1,8 +1,5 @@
 import { Column } from 'typeorm';
 
-// ─────────────────────────────────────────────
-//  Diagnostics Config
-// ─────────────────────────────────────────────
 export class DiagnosticsConfig {
   @Column()
   ecuIpAddress: string = '';

@@ -1,11 +1,7 @@
 import { LogicalChannel } from '../../models';
 import { IChannelRepository } from '../interfaces/IChannelRepository';
 
-/**
- * In-memory repository for logical channels.
- * SRP: logical channel CRUD only.
- * Repository pattern: isolates collection management from business coordinators.
- */
+
 export class LogicalChannelRepository implements IChannelRepository<LogicalChannel> {
   private store: Map<string, LogicalChannel> = new Map();
 

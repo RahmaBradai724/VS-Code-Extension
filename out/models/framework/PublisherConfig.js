@@ -12,9 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublisherConfig = void 0;
 const typeorm_1 = require("typeorm");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  Publisher Config
-// ─────────────────────────────────────────────
 class PublisherConfig {
     constructor() {
         this.publisherType = enums_1.PublisherMode.SingleThreaded;

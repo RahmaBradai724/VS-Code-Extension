@@ -13,9 +13,6 @@ exports.IOInputChannel = void 0;
 const typeorm_1 = require("typeorm");
 const LogicalChannel_1 = require("../LogicalChannel");
 const enums_1 = require("../enums");
-// ─────────────────────────────────────────────
-//  IO Input Logical Channel
-// ─────────────────────────────────────────────
 let IOInputChannel = class IOInputChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOINPUT, enums_1.LogicalChannelSubclass.IOINPUT);

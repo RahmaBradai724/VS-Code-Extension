@@ -2,9 +2,7 @@ import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 
-// ─────────────────────────────────────────────
-//  FlexRay Logical Channel
-// ─────────────────────────────────────────────
+
 @Entity('logical_flexray_channels')
 export class FlexRayChannel extends LogicalChannel {
   @Column({ nullable: true })

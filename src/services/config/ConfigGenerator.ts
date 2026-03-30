@@ -80,7 +80,8 @@ export class ConfigGenerator {
     this.config.logicalChannels.forEach((ch, index) => {
       const obj: Record<string, any> = {
         Id: index + 1,
-        Type: ch.category,
+        // MTF spec uses 'FR' — normalize both FLEXRAY and FR enum values
+        Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
       };
       const protocol = (ch as any).protocol;
       if (protocol) { obj.Protocol = protocol; }
@@ -105,9 +106,13 @@ export class ConfigGenerator {
           const busObj: Record<string, any> = {};
           if (m.hwChannel !== undefined && m.hwChannel !== null) { busObj.HWChannel = m.hwChannel; }
           if (m.operationMode) { busObj.OperationMode = m.operationMode; }
-          if (m.keySlot !== undefined && m.keySlot !== null) { busObj.KeySlot = m.keySlot; }
-          if (m.nodeType) { busObj.NodeType = m.nodeType; }
-          if (m.wakeUpCluster !== undefined && m.wakeUpCluster !== null) { busObj.WakeUpCluster = m.wakeUpCluster; }
+          // KeySlot, NodeType, WakeUpCluster are FlexRay-only fields
+          const isFlexRay = m.logicalChannelType === 'FR' || m.logicalChannelType === 'FLEXRAY';
+          if (isFlexRay) {
+            if (m.keySlot !== undefined && m.keySlot !== null) { busObj.KeySlot = m.keySlot; }
+            if (m.nodeType) { busObj.NodeType = m.nodeType; }
+            if (m.wakeUpCluster !== undefined && m.wakeUpCluster !== null) { busObj.WakeUpCluster = m.wakeUpCluster; }
+          }
           buses[m.logicalChannelName] = busObj;
         }
         cmDevices[idx + 1] = {
@@ -132,18 +137,18 @@ export class ConfigGenerator {
         const adapterObj: Record<string, any> = { Name: logicalChannelName };
         if (a.friendlyName) { adapterObj.FriendlyName = a.friendlyName; }
         if (a.bufferSize) { adapterObj.BufferSize = a.bufferSize; }
-        if (a.bpFilter !== undefined) { adapterObj.BpfFilter = a.bpFilter; }
-        if (a.timeout !== undefined) { adapterObj.Timeout = a.timeout; }
+        if (a.bpFilter) { adapterObj.BpfFilter = a.bpFilter; }
+        if (a.timeout) { adapterObj.Timeout = a.timeout; }
         if (a.timeStampPrecision) { adapterObj.TimeStampPrecision = a.timeStampPrecision; }
         if (a.timeStampSource) { adapterObj.TimeStampSource = a.timeStampSource; }
-        if (a.immediateMode !== undefined) { adapterObj.ImmediateMode = a.immediateMode; }
+        if (a.immediateMode) { adapterObj.ImmediateMode = a.immediateMode; }
         if (a.snapshotLength) { adapterObj.SnapshotLength = a.snapshotLength; }
         if (a.pcapDeviceMode) { adapterObj.PcapDeviceMode = a.pcapDeviceMode; }
-        if (a.useDataLoggerTimeStamp !== undefined) { adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp; }
-        if (a.removeDataLoggerMetaData !== undefined) { adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData; }
+        if (a.useDataLoggerTimeStamp) { adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp; }
+        if (a.removeDataLoggerMetaData) { adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData; }
         if (a.dataLoggerType) { adapterObj.DataLoggerType = a.dataLoggerType; }
-        if (a.packetProcessingActive !== undefined) { adapterObj.PacketProcessingActive = a.packetProcessingActive; }
-        if (a.packetIdentificationActive !== undefined) { adapterObj.PacketIdentificationActive = a.packetIdentificationActive; }
+        if (a.packetProcessingActive) { adapterObj.PacketProcessingActive = a.packetProcessingActive; }
+        if (a.packetIdentificationActive) { adapterObj.PacketIdentificationActive = a.packetIdentificationActive; }
         pcapSection[idx + 1] = { Adapter: adapterObj };
       });
       mappingsSection.PCAP = pcapSection;

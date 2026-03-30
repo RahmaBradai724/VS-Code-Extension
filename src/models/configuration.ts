@@ -4,9 +4,7 @@ import { FrameworkConfig } from './frameworkConfig';
 import { Mapping } from './mapping';
 import { User } from './user';
 
-/**
- * Top-level configuration entity.
- */
+
 @Entity('configurations')
 export class Configuration {
   @PrimaryColumn()
