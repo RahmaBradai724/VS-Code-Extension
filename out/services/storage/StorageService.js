@@ -3,11 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StorageService = void 0;
 const STORAGE_KEY_CONFIGS = 'channelConfig.configurations';
 const STORAGE_KEY_CURRENT_USER = 'channelConfig.currentUser';
-/**
- * StorageService handles persistence of all configuration data
- * using VS Code's globalState (ExtensionContext).
- * Implements IConfigurationStorage and IUserStorage (ISP).
- */
 class StorageService {
     constructor(context) {
         this.context = context;

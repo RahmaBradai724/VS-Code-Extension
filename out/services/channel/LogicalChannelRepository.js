@@ -1,11 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LogicalChannelRepository = void 0;
-/**
- * In-memory repository for logical channels.
- * SRP: logical channel CRUD only.
- * Repository pattern: isolates collection management from business coordinators.
- */
 class LogicalChannelRepository {
     constructor() {
         this.store = new Map();
