@@ -20,6 +20,10 @@
   ],
   "exclude": [
     "node_modules",
-    ".vscode-test"
+    ".vscode-test",
+    "src/ui/webview"
+  ],
+  "references": [
+    { "path": "./src/ui/webview/tsconfig.json" }
   ]
 }
