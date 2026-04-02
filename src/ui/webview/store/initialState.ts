@@ -23,4 +23,8 @@ export const initialState: AppState = {
   aiResult: null,
   generating: false,
   aiValidating: false,
+  authToken: null,
+  authUser: null,
+  authLoading: true,   // true while checkAuth is in-flight
+  authError: null,
 };

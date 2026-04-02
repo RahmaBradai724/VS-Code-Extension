@@ -4,6 +4,8 @@ import { IConfigurationStorage, IUserStorage } from '../interfaces/IStorage';
 
 const STORAGE_KEY_CONFIGS = 'channelConfig.configurations';
 const STORAGE_KEY_CURRENT_USER = 'channelConfig.currentUser';
+const STORAGE_KEY_AUTH_TOKEN = 'channelConfig.authToken';
+const STORAGE_KEY_JWT_SECRET = 'channelConfig.jwtSecret';
 
 
 export class StorageService implements IConfigurationStorage, IUserStorage {
@@ -67,5 +69,33 @@ export class StorageService implements IConfigurationStorage, IUserStorage {
   clearAll(): void {
     this.context.globalState.update(STORAGE_KEY_CONFIGS, []);
     this.context.globalState.update(STORAGE_KEY_CURRENT_USER, undefined);
+  }
+
+  // ─── JWT / Auth ────────────────────────────────────────────────────────
+
+  getAuthToken(): string | undefined {
+    return this.context.globalState.get<string>(STORAGE_KEY_AUTH_TOKEN);
+  }
+
+  setAuthToken(token: string): void {
+    this.context.globalState.update(STORAGE_KEY_AUTH_TOKEN, token);
+  }
+
+  clearAuthToken(): void {
+    this.context.globalState.update(STORAGE_KEY_AUTH_TOKEN, undefined);
+  }
+
+  /**
+   * Returns the persisted JWT secret, generating + saving one if it doesn't exist yet.
+   * A stable per-installation secret means tokens survive VS Code restarts.
+   */
+  getOrCreateJwtSecret(): string {
+    const existing = this.context.globalState.get<string>(STORAGE_KEY_JWT_SECRET);
+    if (existing) { return existing; }
+    // Generate a 64-char hex secret
+    const { randomBytes } = require('crypto') as typeof import('crypto');
+    const secret = randomBytes(32).toString('hex');
+    this.context.globalState.update(STORAGE_KEY_JWT_SECRET, secret);
+    return secret;
   }
 }

@@ -1,6 +1,22 @@
 import React from 'react';
 
 const CSS = `
+/* ── Modal backdrop ─────────────────────────────────────────────────── */
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modalIn {
+  from { transform: scale(0.88) translateY(20px); opacity: 0; }
+  to   { transform: scale(1)    translateY(0);    opacity: 1; }
+}
+.ccm-modal-backdrop {
+  animation: backdropIn 0.18s ease forwards;
+}
+.ccm-modal {
+  animation: modalIn 0.28s cubic-bezier(0.34,1.36,0.64,1) forwards;
+}
+
 /* ── Keyframe animations ──────────────────────────────────────────────── */
 @keyframes slideInRight {
   from { transform: translateX(80px) scale(0.95); opacity: 0; }
@@ -170,6 +186,16 @@ input:focus, select:focus, textarea:focus {
 .ccm-stat-card:hover {
   transform: translateY(-3px) scale(1.02) !important;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+}
+
+/* ── Login card entrance ─────────────────────────────────────────────── */
+.ccm-login-card {
+  animation: scaleIn 0.3s cubic-bezier(0.34,1.3,0.64,1) forwards;
+}
+
+/* ── Spin for loading spinner ───────────────────────────────────────── */
+@keyframes ccm-spin {
+  to { transform: rotate(360deg); }
 }
 `;
 

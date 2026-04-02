@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FieldDef } from '../types';
 import { T } from '../theme';
+import { ConfirmModal } from './ConfirmModal';
 export { T }; // re-export for backward compat with panels
 
 // ── DynamicField: renders a form field from FieldDef ──────────────────────
@@ -78,35 +79,47 @@ interface ChannelRowProps {
   onDelete: () => void;
 }
 export function ChannelRow({ name, badgeLabel, badgeColor, meta, onDelete }: ChannelRowProps) {
+  const [confirming, setConfirming] = useState(false);
+
   return (
-    <div
-      className="ccm-row"
-      style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '11px 16px',
-        background: 'var(--vscode-editorWidget-background)',
-        border: '1px solid var(--vscode-panel-border, rgba(128,128,128,0.2))',
-        borderRadius: '10px', marginBottom: '6px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-          {badgeColor && (
-            <span style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              background: badgeColor, flexShrink: 0,
-              boxShadow: `0 0 6px ${badgeColor}80`,
-            }} />
-          )}
-          <span style={{ fontWeight: 600, fontSize: '13px' }}>{name}</span>
-          <Badge label={badgeLabel} color={badgeColor} />
+    <>
+      <ConfirmModal
+        open={confirming}
+        title={`Remove "${name}"?`}
+        message="This channel will be permanently removed from the configuration."
+        confirmLabel="Remove"
+        onConfirm={() => { setConfirming(false); onDelete(); }}
+        onCancel={() => setConfirming(false)}
+      />
+      <div
+        className="ccm-row"
+        style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '11px 16px',
+          background: 'var(--vscode-editorWidget-background)',
+          border: '1px solid var(--vscode-panel-border, rgba(128,128,128,0.2))',
+          borderRadius: '10px', marginBottom: '6px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+            {badgeColor && (
+              <span style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: badgeColor, flexShrink: 0,
+                boxShadow: `0 0 6px ${badgeColor}80`,
+              }} />
+            )}
+            <span style={{ fontWeight: 600, fontSize: '13px' }}>{name}</span>
+            <Badge label={badgeLabel} color={badgeColor} />
+          </div>
+          {meta && <span style={{ fontSize: '11px', opacity: 0.45, paddingLeft: badgeColor ? '17px' : '0' }}>{meta}</span>}
         </div>
-        {meta && <span style={{ fontSize: '11px', opacity: 0.45, paddingLeft: badgeColor ? '17px' : '0' }}>{meta}</span>}
+        <button style={T.btnDanger} onClick={() => setConfirming(true)}>Remove</button>
       </div>
-      <button style={T.btnDanger} onClick={onDelete}>Remove</button>
-    </div>
+    </>
   );
 }
 

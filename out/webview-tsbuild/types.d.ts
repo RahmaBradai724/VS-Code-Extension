@@ -71,6 +71,14 @@ export interface AppState {
     aiResult: AiResult | null;
     generating: boolean;
     aiValidating: boolean;
+    authToken: string | null;
+    authUser: {
+        id: number;
+        name: string;
+        email: string;
+    } | null;
+    authLoading: boolean;
+    authError: string | null;
 }
 export type AppAction = {
     type: 'SET_PAGE';
@@ -123,6 +131,22 @@ export type AppAction = {
 } | {
     type: 'SET_AI_VALIDATING';
     validating: boolean;
+} | {
+    type: 'AUTH_SUCCESS';
+    token: string;
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+} | {
+    type: 'AUTH_LOGOUT';
+} | {
+    type: 'AUTH_LOADING';
+    loading: boolean;
+} | {
+    type: 'AUTH_ERROR';
+    error: string | null;
 };
 export interface FieldDef {
     key: string;

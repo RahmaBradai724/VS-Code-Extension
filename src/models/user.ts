@@ -1,8 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 
 @Entity('users')
-@Index(['name', 'email'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -12,6 +11,9 @@ export class User {
 
   @Column()
   email: string;
+
+  @Column({ nullable: true })
+  passwordHash!: string;
 
   constructor(name: string, email: string) {
     this.name = name;

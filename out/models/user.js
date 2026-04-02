@@ -58,9 +58,12 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "passwordHash", void 0);
 exports.User = User = User_1 = __decorate([
     (0, typeorm_1.Entity)('users'),
-    (0, typeorm_1.Index)(['name', 'email'], { unique: true }),
     __metadata("design:paramtypes", [String, String])
 ], User);
 //# sourceMappingURL=user.js.map

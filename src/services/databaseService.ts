@@ -6,8 +6,12 @@ export { ConfigurationRepository } from './database/ConfigurationRepository';
 
 import { UserRepository } from './database/UserRepository';
 import { ConfigurationRepository } from './database/ConfigurationRepository';
+import { AuthService } from './auth/AuthService';
 
-const _userRepo = new UserRepository();
+// databaseService uses a local AuthService so the barrel functions still work.
+// Callers that need full auth (register/login) should use UserRepository directly.
+const _authService = new AuthService('local-barrel-secret');
+const _userRepo = new UserRepository(_authService);
 const _configRepo = new ConfigurationRepository();
 
 export const saveUserToDb = (name: string, email: string) =>
@@ -16,8 +20,8 @@ export const saveUserToDb = (name: string, email: string) =>
 export const getUserById = (id: number) =>
   _userRepo.findById(id);
 
-export const findUserByNameAndEmail = (name: string, email: string) =>
-  _userRepo.findByNameAndEmail(name, email);
+export const findUserByEmail = (email: string) =>
+  _userRepo.findByEmail(email);
 
 export const saveConfigurationToDb = (
   configId: string,

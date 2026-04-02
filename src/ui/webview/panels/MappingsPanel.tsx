@@ -2,12 +2,22 @@ import React, { useState } from 'react';
 import { useApp } from '../hooks/useApp';
 import { CHANNEL_COLORS, LOGICAL_SUBCLASS_OPTIONS } from '../types';
 import { T, Badge, SectionHeader } from '../components/shared';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 const OPERATION_MODES = ['Active', 'Passive', 'Monitor'];
 const NODE_TYPES = ['ColdStartNode', 'WakeupNode', 'SyncNode'];
 
 export default function MappingsPanel() {
   const { state, send, notify } = useApp();
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const removingMapping = state.mappings.find(m => m.id === removingId);
+  const removingLc = removingMapping
+    ? state.logicalChannels.find(c => c.id === removingMapping.logicalChannelId)
+    : null;
+  const removingHw = removingMapping
+    ? state.hardwareChannels.find(h => h.id === removingMapping.hardwareChannelId)
+    : null;
 
   const [form, setForm] = useState({
     logicalId: '',
@@ -57,6 +67,22 @@ export default function MappingsPanel() {
 
   return (
     <div>
+      <ConfirmModal
+        open={!!removingId}
+        title="Remove this mapping?"
+        message={
+          removingLc && removingHw
+            ? `The mapping between "${removingLc.name}" and "${removingHw.name}" will be removed.`
+            : 'This mapping will be permanently removed.'
+        }
+        confirmLabel="Remove"
+        onConfirm={() => {
+          if (removingId) send('removeMapping', { mappingId: removingId });
+          setRemovingId(null);
+        }}
+        onCancel={() => setRemovingId(null)}
+      />
+
       <SectionHeader
         title="Mappings"
         count={state.mappings.length}
@@ -171,7 +197,7 @@ export default function MappingsPanel() {
                 </div>
                 <button
                   style={T.btnDanger}
-                  onClick={() => send('removeMapping', { mappingId: m.id })}
+                  onClick={() => setRemovingId(m.id)}
                 >
                   Remove
                 </button>

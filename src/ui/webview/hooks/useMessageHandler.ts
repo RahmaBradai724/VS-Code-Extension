@@ -6,6 +6,22 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
     const handler = (event: MessageEvent) => {
       const msg = event.data;
       switch (msg.command) {
+
+        // ── Auth ──────────────────────────────────────────────────────
+        case 'authSuccess':
+          dispatch({ type: 'AUTH_SUCCESS', token: msg.token, user: msg.user });
+          send('getConfigurations');
+          break;
+
+        case 'authRequired':
+          dispatch({ type: 'AUTH_LOGOUT' });
+          break;
+
+        case 'authError':
+          dispatch({ type: 'AUTH_ERROR', error: msg.message });
+          break;
+
+        // ── Configurations ────────────────────────────────────────────
         case 'configurationsLoaded':
           dispatch({ type: 'SET_CONFIGS', configs: msg.data || [] });
           break;
@@ -26,6 +42,7 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
           }
           break;
 
+        // ── Channel / Mapping ─────────────────────────────────────────
         case 'success':
           if (msg.action === 'addLogicalChannel') {
             dispatch({ type: 'LOGICAL_ADDED', channel: msg.data });
@@ -68,7 +85,8 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
     };
 
     window.addEventListener('message', handler);
-    send('getConfigurations');
+    // Check auth on mount — the extension will reply with authSuccess or authRequired
+    send('checkAuth');
     return () => window.removeEventListener('message', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

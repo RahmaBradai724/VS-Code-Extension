@@ -8,6 +8,7 @@ import { useMessageHandler } from './hooks/useMessageHandler';
 import { Nav } from './components/Nav';
 import { Toast } from './components/Toast';
 import { GlobalStyles } from './GlobalStyles';
+import LoginPanel from './panels/LoginPanel';
 import ConfigsPanel from './panels/ConfigsPanel';
 import LogicalPanel from './panels/LogicalPanel';
 import HardwarePanel from './panels/HardwarePanel';
@@ -43,48 +44,74 @@ export function App() {
   return (
     <AppContext.Provider value={{ state, dispatch, send, notify }}>
       <GlobalStyles />
-      <div style={S.root}>
-        <Toast notification={state.notification} />
+      <Toast notification={state.notification} />
 
-        <Nav />
+      {/* ── Auth gate ───────────────────────────────────────────────── */}
+      {(!state.authToken || state.authLoading) ? (
+        <LoginPanel
+          loading={state.authLoading}
+          authError={state.authError}
+        />
+      ) : (
+        /* ── Main application UI ──────────────────────────────────── */
+        <div style={S.root}>
+          <Nav />
 
-        <div style={S.main}>
-          {/* Top header bar */}
-          <div style={S.header}>
-            <div style={S.headerLeft}>
-              <span style={S.headerTitle}>
-                {state.currentConfigName || 'Channel Config Manager'}
-              </span>
-              {state.currentConfigId && (
-                <span style={S.activeBadge}>
-                  <span style={S.activeDot} />
-                  Active
+          <div style={S.main}>
+            {/* Top header bar */}
+            <div style={S.header}>
+              <div style={S.headerLeft}>
+                <span style={S.headerTitle}>
+                  {state.currentConfigName || 'Channel Config Manager'}
                 </span>
+                {state.currentConfigId && (
+                  <span style={S.activeBadge}>
+                    <span style={S.activeDot} />
+                    Active
+                  </span>
+                )}
+              </div>
+
+              {/* User info + logout */}
+              <div style={S.headerRight}>
+                <span style={S.userChip}>
+                  <span style={S.userAvatar}>
+                    {state.authUser?.name?.[0]?.toUpperCase() ?? '?'}
+                  </span>
+                  <span style={S.userName}>{state.authUser?.name}</span>
+                </span>
+                <button
+                  style={S.logoutBtn}
+                  onClick={() => { send('logout'); dispatch({ type: 'AUTH_LOGOUT' }); }}
+                  title="Sign out"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+
+            {/* Panel content */}
+            <div style={S.content}>
+              {!state.currentConfigId && state.page !== 'configs' ? (
+                <div style={S.noConfig}>
+                  <div style={S.noConfigIcon}>⚙</div>
+                  <div style={S.noConfigTitle}>No configuration loaded</div>
+                  <div style={S.noConfigSub}>
+                    Go to <strong>Configurations</strong> and load or create one to get started.
+                  </div>
+                  <button style={S.btnPrimary} onClick={() => dispatch({ type: 'SET_PAGE', page: 'configs' })}>
+                    Open Configurations
+                  </button>
+                </div>
+              ) : (
+                <div key={state.page} className="ccm-panel">
+                  {panels[state.page]}
+                </div>
               )}
             </div>
           </div>
-
-          {/* Panel content */}
-          <div style={S.content}>
-            {!state.currentConfigId && state.page !== 'configs' ? (
-              <div style={S.noConfig}>
-                <div style={S.noConfigIcon}>⚙</div>
-                <div style={S.noConfigTitle}>No configuration loaded</div>
-                <div style={S.noConfigSub}>
-                  Go to <strong>Configurations</strong> and load or create one to get started.
-                </div>
-                <button style={S.btnPrimary} onClick={() => dispatch({ type: 'SET_PAGE', page: 'configs' })}>
-                  Open Configurations
-                </button>
-              </div>
-            ) : (
-              <div key={state.page} className="ccm-panel">
-                {panels[state.page]}
-              </div>
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </AppContext.Provider>
   );
 }
@@ -113,6 +140,38 @@ const S: Record<string, React.CSSProperties> = {
     gap: '12px',
   },
   headerLeft: { display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 },
+  headerRight: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
+  userChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '7px',
+    fontSize: '12px',
+    color: 'var(--vscode-descriptionForeground, rgba(204,204,204,0.7))',
+  },
+  userAvatar: {
+    width: '26px',
+    height: '26px',
+    borderRadius: '50%',
+    background: 'var(--vscode-button-background)',
+    color: 'var(--vscode-button-foreground)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 700,
+    fontSize: '11px',
+    flexShrink: 0,
+  },
+  userName: { fontWeight: 600, fontSize: '12px', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  logoutBtn: {
+    padding: '4px 12px',
+    borderRadius: '999px',
+    border: '1px solid var(--vscode-panel-border, rgba(128,128,128,0.25))',
+    background: 'transparent',
+    color: 'var(--vscode-descriptionForeground, rgba(204,204,204,0.7))',
+    fontSize: '11px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
   headerTitle: {
     fontWeight: 700,
     fontSize: '14px',

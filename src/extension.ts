@@ -3,44 +3,40 @@ import * as vscode from 'vscode';
 import { WebviewProvider } from './ui/webviewProvider';
 import { StorageService } from './services/storageService';
 import { ConfigImporter } from './services/configImporter';
-import { testDatabaseConnection, initializeDatabase, saveUserToDb, findUserByNameAndEmail } from './services/databaseService';
-import { User } from './models';
+import { testDatabaseConnection, initializeDatabase } from './services/databaseService';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Channel Configuration Manager is now active.');
 
-  const storageService = new StorageService(context);
+  // Open the full-tab panel automatically on activation
+  WebviewProvider.open(context.extensionUri, context);
 
-  // 1. First thing: Connect the user
-  promptForUserAndConnect(storageService).then(() => {
-    // 2. Then ensure the dashboard is focused/opened after the prompt is done
-    vscode.commands.executeCommand('channelConfig.mainView.focus');
-  });
-
-  // 3. Silently initialize database in the background
+  // Silently initialize database in the background
   testDatabaseConnection().then(async (connected) => {
     if (connected) {
       await initializeDatabase();
     }
   });
 
-  const importer = new ConfigImporter(storageService);
+  const storageService = new StorageService(context);
+  const importer       = new ConfigImporter(storageService);
 
-  // Register the webview sidebar provider
-  const provider = new WebviewProvider(context.extensionUri, context);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(WebviewProvider.viewType, provider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    })
-  );
+  /** Helper: open/reveal the main panel */
+  const openPanel = () => WebviewProvider.open(context.extensionUri, context);
 
   // Register commands
-  const commands: [string, () => void][] = [
-    ['channelConfig.openDashboard', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-    }],
+  const commands: [string, (...args: any[]) => any][] = [
+    ['channelConfig.openDashboard',          openPanel],
+    ['channelConfig.manageLogicalChannels',  openPanel],
+    ['channelConfig.manageHardwareChannels', openPanel],
+    ['channelConfig.manageMappings',         openPanel],
+    ['channelConfig.generateConfig',         openPanel],
+    ['channelConfig.runAIValidation',        openPanel],
+    ['channelConfig.visualizeDiagram',       openPanel],
+    ['channelConfig.configureFramework',     openPanel],
 
     ['channelConfig.importConfig', async () => {
+      openPanel();
       try {
         const result = await importer.importFromFile();
         if (!result) { return; }
@@ -54,41 +50,6 @@ export function activate(context: vscode.ExtensionContext) {
       } catch (err: any) {
         vscode.window.showErrorMessage(`Import failed: ${err.message}`);
       }
-    }],
-
-    ['channelConfig.manageLogicalChannels', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Logical Channels" tab in the sidebar.');
-    }],
-
-    ['channelConfig.manageHardwareChannels', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Hardware Channels" tab in the sidebar.');
-    }],
-
-    ['channelConfig.manageMappings', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Mappings" tab in the sidebar.');
-    }],
-
-    ['channelConfig.generateConfig', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Generate" tab in the sidebar.');
-    }],
-
-    ['channelConfig.runAIValidation', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Generate" tab and click "Run AI Validation".');
-    }],
-
-    ['channelConfig.visualizeDiagram', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Diagram" tab in the sidebar.');
-    }],
-
-    ['channelConfig.configureFramework', () => {
-      vscode.commands.executeCommand('channelConfig.mainView.focus');
-      vscode.window.showInformationMessage('Navigate to the "Framework" tab in the sidebar.');
     }],
 
     ['channelConfig.exportConfig', async () => {
@@ -110,66 +71,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`Exported to ${uri.fsPath}`);
       }
     }],
-    ['channelConfig.connectUser', async () => {
-      await promptForUserAndConnect(storageService, true);
-    }],
-    ['channelConfig.disconnectUser', async () => {
-      storageService.clearCurrentUser();
-      vscode.window.showInformationMessage('You have been disconnected.');
-      // Optional: Ask if they want to connect as someone else immediately
-      const reconnect = await vscode.window.showInformationMessage('Do you want to connect as a different user?', 'Yes', 'No');
-      if (reconnect === 'Yes') {
-        await promptForUserAndConnect(storageService, true);
-      }
-    }],
+
+    // connectUser / disconnectUser kept as no-ops (auth is now in the webview)
+    ['channelConfig.connectUser',    openPanel],
+    ['channelConfig.disconnectUser', openPanel],
   ];
 
   for (const [cmd, handler] of commands) {
     context.subscriptions.push(vscode.commands.registerCommand(cmd, handler));
   }
-}
-
-/**
- * Prompt the user for their information and save to DB/Storage
- */
-async function promptForUserAndConnect(storageService: StorageService, force: boolean = false): Promise<void> {
-  const existingUser = storageService.getCurrentUser();
-  if (existingUser && !force) {
-    return;
-  }
-
-  const name = await vscode.window.showInputBox({
-    prompt: 'Welcome! Please enter your name to connect to the Configuration Manager',
-    placeHolder: 'e.g. John Doe',
-    ignoreFocusOut: true
-  });
-
-  if (!name) return;
-
-  const email = await vscode.window.showInputBox({
-    prompt: 'Enter your email to identify yourself',
-    placeHolder: 'john@example.com',
-    ignoreFocusOut: true
-  });
-
-  if (email === undefined) return; // ESC pressed
-
-  // Check if user exists in DB
-  const existingDbUser = await findUserByNameAndEmail(name, email || '');
-
-  let user: User;
-  if (existingDbUser) {
-    user = existingDbUser;
-    vscode.window.showInformationMessage(`Welcome back, ${name}!`);
-  } else {
-    // Save new user (ID is auto-generated by TypeORM)
-    const newUser = await saveUserToDb(name, email || '');
-    user = newUser;
-    vscode.window.showInformationMessage(`Connected successfully as ${name}!`);
-  }
-
-  // Save to VS Code Global Storage (Context)
-  storageService.setCurrentUser(user);
 }
 
 export function deactivate() {

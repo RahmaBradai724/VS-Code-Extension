@@ -80,6 +80,20 @@ export function reducer(state: AppState, action: AppAction): AppState {
     case 'SET_AI_VALIDATING':
       return { ...state, aiValidating: action.validating };
 
+    case 'AUTH_SUCCESS':
+      return { ...state, authToken: action.token, authUser: action.user, authLoading: false, authError: null };
+
+    case 'AUTH_LOGOUT':
+      return { ...state, authToken: null, authUser: null, authLoading: false, authError: null,
+               currentConfigId: null, currentConfigName: '', configs: [],
+               logicalChannels: [], hardwareChannels: [], mappings: [] };
+
+    case 'AUTH_LOADING':
+      return { ...state, authLoading: action.loading };
+
+    case 'AUTH_ERROR':
+      return { ...state, authError: action.error, authLoading: false };
+
     default:
       return state;
   }

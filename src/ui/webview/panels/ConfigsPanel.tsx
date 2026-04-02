@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useApp } from '../hooks/useApp';
 import { T } from '../components/shared';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export default function ConfigsPanel() {
   const { state, send, notify } = useApp();
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deletingCfg = state.configs.find(c => c.id === deletingId);
 
   function handleCreate() {
     const name = newName.trim();
@@ -22,6 +26,18 @@ export default function ConfigsPanel() {
 
   return (
     <div>
+      {/* Confirm delete modal */}
+      <ConfirmModal
+        open={!!deletingId}
+        title={`Delete "${deletingCfg?.name ?? ''}"?`}
+        message="This configuration and all its channels and mappings will be permanently deleted. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deletingId) send('deleteConfiguration', { configId: deletingId });
+          setDeletingId(null);
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
         <div>
@@ -123,11 +139,7 @@ export default function ConfigsPanel() {
                   )}
                   <button
                     style={T.btnDanger}
-                    onClick={() => {
-                      if (confirm(`Delete "${cfg.name}"? This cannot be undone.`)) {
-                        send('deleteConfiguration', { configId: cfg.id });
-                      }
-                    }}
+                    onClick={() => setDeletingId(cfg.id)}
                   >
                     Delete
                   </button>
