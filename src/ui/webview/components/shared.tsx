@@ -1,70 +1,7 @@
 import React from 'react';
 import { FieldDef } from '../types';
-
-// ── Shared style tokens ───────────────────────────────────────────────────
-export const T = {
-  card: {
-    background: 'var(--vscode-editorWidget-background)',
-    border: '1px solid var(--vscode-panel-border, #3a3a3a)',
-    borderRadius: '8px',
-    padding: '16px',
-    marginBottom: '16px',
-  } as React.CSSProperties,
-  cardTitle: { fontSize: '13px', fontWeight: 600, marginBottom: '12px', opacity: 0.9 } as React.CSSProperties,
-  pageTitle: { fontSize: '19px', fontWeight: 700, marginBottom: '20px' } as React.CSSProperties,
-  label: { fontSize: '11px', opacity: 0.65, marginBottom: '4px', display: 'block' } as React.CSSProperties,
-  input: {
-    width: '100%', padding: '7px 10px',
-    background: 'var(--vscode-input-background)',
-    color: 'var(--vscode-input-foreground)',
-    border: '1px solid var(--vscode-input-border, var(--vscode-panel-border, #3a3a3a))',
-    borderRadius: '4px', fontSize: '12px', outline: 'none', boxSizing: 'border-box',
-  } as React.CSSProperties,
-  textarea: {
-    width: '100%', padding: '7px 10px',
-    background: 'var(--vscode-input-background)',
-    color: 'var(--vscode-input-foreground)',
-    border: '1px solid var(--vscode-input-border, var(--vscode-panel-border, #3a3a3a))',
-    borderRadius: '4px', fontSize: '12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-    fontFamily: 'inherit',
-  } as React.CSSProperties,
-  select: {
-    width: '100%', padding: '7px 10px',
-    background: 'var(--vscode-dropdown-background, var(--vscode-input-background))',
-    color: 'var(--vscode-dropdown-foreground, var(--vscode-input-foreground))',
-    border: '1px solid var(--vscode-dropdown-border, var(--vscode-panel-border, #3a3a3a))',
-    borderRadius: '4px', fontSize: '12px', outline: 'none', cursor: 'pointer',
-  } as React.CSSProperties,
-  btnPrimary: {
-    padding: '7px 16px',
-    background: 'var(--vscode-button-background)', color: 'var(--vscode-button-foreground)',
-    border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-    whiteSpace: 'nowrap',
-  } as React.CSSProperties,
-  btnSecondary: {
-    padding: '7px 16px',
-    background: 'transparent', color: 'var(--vscode-editor-foreground)',
-    border: '1px solid var(--vscode-panel-border, #3a3a3a)', borderRadius: '5px', cursor: 'pointer',
-    fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap',
-  } as React.CSSProperties,
-  btnDanger: {
-    padding: '5px 12px',
-    background: 'transparent', color: '#f87171',
-    border: '1px solid #f87171', borderRadius: '4px', cursor: 'pointer', fontSize: '11px',
-  } as React.CSSProperties,
-  btnSmall: {
-    padding: '4px 10px',
-    background: 'var(--vscode-button-background)', color: 'var(--vscode-button-foreground)',
-    border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 500,
-  } as React.CSSProperties,
-  row: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } as React.CSSProperties,
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } as React.CSSProperties,
-  divider: { height: '1px', background: 'var(--vscode-panel-border, #3a3a3a)', margin: '12px 0' } as React.CSSProperties,
-  empty: {
-    padding: '32px 16px', textAlign: 'center', opacity: 0.45, fontSize: '13px',
-    border: '1px dashed var(--vscode-panel-border, #3a3a3a)', borderRadius: '6px',
-  } as React.CSSProperties,
-};
+import { T } from '../theme';
+export { T }; // re-export for backward compat with panels
 
 // ── DynamicField: renders a form field from FieldDef ──────────────────────
 interface DynamicFieldProps {
@@ -120,9 +57,12 @@ interface BadgeProps { label: string; color?: string; }
 export function Badge({ label, color = '#569cd6' }: BadgeProps) {
   return (
     <span style={{
-      fontSize: '10px', padding: '2px 7px', borderRadius: '10px',
-      background: color + '22', color, fontWeight: 600, border: `1px solid ${color}44`,
+      fontSize: '10px', padding: '3px 9px', borderRadius: '999px',
+      background: color + '20', color, fontWeight: 700,
+      border: `1px solid ${color}45`,
       whiteSpace: 'nowrap',
+      letterSpacing: '0.02em',
+      boxShadow: `0 0 8px ${color}18`,
     }}>
       {label}
     </span>
@@ -139,19 +79,31 @@ interface ChannelRowProps {
 }
 export function ChannelRow({ name, badgeLabel, badgeColor, meta, onDelete }: ChannelRowProps) {
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '10px 14px',
-      background: 'var(--vscode-editorWidget-background)',
-      border: '1px solid var(--vscode-panel-border, #3a3a3a)',
-      borderRadius: '6px', marginBottom: '6px',
-    }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div
+      className="ccm-row"
+      style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '11px 16px',
+        background: 'var(--vscode-editorWidget-background)',
+        border: '1px solid var(--vscode-panel-border, rgba(128,128,128,0.2))',
+        borderRadius: '10px', marginBottom: '6px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          {badgeColor && (
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: badgeColor, flexShrink: 0,
+              boxShadow: `0 0 6px ${badgeColor}80`,
+            }} />
+          )}
           <span style={{ fontWeight: 600, fontSize: '13px' }}>{name}</span>
           <Badge label={badgeLabel} color={badgeColor} />
         </div>
-        {meta && <span style={{ fontSize: '11px', opacity: 0.5 }}>{meta}</span>}
+        {meta && <span style={{ fontSize: '11px', opacity: 0.45, paddingLeft: badgeColor ? '17px' : '0' }}>{meta}</span>}
       </div>
       <button style={T.btnDanger} onClick={onDelete}>Remove</button>
     </div>
@@ -162,14 +114,22 @@ export function ChannelRow({ name, badgeLabel, badgeColor, meta, onDelete }: Cha
 interface SectionHeaderProps { title: string; count?: number; action?: React.ReactNode; }
 export function SectionHeader({ title, count, action }: SectionHeaderProps) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <h2 style={{ fontSize: '19px', fontWeight: 700, margin: 0 }}>{title}</h2>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{title}</h2>
         {count !== undefined && count > 0 && (
-          <span style={{
-            fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
-            background: 'var(--vscode-button-background)', color: 'var(--vscode-button-foreground)',
-          }}>{count}</span>
+          <span
+            className="ccm-badge"
+            style={{
+              fontSize: '11px', padding: '3px 10px', borderRadius: '999px',
+              background: 'var(--vscode-button-background)',
+              color: 'var(--vscode-button-foreground)',
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            }}
+          >
+            {count}
+          </span>
         )}
       </div>
       {action}

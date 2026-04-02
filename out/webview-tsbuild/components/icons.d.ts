@@ -1,0 +1,21 @@
+import React from 'react';
+export declare const Icons: {
+    configs: () => React.JSX.Element;
+    logical: () => React.JSX.Element;
+    hardware: () => React.JSX.Element;
+    mappings: () => React.JSX.Element;
+    framework: () => React.JSX.Element;
+    generate: () => React.JSX.Element;
+    diagram: () => React.JSX.Element;
+    chevronRight: () => React.JSX.Element;
+    plus: (size?: number) => React.JSX.Element;
+    trash: (size?: number) => React.JSX.Element;
+    check: (size?: number) => React.JSX.Element;
+    warning: (size?: number) => React.JSX.Element;
+    error: (size?: number) => React.JSX.Element;
+    info: (size?: number) => React.JSX.Element;
+    upload: () => React.JSX.Element;
+    expand: () => React.JSX.Element;
+    sparkle: () => React.JSX.Element;
+    gear: () => React.JSX.Element;
+};

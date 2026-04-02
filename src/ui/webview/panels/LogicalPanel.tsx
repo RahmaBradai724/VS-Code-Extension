@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import {
   LOGICAL_SUBCLASS_OPTIONS, LOGICAL_EXTRA_FIELDS,
   CHANNEL_COLORS, LogicalChannel,
@@ -74,7 +74,7 @@ export default function LogicalPanel() {
 
       {/* Add form */}
       {showForm && (
-        <div style={{ ...T.card, borderColor: 'var(--vscode-button-background)' }}>
+        <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
           <p style={T.cardTitle}>New Logical Channel</p>
           <div style={T.grid2}>
             <div>

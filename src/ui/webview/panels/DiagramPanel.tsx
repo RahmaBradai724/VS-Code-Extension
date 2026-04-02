@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import { CHANNEL_COLORS, LOGICAL_SUBCLASS_OPTIONS } from '../types';
 import { T, Badge } from '../components/shared';
 
@@ -25,15 +25,28 @@ export default function DiagramPanel() {
       <h2 style={T.pageTitle}>Channel Diagram</h2>
 
       {/* Stats cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
         {[
-          { label: 'Logical Channels', value: logicalChannels.length, color: '#569cd6' },
-          { label: 'Hardware Channels', value: hardwareChannels.length, color: '#4ec9b0' },
-          { label: 'Mappings', value: totalMappings, color: '#c678dd' },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{ ...T.card, textAlign: 'center', borderColor: color + '44', marginBottom: 0 }}>
-            <div style={{ fontSize: '28px', fontWeight: 700, color }}>{value}</div>
-            <div style={{ fontSize: '11px', opacity: 0.6, marginTop: '4px' }}>{label}</div>
+          { label: 'Logical Channels', value: logicalChannels.length, color: '#569cd6', icon: '⬡' },
+          { label: 'Hardware Channels', value: hardwareChannels.length, color: '#4ec9b0', icon: '⬢' },
+          { label: 'Mappings', value: totalMappings, color: '#c678dd', icon: '⟷' },
+        ].map(({ label, value, color, icon }) => (
+          <div
+            key={label}
+            className="ccm-stat-card"
+            style={{
+              ...T.card,
+              textAlign: 'center',
+              borderColor: color + '50',
+              marginBottom: 0,
+              padding: '20px 16px',
+              background: `linear-gradient(135deg, var(--vscode-editorWidget-background), ${color}08)`,
+              boxShadow: `0 2px 12px rgba(0,0,0,0.1), inset 0 1px 0 ${color}20`,
+            }}
+          >
+            <div style={{ fontSize: '22px', opacity: 0.3, marginBottom: '6px', color }}>{icon}</div>
+            <div style={{ fontSize: '32px', fontWeight: 800, color, letterSpacing: '-0.03em', lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: '11px', opacity: 0.55, marginTop: '6px', fontWeight: 500 }}>{label}</div>
           </div>
         ))}
       </div>

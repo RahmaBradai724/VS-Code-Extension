@@ -1,22 +1,7 @@
 import React from 'react';
 import { FieldDef } from '../types';
-export declare const T: {
-    card: React.CSSProperties;
-    cardTitle: React.CSSProperties;
-    pageTitle: React.CSSProperties;
-    label: React.CSSProperties;
-    input: React.CSSProperties;
-    textarea: React.CSSProperties;
-    select: React.CSSProperties;
-    btnPrimary: React.CSSProperties;
-    btnSecondary: React.CSSProperties;
-    btnDanger: React.CSSProperties;
-    btnSmall: React.CSSProperties;
-    row: React.CSSProperties;
-    grid2: React.CSSProperties;
-    divider: React.CSSProperties;
-    empty: React.CSSProperties;
-};
+import { T } from '../theme';
+export { T };
 interface DynamicFieldProps {
     def: FieldDef;
     value: any;
@@ -42,4 +27,3 @@ interface SectionHeaderProps {
     action?: React.ReactNode;
 }
 export declare function SectionHeader({ title, count, action }: SectionHeaderProps): React.JSX.Element;
-export {};

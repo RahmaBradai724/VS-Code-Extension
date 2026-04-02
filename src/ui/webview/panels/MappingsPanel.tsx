@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import { CHANNEL_COLORS, LOGICAL_SUBCLASS_OPTIONS } from '../types';
 import { T, Badge, SectionHeader } from '../components/shared';
 
@@ -68,7 +68,7 @@ export default function MappingsPanel() {
       />
 
       {showForm && (
-        <div style={{ ...T.card, borderColor: 'var(--vscode-button-background)' }}>
+        <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
           <p style={T.cardTitle}>New Channel Mapping</p>
           <div style={T.grid2}>
             <div>

@@ -1,0 +1,75 @@
+import { useEffect } from 'react';
+import { AppContextValue } from './useApp';
+
+export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const msg = event.data;
+      switch (msg.command) {
+        case 'configurationsLoaded':
+          dispatch({ type: 'SET_CONFIGS', configs: msg.data || [] });
+          break;
+
+        case 'configurationCreated':
+          dispatch({ type: 'CONFIG_CREATED', config: msg.data });
+          notify('success', 'Configuration created!');
+          break;
+
+        case 'configurationDeleted':
+          dispatch({ type: 'CONFIG_DELETED', configId: msg.configId });
+          break;
+
+        case 'configurationLoaded':
+          if (msg.data) {
+            dispatch({ type: 'CONFIG_LOADED', data: msg.data });
+            notify('success', `"${msg.data.name}" loaded.`);
+          }
+          break;
+
+        case 'success':
+          if (msg.action === 'addLogicalChannel') {
+            dispatch({ type: 'LOGICAL_ADDED', channel: msg.data });
+            notify('success', 'Logical channel added.');
+          } else if (msg.action === 'deleteLogicalChannel') {
+            dispatch({ type: 'LOGICAL_DELETED', id: msg.id });
+          } else if (msg.action === 'addHardwareChannel') {
+            dispatch({ type: 'HARDWARE_ADDED', channel: msg.data });
+            notify('success', 'Hardware channel added.');
+          } else if (msg.action === 'deleteHardwareChannel') {
+            dispatch({ type: 'HARDWARE_DELETED', id: msg.id });
+          } else if (msg.action === 'addMapping') {
+            dispatch({ type: 'MAPPING_ADDED', mapping: msg.data });
+            notify('success', 'Mapping created.');
+          } else if (msg.action === 'removeMapping') {
+            dispatch({ type: 'MAPPING_DELETED', id: msg.id });
+          }
+          break;
+
+        case 'error':
+          notify('error', msg.message);
+          dispatch({ type: 'SET_GENERATING', generating: false });
+          dispatch({ type: 'SET_AI_VALIDATING', validating: false });
+          break;
+
+        case 'configGenerated':
+          dispatch({ type: 'SET_YAML', yaml: msg.yaml });
+          notify('success', 'config.yaml generated!');
+          dispatch({ type: 'SET_PAGE', page: 'generate' });
+          break;
+
+        case 'aiValidationResult':
+          dispatch({ type: 'SET_AI_RESULT', result: msg.data });
+          break;
+
+        case 'importedConfig':
+          notify('info', 'YAML imported successfully.');
+          break;
+      }
+    };
+
+    window.addEventListener('message', handler);
+    send('getConfigurations');
+    return () => window.removeEventListener('message', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}

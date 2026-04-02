@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import { T } from '../components/shared';
 
 export default function GeneratePanel() {
@@ -11,27 +11,42 @@ export default function GeneratePanel() {
       <h2 style={T.pageTitle}>Generate & Validate</h2>
 
       {/* Action buttons */}
-      <div style={T.card}>
-        <p style={T.cardTitle}>Actions</p>
-        <div style={{ ...T.row, gap: '12px' }}>
+      <div style={{ ...T.card, padding: '20px 22px' }}>
+        <p style={{ ...T.cardTitle, marginBottom: '16px' }}>Actions</p>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button
-            style={{ ...T.btnPrimary, minWidth: '180px', opacity: generating ? 0.6 : 1 }}
+            style={{
+              ...T.btnPrimary,
+              padding: '10px 22px',
+              fontSize: '13px',
+              gap: '8px',
+              opacity: generating ? 0.6 : 1,
+              boxShadow: generating ? 'none' : '0 2px 12px var(--vscode-button-background, rgba(0,120,212,0.4))',
+            }}
             disabled={generating}
             onClick={() => send('generateConfig', { frameworkData })}
           >
-            {generating ? '⏳ Generating…' : '⚡ Generate config.yaml'}
+            <span style={{ fontSize: '15px' }}>{generating ? '⏳' : '⚡'}</span>
+            {generating ? 'Generating…' : 'Generate config.yaml'}
           </button>
           <button
-            style={{ ...T.btnSecondary, minWidth: '180px', opacity: aiValidating ? 0.6 : 1 }}
+            style={{
+              ...T.btnSecondary,
+              padding: '10px 22px',
+              fontSize: '13px',
+              gap: '8px',
+              opacity: (aiValidating || !yamlContent) ? 0.5 : 1,
+            }}
             disabled={aiValidating || !yamlContent}
             onClick={() => send('runAIValidation')}
             title={!yamlContent ? 'Generate a config first' : ''}
           >
-            {aiValidating ? '⏳ Validating…' : '🤖 Run AI Validation'}
+            <span style={{ fontSize: '15px' }}>{aiValidating ? '⏳' : '🤖'}</span>
+            {aiValidating ? 'Validating…' : 'Run AI Validation'}
           </button>
         </div>
         {!yamlContent && (
-          <p style={{ ...T.label, marginTop: '10px', marginBottom: 0, fontStyle: 'italic' }}>
+          <p style={{ ...T.label, marginTop: '12px', marginBottom: 0, fontStyle: 'italic', opacity: 0.6 }}>
             Generate a configuration first to enable AI validation.
           </p>
         )}
@@ -48,7 +63,7 @@ export default function GeneratePanel() {
                 ✗ Errors ({aiResult.errors.length})
               </p>
               {aiResult.errors.map((err, i) => (
-                <div key={i} style={{ fontSize: '12px', padding: '7px 12px', borderRadius: '5px', background: '#f8717122', marginBottom: '4px', color: '#fca5a5', borderLeft: '3px solid #f87171' }}>
+                <div key={i} style={{ fontSize: '12px', padding: '9px 14px', borderRadius: '8px', background: 'rgba(248,113,113,0.1)', marginBottom: '5px', color: '#fca5a5', borderLeft: '3px solid #f87171', lineHeight: 1.5 }}>
                   {err}
                 </div>
               ))}
@@ -61,7 +76,7 @@ export default function GeneratePanel() {
                 ⚠ Warnings ({aiResult.warnings.length})
               </p>
               {aiResult.warnings.map((w, i) => (
-                <div key={i} style={{ fontSize: '12px', padding: '7px 12px', borderRadius: '5px', background: '#fbbf2422', marginBottom: '4px', color: '#fde68a', borderLeft: '3px solid #fbbf24' }}>
+                <div key={i} style={{ fontSize: '12px', padding: '9px 14px', borderRadius: '8px', background: 'rgba(251,191,36,0.1)', marginBottom: '5px', color: '#fde68a', borderLeft: '3px solid #fbbf24', lineHeight: 1.5 }}>
                   {w}
                 </div>
               ))}
@@ -74,7 +89,7 @@ export default function GeneratePanel() {
                 💡 Suggestions ({aiResult.suggestions.length})
               </p>
               {aiResult.suggestions.map((s, i) => (
-                <div key={i} style={{ fontSize: '12px', padding: '7px 12px', borderRadius: '5px', background: '#34d39922', marginBottom: '4px', color: '#6ee7b7', borderLeft: '3px solid #34d399' }}>
+                <div key={i} style={{ fontSize: '12px', padding: '9px 14px', borderRadius: '8px', background: 'rgba(52,211,153,0.1)', marginBottom: '5px', color: '#6ee7b7', borderLeft: '3px solid #34d399', lineHeight: 1.5 }}>
                   {s}
                 </div>
               ))}
@@ -94,10 +109,12 @@ export default function GeneratePanel() {
         <div style={T.card}>
           <p style={T.cardTitle}>Generated YAML</p>
           <pre style={{
-            fontSize: '12px', lineHeight: '1.55', overflowX: 'auto',
+            fontSize: '12px', lineHeight: '1.6', overflowX: 'auto',
             background: 'var(--vscode-input-background)',
-            padding: '14px', borderRadius: '6px',
-            border: '1px solid var(--vscode-panel-border, #3a3a3a)',
+            padding: '16px', borderRadius: '10px',
+            border: '1px solid var(--vscode-panel-border, rgba(128,128,128,0.2))',
+            boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.12)',
+            letterSpacing: '0.01em',
             maxHeight: '460px', overflowY: 'auto',
             whiteSpace: 'pre', fontFamily: 'var(--vscode-editor-font-family, monospace)',
           }}>

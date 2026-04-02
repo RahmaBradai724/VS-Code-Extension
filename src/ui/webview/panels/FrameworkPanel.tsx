@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import { TracerConfig, FrameworkData } from '../types';
 import { T, Badge } from '../components/shared';
 
@@ -89,13 +89,22 @@ export default function FrameworkPanel() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={T.pageTitle}>Framework Configuration</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+        <div>
+          <h2 style={T.pageTitle}>Framework Configuration</h2>
+          <p style={{ ...T.pageSub, marginBottom: 0 }}>Configure publisher, tracers and diagnostics</p>
+        </div>
         <button
-          style={{ ...T.btnPrimary, opacity: dirty ? 1 : 0.5 }}
+          style={{
+            ...T.btnPrimary,
+            padding: '9px 22px',
+            fontSize: '13px',
+            opacity: dirty ? 1 : 0.5,
+            boxShadow: dirty ? '0 2px 12px var(--vscode-button-background, rgba(0,120,212,0.4))' : 'none',
+          }}
           onClick={handleSave}
         >
-          {dirty ? '💾 Save Changes' : 'Saved'}
+          {dirty ? '💾 Save Changes' : '✓ Saved'}
         </button>
       </div>
 

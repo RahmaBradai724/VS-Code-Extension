@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import {
   HARDWARE_SUBCLASS_OPTIONS, HARDWARE_EXTRA_FIELDS, HardwareChannel,
 } from '../types';
@@ -70,7 +70,7 @@ export default function HardwarePanel() {
       />
 
       {showForm && (
-        <div style={{ ...T.card, borderColor: 'var(--vscode-button-background)' }}>
+        <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
           <p style={T.cardTitle}>New Hardware Channel</p>
 
           <div style={{ marginBottom: '12px' }}>

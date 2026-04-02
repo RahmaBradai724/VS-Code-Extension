@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../App';
+import { useApp } from '../hooks/useApp';
 import { T } from '../components/shared';
 
 export default function ConfigsPanel() {
@@ -23,21 +23,28 @@ export default function ConfigsPanel() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={T.pageTitle}>Configurations</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+        <div>
+          <h2 style={T.pageTitle}>Configurations</h2>
+          <p style={{ ...T.pageSub, marginBottom: 0 }}>Manage your channel configuration files</p>
+        </div>
         <div style={T.row}>
           <button style={T.btnSecondary} onClick={() => send('importConfig')}>↑ Import YAML</button>
-          <button style={T.btnPrimary} onClick={() => setCreating(v => !v)}>+ New Config</button>
+          <button style={T.btnPrimary} onClick={() => setCreating(v => !v)}>
+            {creating ? '✕ Cancel' : '+ New Config'}
+          </button>
         </div>
       </div>
 
       {/* Create form */}
       {creating && (
-        <div style={{ ...T.card, borderColor: 'var(--vscode-button-background)' }}>
+        <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
+          <p style={{ ...T.cardTitle, marginBottom: '12px' }}>New Configuration</p>
           <label style={T.label}>Configuration Name</label>
           <div style={T.row}>
             <input
               autoFocus
+              className="ccm-input"
               style={{ ...T.input, flex: 1 }}
               placeholder="e.g. my_project_config"
               value={newName}
@@ -53,7 +60,8 @@ export default function ConfigsPanel() {
       {/* Config list */}
       {state.configs.length === 0 ? (
         <div style={T.empty}>
-          No configurations yet. Create one above or import a YAML file.
+          <div style={{ fontSize: '32px', marginBottom: '10px', opacity: 0.3 }}>📋</div>
+          No configurations yet.<br />Create one above or import a YAML file.
         </div>
       ) : (
         <div>
@@ -62,27 +70,46 @@ export default function ConfigsPanel() {
             return (
               <div
                 key={cfg.id}
+                className="ccm-config-card"
                 style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '14px 18px',
+                  padding: '16px 20px',
                   background: isActive
-                    ? 'var(--vscode-button-background)1a'
+                    ? 'var(--vscode-editorWidget-background)'
                     : 'var(--vscode-editorWidget-background)',
-                  border: `1px solid ${isActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border, #3a3a3a)'}`,
-                  borderRadius: '8px', marginBottom: '8px',
-                  transition: 'border-color 0.15s',
+                  border: `1.5px solid ${isActive ? 'var(--vscode-button-background)' : 'var(--vscode-panel-border, rgba(128,128,128,0.2))'}`,
+                  borderRadius: '12px', marginBottom: '10px',
+                  boxShadow: isActive ? '0 0 0 1px var(--vscode-button-background)30, 0 4px 16px rgba(0,0,0,0.12)' : undefined,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {isActive && (
-                    <span style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '10px',
-                      background: 'var(--vscode-button-background)',
-                      color: 'var(--vscode-button-foreground)', fontWeight: 600,
-                    }}>Active</span>
-                  )}
-                  <span style={{ fontWeight: 600, fontSize: '14px' }}>{cfg.name}</span>
-                  <span style={{ fontSize: '11px', opacity: 0.45 }}>id: {cfg.id}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px', height: '38px',
+                    borderRadius: '10px',
+                    background: isActive ? 'var(--vscode-button-background)22' : 'rgba(128,128,128,0.08)',
+                    border: `1px solid ${isActive ? 'var(--vscode-button-background)40' : 'rgba(128,128,128,0.15)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '18px',
+                    flexShrink: 0,
+                  }}>
+                    {isActive ? '✓' : '📄'}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '14px' }}>{cfg.name}</span>
+                      {isActive && (
+                        <span style={{
+                          fontSize: '10px', padding: '2px 10px', borderRadius: '999px',
+                          background: 'var(--vscode-button-background)',
+                          color: 'var(--vscode-button-foreground)',
+                          fontWeight: 700, letterSpacing: '0.04em',
+                        }}>ACTIVE</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '11px', opacity: 0.4, fontFamily: 'monospace', letterSpacing: '0.02em' }}>
+                      {cfg.id}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={T.row}>
