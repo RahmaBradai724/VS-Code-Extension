@@ -81,13 +81,28 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
         case 'importedConfig':
           notify('info', 'YAML imported successfully.');
           break;
+
+        case 'yamlApplied':
+          dispatch({ type: 'CONFIG_LOADED', data: msg.data });
+          notify('success', 'YAML changes applied.');
+          window.dispatchEvent(new Event('ccm-yaml-apply-done'));
+          break;
+
+        case 'yamlApplyError':
+          notify('error', `YAML error: ${msg.message}`);
+          window.dispatchEvent(new Event('ccm-yaml-apply-error'));
+          break;
       }
     };
 
     window.addEventListener('message', handler);
     // Check auth on mount — the extension will reply with authSuccess or authRequired
     send('checkAuth');
-    return () => window.removeEventListener('message', handler);
+    // Safety net: if the extension never replies within 5s, stop the spinner
+    const timeout = setTimeout(() => {
+      dispatch({ type: 'AUTH_LOADING', loading: false });
+    }, 5000);
+    return () => { window.removeEventListener('message', handler); clearTimeout(timeout); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

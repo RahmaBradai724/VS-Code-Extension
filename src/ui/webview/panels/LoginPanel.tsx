@@ -15,12 +15,17 @@ export default function LoginPanel({ loading, authError }: Props) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const emailRef                = useRef<HTMLInputElement>(null);
+
+  // Reset submitting when auth resolves (success, error, or required)
+  useEffect(() => { setSubmitting(false); }, [loading, authError]);
 
   useEffect(() => { emailRef.current?.focus(); }, [tab]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitting(true);
     if (tab === 'login') {
       postMessage('login', { email: email.trim(), password });
     } else {
@@ -121,10 +126,10 @@ export default function LoginPanel({ loading, authError }: Props) {
 
           <button
             type="submit"
-            disabled={loading}
-            style={{ ...S.submitBtn, ...(loading ? S.submitBtnDisabled : {}) }}
+            disabled={submitting}
+            style={{ ...S.submitBtn, ...(submitting ? S.submitBtnDisabled : {}) }}
           >
-            {loading
+            {submitting
               ? <><span className="ccm-spinner" style={S.spinner} /> Processing…</>
               : tab === 'login' ? 'Sign In' : 'Create Account'
             }

@@ -2,17 +2,11 @@ import React, { useEffect } from 'react';
 import { tokens } from '../theme';
 
 interface ConfirmModalProps {
-  /** Whether the modal is visible */
   open: boolean;
-  /** Bold headline shown in the modal */
   title: string;
-  /** Optional descriptive text below the title */
   message?: string;
-  /** Label for the confirm/destructive button (default: "Delete") */
   confirmLabel?: string;
-  /** Label for the cancel button (default: "Cancel") */
   cancelLabel?: string;
-  /** Visual variant that colors the confirm button */
   variant?: 'danger' | 'warning' | 'info';
   onConfirm: () => void;
   onCancel: () => void;
@@ -36,7 +30,6 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   const cfg = VARIANT_COLORS[variant];
 
-  // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {

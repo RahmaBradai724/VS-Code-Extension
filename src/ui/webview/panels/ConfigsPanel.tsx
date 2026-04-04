@@ -82,7 +82,9 @@ export default function ConfigsPanel() {
       ) : (
         <div>
           {state.configs.map(cfg => {
-            const isActive = cfg.id === state.currentConfigId;
+            const isActive  = cfg.id === state.currentConfigId;
+            // eslint-disable-next-line eqeqeq
+            const isOwner   = cfg.userId == null || cfg.userId == state.authUser?.id;
             return (
               <div
                 key={cfg.id}
@@ -121,6 +123,15 @@ export default function ConfigsPanel() {
                           fontWeight: 700, letterSpacing: '0.04em',
                         }}>ACTIVE</span>
                       )}
+                      {!isOwner && (
+                        <span style={{
+                          fontSize: '10px', padding: '2px 8px', borderRadius: '999px',
+                          background: 'rgba(251,191,36,0.12)',
+                          color: '#fbbf24',
+                          border: '1px solid rgba(251,191,36,0.3)',
+                          fontWeight: 600,
+                        }}>read-only</span>
+                      )}
                     </div>
                     <span style={{ fontSize: '11px', opacity: 0.4, fontFamily: 'monospace', letterSpacing: '0.02em' }}>
                       {cfg.id}
@@ -137,12 +148,14 @@ export default function ConfigsPanel() {
                       Load
                     </button>
                   )}
-                  <button
-                    style={T.btnDanger}
-                    onClick={() => setDeletingId(cfg.id)}
-                  >
-                    Delete
-                  </button>
+                  {isOwner && (
+                    <button
+                      style={T.btnDanger}
+                      onClick={() => setDeletingId(cfg.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -10,6 +10,7 @@ import { ChannelType } from '../models/enums';
 import { logicalChannelFactories, hardwareChannelFactories } from './channelFactories';
 import { AuthService } from '../services/auth/AuthService';
 import { UserRepository } from '../services/database/UserRepository';
+import { YamlParser } from '../services/config/YamlParser';
 
 /**
  * Owns all mutable runtime state and handles every webview message command.
@@ -68,6 +69,7 @@ export class MessageHandler {
       case 'generateConfig':          return this._generateConfig(message, webview);
       case 'runAIValidation':         return this._runAIValidation(webview);
       case 'importConfig':            return this._importConfig(webview);
+      case 'applyYamlEdit':           return this._applyYamlEdit(message, webview);
     }
   }
 
@@ -86,9 +88,8 @@ export class MessageHandler {
       return;
     }
     this.loggedInUserId = payload.userId;
+    this.storageService.purgeOrphanedConfigs();
     webview.postMessage({
-      command: 'authSuccess',
-      token: stored,
       user: { id: payload.userId, name: payload.name, email: payload.email },
     });
   }
@@ -103,6 +104,7 @@ export class MessageHandler {
       const token = this.authService.signToken({ userId: user.id, name: user.name, email: user.email });
       this.storageService.setAuthToken(token);
       this.loggedInUserId = user.id;
+      this.storageService.purgeOrphanedConfigs();
       webview.postMessage({
         command: 'authSuccess',
         token,
@@ -123,6 +125,7 @@ export class MessageHandler {
       const token = this.authService.signToken({ userId: user.id, name: user.name, email: user.email });
       this.storageService.setAuthToken(token);
       this.loggedInUserId = user.id;
+      this.storageService.purgeOrphanedConfigs();
       webview.postMessage({
         command: 'authSuccess',
         token,
@@ -145,28 +148,38 @@ export class MessageHandler {
   // ── Configuration handlers ──────────────────────────────────────────────
 
   private _getConfigurations(webview: vscode.Webview) {
+    const all = this.storageService.getAllConfigurations() as any[];
+    const mine = all.filter(c => Number(c.userId) === this.loggedInUserId);
     webview.postMessage({
       command: 'configurationsLoaded',
-      data: this.storageService.getAllConfigurations(),
+      data: mine,
     });
   }
 
   private _createConfiguration(message: any, webview: vscode.Webview) {
     const id = `config_${Date.now()}`;
-    const currentUser = this.storageService.getCurrentUser() as any;
-    const userId = currentUser ? currentUser.id : null;
-    this.currentConfig = new Configuration(id, message.name, userId);
+    this.currentConfig = new Configuration(id, message.name, this.loggedInUserId);
     this._saveCurrentConfig();
     webview.postMessage({ command: 'configurationCreated', data: this.currentConfig.toJSON() });
   }
 
   private _deleteConfiguration(message: any, webview: vscode.Webview) {
+    const cfg = this.storageService.getConfigurationById(message.configId) as any;
+    if (cfg && Number(cfg.userId) !== this.loggedInUserId) {
+      webview.postMessage({ command: 'error', message: 'You can only delete your own configurations.' });
+      return;
+    }
     this.storageService.deleteConfiguration(message.configId);
     webview.postMessage({ command: 'configurationDeleted', configId: message.configId });
   }
 
   private _loadConfiguration(message: any, webview: vscode.Webview) {
     const raw = this.storageService.getConfigurationById(message.configId) as any;
+
+    if (raw && raw.userId != null && Number(raw.userId) !== this.loggedInUserId) {
+      webview.postMessage({ command: 'error', message: 'You do not have permission to access this configuration.' });
+      return;
+    }
 
     if (raw) {
       this.currentConfig = new Configuration(
@@ -209,11 +222,19 @@ export class MessageHandler {
     webview.postMessage({ command: 'configurationLoaded', data: raw });
   }
 
+  /** Returns true if the current user owns the currently loaded config. */
+  private _ownsCurrentConfig(): boolean {
+    if (!this.currentConfig) { return false; }
+    const userId = (this.currentConfig as any).userId;
+    return Number(userId) === this.loggedInUserId;
+  }
+
   // ── Channel handlers ────────────────────────────────────────────────────
 
   private _addLogicalChannel(message: any, webview: vscode.Webview) {
     try {
       if (!this.currentConfig) { throw new Error('No configuration loaded.'); }
+      if (!this._ownsCurrentConfig()) { throw new Error('You can only edit your own configurations.'); }
       const raw     = message.channel;
       const factory = logicalChannelFactories[raw.subclass];
       if (!factory) { throw new Error(`Unsupported logical channel subclass: ${raw.subclass}`); }
@@ -237,6 +258,7 @@ export class MessageHandler {
   private _deleteLogicalChannel(message: any, webview: vscode.Webview) {
     try {
       if (!this.currentConfig) { throw new Error('No configuration loaded.'); }
+      if (!this._ownsCurrentConfig()) { throw new Error('You can only edit your own configurations.'); }
       this.channelManager.deleteLogicalChannel(message.channelId);
       this.currentConfig.logicalChannels =
         this.currentConfig.logicalChannels.filter(c => c.id !== message.channelId);
@@ -250,6 +272,7 @@ export class MessageHandler {
   private _addHardwareChannel(message: any, webview: vscode.Webview) {
     try {
       if (!this.currentConfig) { throw new Error('No configuration loaded.'); }
+      if (!this._ownsCurrentConfig()) { throw new Error('You can only edit your own configurations.'); }
       const raw     = message.channel;
       const factory = hardwareChannelFactories[raw.subclass];
       if (!factory) { throw new Error(`Unsupported hardware channel subclass: ${raw.subclass}`); }
@@ -273,6 +296,7 @@ export class MessageHandler {
   private _deleteHardwareChannel(message: any, webview: vscode.Webview) {
     try {
       if (!this.currentConfig) { throw new Error('No configuration loaded.'); }
+      if (!this._ownsCurrentConfig()) { throw new Error('You can only edit your own configurations.'); }
       this.channelManager.deleteHardwareChannel(message.channelId);
       this.currentConfig.hardwareChannels =
         this.currentConfig.hardwareChannels.filter(c => c.id !== message.channelId);
@@ -288,6 +312,7 @@ export class MessageHandler {
   private _addMapping(message: any, webview: vscode.Webview) {
     try {
       if (!this.currentConfig) { throw new Error('No configuration loaded.'); }
+      if (!this._ownsCurrentConfig()) { throw new Error('You can only edit your own configurations.'); }
       const mapping = this.mappingManager.addMapping(
         message.logicalChannelId,
         message.hardwareChannelId,
@@ -305,6 +330,7 @@ export class MessageHandler {
   private _removeMapping(message: any, webview: vscode.Webview) {
     try {
       if (!this.currentConfig) { throw new Error('No configuration loaded.'); }
+      if (!this._ownsCurrentConfig()) { throw new Error('You can only edit your own configurations.'); }
       this.mappingManager.removeMapping(message.mappingId);
       this.currentConfig.mappings =
         this.currentConfig.mappings.filter(m => m.mappingId !== message.mappingId);
@@ -375,6 +401,59 @@ export class MessageHandler {
   }
 
   // ── Misc handlers ───────────────────────────────────────────────────────
+
+  private async _applyYamlEdit(message: any, webview: vscode.Webview) {
+    if (!this.currentConfig) {
+      webview.postMessage({ command: 'error', message: 'No configuration loaded.' });
+      return;
+    }
+    if (!this._ownsCurrentConfig()) {
+      webview.postMessage({ command: 'error', message: 'You can only edit your own configurations.' });
+      return;
+    }
+    try {
+      const parser = new YamlParser();
+      const { config: parsed } = parser.parse(message.yaml, this.currentConfig.name);
+      const p = parsed as any;
+
+      this.currentConfig.logicalChannels  = p.logicalChannels  || [];
+      this.currentConfig.hardwareChannels = p.hardwareChannels || [];
+      this.currentConfig.mappings         = p.mappings         || [];
+      if (p.frameworkConfig) {
+        this.currentConfig.frameworkConfig = p.frameworkConfig;
+      }
+
+      // Rebuild in-memory managers
+      this.channelManager = new ChannelManager();
+      this.mappingManager = new MappingManager(this.channelManager);
+      for (const ch of this.currentConfig.logicalChannels) {
+        const factory = logicalChannelFactories[(ch as any).subclass];
+        if (factory) {
+          const rebuilt: any = factory(ch.id, ch.name);
+          Object.assign(rebuilt, ch);
+          this.channelManager.addLogicalChannel(rebuilt);
+        }
+      }
+      for (const hw of this.currentConfig.hardwareChannels) {
+        const factory = hardwareChannelFactories[(hw as any).subclass];
+        if (factory) {
+          const rebuilt: any = factory(hw.id, hw.name);
+          Object.assign(rebuilt, hw);
+          this.channelManager.addHardwareChannel(rebuilt);
+        }
+      }
+      for (const m of this.currentConfig.mappings) {
+        (this.mappingManager as any).mappings.set(m.mappingId, m);
+        this.channelManager.registerMappingForChannel(m.logicalChannelId, m.mappingId);
+        this.channelManager.registerMappingForChannel(m.hardwareChannelId, m.mappingId);
+      }
+
+      await this._saveCurrentConfig();
+      webview.postMessage({ command: 'yamlApplied', data: this.currentConfig.toJSON() });
+    } catch (e: any) {
+      webview.postMessage({ command: 'yamlApplyError', message: e.message });
+    }
+  }
 
   private async _importConfig(webview: vscode.Webview) {
     const uris = await vscode.window.showOpenDialog({

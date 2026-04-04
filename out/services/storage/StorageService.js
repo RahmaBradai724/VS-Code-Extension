@@ -54,6 +54,11 @@ class StorageService {
         this.context.globalState.update(STORAGE_KEY_CONFIGS, []);
         this.context.globalState.update(STORAGE_KEY_CURRENT_USER, undefined);
     }
+    /** Remove from globalState any configs that have no userId (orphaned/legacy). */
+    purgeOrphanedConfigs() {
+        const cleaned = this.getAll().filter((c) => c.userId != null);
+        this.context.globalState.update(STORAGE_KEY_CONFIGS, cleaned);
+    }
     // ─── JWT / Auth ────────────────────────────────────────────────────────
     getAuthToken() {
         return this.context.globalState.get(STORAGE_KEY_AUTH_TOKEN);

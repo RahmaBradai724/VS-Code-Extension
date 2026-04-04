@@ -7,6 +7,8 @@ import { AppContext } from './hooks/useApp';
 import { useMessageHandler } from './hooks/useMessageHandler';
 import { Nav } from './components/Nav';
 import { Toast } from './components/Toast';
+import YamlPreview from './components/YamlPreview';
+import { useYamlPreview } from './hooks/useYamlPreview';
 import { GlobalStyles } from './GlobalStyles';
 import LoginPanel from './panels/LoginPanel';
 import ConfigsPanel from './panels/ConfigsPanel';
@@ -30,6 +32,9 @@ export function App() {
   }, []);
 
   useMessageHandler({ state, dispatch, send, notify });
+
+  const liveYaml = useYamlPreview(state);
+  const showPreview = !!state.currentConfigId && state.page !== 'diagram';
 
   const panels: Record<Page, React.ReactNode> = {
     configs: <ConfigsPanel />,
@@ -90,8 +95,9 @@ export function App() {
               </div>
             </div>
 
-            {/* Panel content */}
-            <div style={S.content}>
+            {/* Panel content — split when preview is visible */}
+            <div style={S.workArea}>
+              <div style={S.panelArea}>
               {!state.currentConfigId && state.page !== 'configs' ? (
                 <div style={S.noConfig}>
                   <div style={S.noConfigIcon}>⚙</div>
@@ -106,6 +112,14 @@ export function App() {
               ) : (
                 <div key={state.page} className="ccm-panel">
                   {panels[state.page]}
+                </div>
+              )}
+              </div>
+
+              {/* Live YAML preview pane */}
+              {showPreview && (
+                <div style={S.previewPane}>
+                  <YamlPreview yaml={liveYaml} />
                 </div>
               )}
             </div>
@@ -200,7 +214,11 @@ const S: Record<string, React.CSSProperties> = {
     background: '#4ade80',
     flexShrink: 0,
   },
-  content: { flex: 1, overflow: 'auto', padding: '24px' },
+  contentSolo: { flex: 1, overflow: 'auto', padding: '24px' },
+  splitRow: { flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 },
+  previewPane: { width: '380px', flexShrink: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+  workArea: { flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 },
+  panelArea: { flex: 1, overflow: 'auto', padding: '24px', minWidth: 0 },
   noConfig: {
     display: 'flex',
     flexDirection: 'column',

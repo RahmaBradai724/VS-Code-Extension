@@ -71,6 +71,12 @@ export class StorageService implements IConfigurationStorage, IUserStorage {
     this.context.globalState.update(STORAGE_KEY_CURRENT_USER, undefined);
   }
 
+  /** Remove from globalState any configs that have no userId (orphaned/legacy). */
+  purgeOrphanedConfigs(): void {
+    const cleaned = this.getAll().filter((c: any) => c.userId != null);
+    this.context.globalState.update(STORAGE_KEY_CONFIGS, cleaned);
+  }
+
   // ─── JWT / Auth ────────────────────────────────────────────────────────
 
   getAuthToken(): string | undefined {

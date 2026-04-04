@@ -53,6 +53,10 @@ const CSS = `
   70%  { transform: scale(1.18); }
   100% { transform: scale(1); }
 }
+@keyframes ccm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(1.35); }
+}
 
 /* ── Smooth scrollbars ───────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
