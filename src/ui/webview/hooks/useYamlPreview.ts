@@ -198,7 +198,11 @@ export function useYamlPreview(state: AppState): string {
   return useMemo(() => {
     if (!state.currentConfigId) { return ''; }
     try {
-      const obj = buildMtfObject(state);
+      // Merge draft logical channel into the list for live preview
+      const previewState: AppState = state.draftLogical
+        ? { ...state, logicalChannels: [...state.logicalChannels, state.draftLogical] }
+        : state;
+      const obj = buildMtfObject(previewState);
       const raw = yaml.dump(obj, { indent: 2, lineWidth: 120, noRefs: true });
       // MTF expects integer keys (1:) not quoted ('1':)
       return raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
@@ -211,5 +215,6 @@ export function useYamlPreview(state: AppState): string {
     state.hardwareChannels,
     state.mappings,
     state.frameworkData,
+    state.draftLogical,
   ]);
 }

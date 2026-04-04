@@ -18,6 +18,7 @@ export const initialState: AppState = {
   hardwareChannels: [],
   mappings: [],
   frameworkData: initialFrameworkData,
+  draftLogical: null,
   notification: null,
   yamlContent: '',
   aiResult: null,

@@ -55,6 +55,11 @@ export default function HardwarePanel() {
     setShowForm(false);
   }
 
+  function handleCancelForm() {
+    setForm({ name: '', subclass: HARDWARE_SUBCLASS_OPTIONS[0].value, extras: initExtras(HARDWARE_SUBCLASS_OPTIONS[0].value) });
+    setShowForm(false);
+  }
+
   const extraFields = HARDWARE_EXTRA_FIELDS[form.subclass] ?? [];
 
   return (
@@ -63,7 +68,7 @@ export default function HardwarePanel() {
         title="Hardware Channels"
         count={state.hardwareChannels.length}
         action={
-          <button style={T.btnPrimary} onClick={() => setShowForm(v => !v)}>
+          <button style={T.btnPrimary} onClick={() => showForm ? handleCancelForm() : setShowForm(true)}>
             {showForm ? 'Cancel' : '+ Add Channel'}
           </button>
         }
@@ -101,7 +106,7 @@ export default function HardwarePanel() {
 
           <div style={{ ...T.divider, marginTop: '16px' }} />
           <div style={{ ...T.row, justifyContent: 'flex-end' }}>
-            <button style={T.btnSecondary} onClick={() => setShowForm(false)}>Cancel</button>
+            <button style={T.btnSecondary} onClick={handleCancelForm}>Cancel</button>
             <button style={T.btnPrimary} onClick={handleAdd}>Add Channel</button>
           </div>
         </div>

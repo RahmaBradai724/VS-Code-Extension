@@ -26,16 +26,50 @@ export default function LogicalPanel() {
     extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value),
   });
 
+  function pushDraft(nextForm: typeof form) {
+    if (!nextForm.name.trim()) {
+      dispatch({ type: 'SET_DRAFT_LOGICAL', draft: null });
+      return;
+    }
+    const opt = LOGICAL_SUBCLASS_OPTIONS.find(o => o.value === nextForm.subclass)!;
+    dispatch({
+      type: 'SET_DRAFT_LOGICAL',
+      draft: {
+        id: '__draft__',
+        name: nextForm.name.trim(),
+        loggingName: nextForm.loggingName.trim(),
+        tracerName: nextForm.tracerName.trim(),
+        alias: nextForm.aliases.split(',').map(s => s.trim()).filter(Boolean),
+        type: 'LOGICAL',
+        category: opt.category,
+        subclass: nextForm.subclass,
+        ...nextForm.extras,
+      },
+    });
+  }
+
   function setField(key: string, val: any) {
-    setForm(f => ({ ...f, [key]: val }));
+    setForm(f => {
+      const next = { ...f, [key]: val };
+      pushDraft(next);
+      return next;
+    });
   }
 
   function setSubclass(val: string) {
-    setForm(f => ({ ...f, subclass: val, extras: initExtras(val) }));
+    setForm(f => {
+      const next = { ...f, subclass: val, extras: initExtras(val) };
+      pushDraft(next);
+      return next;
+    });
   }
 
   function setExtra(key: string, val: any) {
-    setForm(f => ({ ...f, extras: { ...f.extras, [key]: val } }));
+    setForm(f => {
+      const next = { ...f, extras: { ...f.extras, [key]: val } };
+      pushDraft(next);
+      return next;
+    });
   }
 
   function handleAdd() {
@@ -57,6 +91,12 @@ export default function LogicalPanel() {
     setShowForm(false);
   }
 
+  function handleCancelForm() {
+    dispatch({ type: 'SET_DRAFT_LOGICAL', draft: null });
+    setForm({ name: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
+    setShowForm(false);
+  }
+
   const extraFields = LOGICAL_EXTRA_FIELDS[form.subclass] ?? [];
   const selectedOpt = LOGICAL_SUBCLASS_OPTIONS.find(o => o.value === form.subclass);
 
@@ -66,7 +106,7 @@ export default function LogicalPanel() {
         title="Logical Channels"
         count={state.logicalChannels.length}
         action={
-          <button style={T.btnPrimary} onClick={() => setShowForm(v => !v)}>
+          <button style={T.btnPrimary} onClick={() => showForm ? handleCancelForm() : setShowForm(true)}>
             {showForm ? 'Cancel' : '+ Add Channel'}
           </button>
         }
@@ -125,7 +165,7 @@ export default function LogicalPanel() {
 
           <div style={{ ...T.divider, marginTop: '16px' }} />
           <div style={{ ...T.row, justifyContent: 'flex-end' }}>
-            <button style={T.btnSecondary} onClick={() => setShowForm(false)}>Cancel</button>
+            <button style={T.btnSecondary} onClick={handleCancelForm}>Cancel</button>
             <button style={T.btnPrimary} onClick={handleAdd}>Add Channel</button>
           </div>
         </div>

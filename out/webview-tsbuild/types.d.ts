@@ -66,6 +66,7 @@ export interface AppState {
     hardwareChannels: any[];
     mappings: any[];
     frameworkData: FrameworkData;
+    draftLogical: any | null;
     notification: Notification | null;
     yamlContent: string;
     aiResult: AiResult | null;
@@ -131,6 +132,9 @@ export type AppAction = {
 } | {
     type: 'SET_AI_VALIDATING';
     validating: boolean;
+} | {
+    type: 'SET_DRAFT_LOGICAL';
+    draft: any | null;
 } | {
     type: 'AUTH_SUCCESS';
     token: string;

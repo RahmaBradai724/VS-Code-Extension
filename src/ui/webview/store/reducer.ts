@@ -28,6 +28,7 @@ export function reducer(state: AppState, action: AppAction): AppState {
         logicalChannels: action.data.logicalChannels || [],
         hardwareChannels: action.data.hardwareChannels || [],
         mappings: action.data.mappings || [],
+        draftLogical: null,
         frameworkData: {
           ...initialFrameworkData,
           ...(action.data.frameworkConfig || {}),
@@ -36,7 +37,7 @@ export function reducer(state: AppState, action: AppAction): AppState {
       };
 
     case 'LOGICAL_ADDED':
-      return { ...state, logicalChannels: [...state.logicalChannels, action.channel] };
+      return { ...state, logicalChannels: [...state.logicalChannels, action.channel], draftLogical: null };
 
     case 'LOGICAL_DELETED':
       return {
@@ -76,6 +77,9 @@ export function reducer(state: AppState, action: AppAction): AppState {
 
     case 'SET_GENERATING':
       return { ...state, generating: action.generating };
+
+    case 'SET_DRAFT_LOGICAL':
+      return { ...state, draftLogical: action.draft };
 
     case 'SET_AI_VALIDATING':
       return { ...state, aiValidating: action.validating };

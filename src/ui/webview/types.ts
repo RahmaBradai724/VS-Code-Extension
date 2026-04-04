@@ -69,6 +69,7 @@ export interface AppState {
   hardwareChannels: any[];
   mappings: any[];
   frameworkData: FrameworkData;
+  draftLogical: any | null;
   notification: Notification | null;
   yamlContent: string;
   aiResult: AiResult | null;
@@ -99,6 +100,7 @@ export type AppAction =
   | { type: 'UPDATE_FRAMEWORK'; data: Partial<FrameworkData> }
   | { type: 'SET_GENERATING'; generating: boolean }
   | { type: 'SET_AI_VALIDATING'; validating: boolean }
+  | { type: 'SET_DRAFT_LOGICAL'; draft: any | null }
   | { type: 'AUTH_SUCCESS'; token: string; user: { id: number; name: string; email: string } }
   | { type: 'AUTH_LOGOUT' }
   | { type: 'AUTH_LOADING'; loading: boolean }
