@@ -1,0 +1,29 @@
+Channels:
+  CAN_Channel_v1:
+    Id: 1
+    Type: CAN
+    Protocol: CANFD
+    LoggingName: Logging_v1
+    TracerName: Tracer_v1
+    Alias:
+      - alias1
+      - alias2
+Mappings:
+  CM:
+    Devices:
+      1:
+        Id: 1
+        Type: CAN_Combo
+        Buses:
+          CAN_Channel_v1:
+            HWChannel: '11'
+            OperationMode: Active
+FrameworkConfig:
+  Tracing:
+    Tracer_v1: {}
+  PublisherConfig:
+    PublisherType: SingleThreaded
+  ConnectedEcus:
+    - ECU_1
+    - ECU_2
+  ServicePack: ServicePack

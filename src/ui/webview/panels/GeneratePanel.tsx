@@ -26,7 +26,6 @@ export default function GeneratePanel() {
             disabled={generating}
             onClick={() => send('generateConfig', { frameworkData })}
           >
-            <span style={{ fontSize: '15px' }}>{generating ? '⏳' : '⚡'}</span>
             {generating ? 'Generating…' : 'Generate config.yaml'}
           </button>
           <button
@@ -41,7 +40,6 @@ export default function GeneratePanel() {
             onClick={() => send('runAIValidation')}
             title={!yamlContent ? 'Generate a config first' : ''}
           >
-            <span style={{ fontSize: '15px' }}>{aiValidating ? '⏳' : '🤖'}</span>
             {aiValidating ? 'Validating…' : 'Run AI Validation'}
           </button>
         </div>
