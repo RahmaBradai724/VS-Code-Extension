@@ -141,14 +141,14 @@ export class ConfigGenerator {
         if (a.timeout) { adapterObj.Timeout = a.timeout; }
         if (a.timeStampPrecision) { adapterObj.TimeStampPrecision = a.timeStampPrecision; }
         if (a.timeStampSource) { adapterObj.TimeStampSource = a.timeStampSource; }
-        if (a.immediateMode) { adapterObj.ImmediateMode = a.immediateMode; }
-        if (a.snapshotLength) { adapterObj.SnapshotLength = a.snapshotLength; }
+        if (a.immediateMode != null) { adapterObj.ImmediateMode = a.immediateMode; }
+        if (a.snapshotLength != null) { adapterObj.SnapshotLength = a.snapshotLength; }
         if (a.pcapDeviceMode) { adapterObj.PcapDeviceMode = a.pcapDeviceMode; }
-        if (a.useDataLoggerTimeStamp) { adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp; }
-        if (a.removeDataLoggerMetaData) { adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData; }
+        if (a.useDataLoggerTimeStamp != null) { adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp; }
+        if (a.removeDataLoggerMetaData != null) { adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData; }
         if (a.dataLoggerType) { adapterObj.DataLoggerType = a.dataLoggerType; }
-        if (a.packetProcessingActive) { adapterObj.PacketProcessingActive = a.packetProcessingActive; }
-        if (a.packetIdentificationActive) { adapterObj.PacketIdentificationActive = a.packetIdentificationActive; }
+        if (a.packetProcessingActive != null) { adapterObj.PacketProcessingActive = a.packetProcessingActive; }
+        if (a.packetIdentificationActive != null) { adapterObj.PacketIdentificationActive = a.packetIdentificationActive; }
         pcapSection[idx + 1] = { Adapter: adapterObj };
       });
       mappingsSection.PCAP = pcapSection;

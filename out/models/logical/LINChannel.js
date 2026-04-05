@@ -21,8 +21,7 @@ let LINChannel = class LINChannel extends LogicalChannel_1.LogicalChannel {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            protocol: this.protocol, hwChannel: this.hwChannel,
-            operationMode: this.operationMode
+            protocol: this.protocol
         };
     }
     toJSON() {
@@ -34,14 +33,6 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], LINChannel.prototype, "protocol", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], LINChannel.prototype, "hwChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], LINChannel.prototype, "operationMode", void 0);
 exports.LINChannel = LINChannel = __decorate([
     (0, typeorm_1.Entity)('logical_lin_channels'),
     __metadata("design:paramtypes", [String, String])

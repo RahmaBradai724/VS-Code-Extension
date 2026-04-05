@@ -183,28 +183,28 @@ class ConfigGenerator {
                 if (a.timeStampSource) {
                     adapterObj.TimeStampSource = a.timeStampSource;
                 }
-                if (a.immediateMode) {
+                if (a.immediateMode != null) {
                     adapterObj.ImmediateMode = a.immediateMode;
                 }
-                if (a.snapshotLength) {
+                if (a.snapshotLength != null) {
                     adapterObj.SnapshotLength = a.snapshotLength;
                 }
                 if (a.pcapDeviceMode) {
                     adapterObj.PcapDeviceMode = a.pcapDeviceMode;
                 }
-                if (a.useDataLoggerTimeStamp) {
+                if (a.useDataLoggerTimeStamp != null) {
                     adapterObj.UseDataLoggerTimeStamp = a.useDataLoggerTimeStamp;
                 }
-                if (a.removeDataLoggerMetaData) {
+                if (a.removeDataLoggerMetaData != null) {
                     adapterObj.RemoveDataLoggerMetaData = a.removeDataLoggerMetaData;
                 }
                 if (a.dataLoggerType) {
                     adapterObj.DataLoggerType = a.dataLoggerType;
                 }
-                if (a.packetProcessingActive) {
+                if (a.packetProcessingActive != null) {
                     adapterObj.PacketProcessingActive = a.packetProcessingActive;
                 }
-                if (a.packetIdentificationActive) {
+                if (a.packetIdentificationActive != null) {
                     adapterObj.PacketIdentificationActive = a.packetIdentificationActive;
                 }
                 pcapSection[idx + 1] = { Adapter: adapterObj };

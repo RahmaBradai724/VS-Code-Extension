@@ -157,12 +157,7 @@ export const LOGICAL_SUBCLASS_OPTIONS = [
 export const LOGICAL_EXTRA_FIELDS: Record<string, FieldDef[]> = {
   CANChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. CANFD or CAN20' }],
   LINChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. 2.1' }],
-  FlexRayChannel: [
-    { key: 'operationMode', label: 'Operation Mode', type: 'select', options: ['Normal', 'Spy', 'TxOnly', 'RxOnly'] },
-    { key: 'keySlot', label: 'Key Slot', type: 'number', placeholder: 'e.g. 1' },
-    { key: 'nodeType', label: 'Node Type', type: 'select', options: ['ColdStartLeading', 'ColdStartFollowing', 'NonColdStartNonSync', 'NonColdStartSync'] },
-    { key: 'wakeUpCluster', label: 'Wake Up Cluster', type: 'checkbox' },
-  ],
+  FlexRayChannel: [],
   EthernetChannel: [
     { key: 'friendlyName', label: 'Friendly Name', type: 'text', placeholder: 'e.g. Ethernet Adapter 1' },
     { key: 'bufferSize', label: 'Buffer Size', type: 'number', placeholder: 'e.g. 1024' },

@@ -21,7 +21,7 @@ let CANChannel = class CANChannel extends LogicalChannel_1.LogicalChannel {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            protocol: this.protocol, hwChannel: this.hwChannel, operationMode: this.operationMode
+            protocol: this.protocol
         };
     }
     toJSON() {
@@ -33,14 +33,6 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], CANChannel.prototype, "protocol", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], CANChannel.prototype, "hwChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], CANChannel.prototype, "operationMode", void 0);
 exports.CANChannel = CANChannel = __decorate([
     (0, typeorm_1.Entity)('logical_can_channels'),
     __metadata("design:paramtypes", [String, String])

@@ -8,12 +8,6 @@ export class CANChannel extends LogicalChannel {
   @Column({ nullable: true })
   protocol?: string;
 
-  @Column({ nullable: true })
-  hwChannel?: number;
-
-  @Column({ nullable: true })
-  operationMode?: string;
-
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.CAN, LogicalChannelSubclass.CAN);
   }
@@ -22,7 +16,7 @@ export class CANChannel extends LogicalChannel {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-      protocol: this.protocol, hwChannel: this.hwChannel, operationMode: this.operationMode
+      protocol: this.protocol
     };
   }
 

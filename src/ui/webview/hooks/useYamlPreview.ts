@@ -72,14 +72,14 @@ function buildMtfObject(state: AppState): Record<string, any> {
       if (hw.timeout)                   { adapterObj.Timeout                  = hw.timeout; }
       if (hw.timeStampPrecision)        { adapterObj.TimeStampPrecision        = hw.timeStampPrecision; }
       if (hw.timeStampSource)           { adapterObj.TimeStampSource           = hw.timeStampSource; }
-      if (hw.immediateMode)             { adapterObj.ImmediateMode             = hw.immediateMode; }
-      if (hw.snapshotLength)            { adapterObj.SnapshotLength            = hw.snapshotLength; }
+      if (hw.immediateMode != null)     { adapterObj.ImmediateMode             = hw.immediateMode; }
+      if (hw.snapshotLength != null)    { adapterObj.SnapshotLength            = hw.snapshotLength; }
       if (hw.pcapDeviceMode)            { adapterObj.PcapDeviceMode            = hw.pcapDeviceMode; }
-      if (hw.useDataLoggerTimeStamp)    { adapterObj.UseDataLoggerTimeStamp    = hw.useDataLoggerTimeStamp; }
-      if (hw.removeDataLoggerMetaData)  { adapterObj.RemoveDataLoggerMetaData  = hw.removeDataLoggerMetaData; }
+      if (hw.useDataLoggerTimeStamp != null)    { adapterObj.UseDataLoggerTimeStamp    = hw.useDataLoggerTimeStamp; }
+      if (hw.removeDataLoggerMetaData != null)  { adapterObj.RemoveDataLoggerMetaData  = hw.removeDataLoggerMetaData; }
       if (hw.dataLoggerType)            { adapterObj.DataLoggerType            = hw.dataLoggerType; }
-      if (hw.packetProcessingActive)    { adapterObj.PacketProcessingActive    = hw.packetProcessingActive; }
-      if (hw.packetIdentificationActive){ adapterObj.PacketIdentificationActive= hw.packetIdentificationActive; }
+      if (hw.packetProcessingActive != null)    { adapterObj.PacketProcessingActive    = hw.packetProcessingActive; }
+      if (hw.packetIdentificationActive != null){ adapterObj.PacketIdentificationActive= hw.packetIdentificationActive; }
       pcapSection[idx + 1] = { Adapter: adapterObj };
     });
     mappingsSection.PCAP = pcapSection;

@@ -20,10 +20,7 @@ let FlexRayChannel = class FlexRayChannel extends LogicalChannel_1.LogicalChanne
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            hwChannel: this.hwChannel, keySlot: this.keySlot,
-            nodeType: this.nodeType, wakeUpCluster: this.wakeUpCluster,
-            operationMode: this.operationMode
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
         };
     }
     toJSON() {
@@ -31,26 +28,6 @@ let FlexRayChannel = class FlexRayChannel extends LogicalChannel_1.LogicalChanne
     }
 };
 exports.FlexRayChannel = FlexRayChannel;
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], FlexRayChannel.prototype, "hwChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], FlexRayChannel.prototype, "keySlot", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], FlexRayChannel.prototype, "nodeType", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], FlexRayChannel.prototype, "wakeUpCluster", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], FlexRayChannel.prototype, "operationMode", void 0);
 exports.FlexRayChannel = FlexRayChannel = __decorate([
     (0, typeorm_1.Entity)('logical_flexray_channels'),
     __metadata("design:paramtypes", [String, String])
