@@ -21,6 +21,7 @@ let IOSerialChannel = class IOSerialChannel extends LogicalChannel_1.LogicalChan
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
+            channelId: this.channelId,
         };
     }
     toJSON() {

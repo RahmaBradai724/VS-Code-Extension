@@ -41,4 +41,8 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
     __metadata("design:type", Array)
 ], LogicalChannel.prototype, "alias", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], LogicalChannel.prototype, "channelId", void 0);
 //# sourceMappingURL=LogicalChannel.js.map

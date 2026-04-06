@@ -43,6 +43,7 @@ export interface AiResult {
 export interface LogicalChannel {
   id: string;
   name: string;
+  channelId?: number;
   loggingName?: string;
   tracerName?: string;
   alias?: string[];

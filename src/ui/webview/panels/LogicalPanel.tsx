@@ -21,7 +21,7 @@ export default function LogicalPanel() {
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
-    name: '', loggingName: '', tracerName: '', aliases: '',
+    name: '', channelId: '', loggingName: '', tracerName: '', aliases: '',
     subclass: LOGICAL_SUBCLASS_OPTIONS[0].value,
     extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value),
   });
@@ -37,6 +37,7 @@ export default function LogicalPanel() {
       draft: {
         id: '__draft__',
         name: nextForm.name.trim(),
+        channelId: nextForm.channelId ? Number(nextForm.channelId) : undefined,
         loggingName: nextForm.loggingName.trim(),
         tracerName: nextForm.tracerName.trim(),
         alias: nextForm.aliases.split(',').map(s => s.trim()).filter(Boolean),
@@ -78,6 +79,7 @@ export default function LogicalPanel() {
     const channel: LogicalChannel = {
       id: `lc_${Date.now()}`,
       name: form.name.trim(),
+      channelId: form.channelId ? Number(form.channelId) : undefined,
       loggingName: form.loggingName.trim(),
       tracerName: form.tracerName.trim(),
       alias: form.aliases.split(',').map(s => s.trim()).filter(Boolean),
@@ -87,13 +89,13 @@ export default function LogicalPanel() {
       ...form.extras,
     };
     send('addLogicalChannel', { channel });
-    setForm({ name: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
+    setForm({ name: '', channelId: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
     setShowForm(false);
   }
 
   function handleCancelForm() {
     dispatch({ type: 'SET_DRAFT_LOGICAL', draft: null });
-    setForm({ name: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
+    setForm({ name: '', channelId: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
     setShowForm(false);
   }
 
@@ -120,6 +122,10 @@ export default function LogicalPanel() {
             <div>
               <label style={T.label}>Name *</label>
               <input style={T.input} placeholder="e.g. CAN_Channel_1" value={form.name} onChange={e => setField('name', e.target.value)} />
+            </div>
+            <div>
+              <label style={T.label}>Channel ID</label>
+              <input style={T.input} type="number" placeholder="e.g. 1" value={form.channelId} onChange={e => setField('channelId', e.target.value)} />
             </div>
             <div>
               <label style={T.label}>Logging Name</label>

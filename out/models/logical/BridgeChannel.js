@@ -22,7 +22,7 @@ let BridgeChannel = class BridgeChannel extends LogicalChannel_1.LogicalChannel 
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            bridgeName: this.bridgeName ?? this.name,
+            channelId: this.channelId, bridgeName: this.bridgeName ?? this.name,
             tunTapAdapterList: this.tunTapAdapterList,
         };
     }
