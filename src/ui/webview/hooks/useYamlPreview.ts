@@ -26,6 +26,7 @@ function buildMtfObject(state: AppState): Record<string, any> {
     if (ch.loggingName)   { obj.LoggingName  = ch.loggingName; }
     if (ch.tracerName)    { obj.TracerName   = ch.tracerName; }
     if (ch.alias?.length) { obj.Alias        = ch.alias; }
+    if (ch.loggingBusIndex != null) { obj.LoggingBusIndex = ch.loggingBusIndex; }
     channelsSection[ch.name] = obj;
   });
 
@@ -64,6 +65,7 @@ function buildMtfObject(state: AppState): Record<string, any> {
     const pcapSection: Record<string, any> = {};
     pcapHardware.forEach((hw, idx) => {
       const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+      if (hwMappings.length === 0) { return; }
       const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
       const adapterObj: Record<string, any> = { Name: logicalChannelName };
       if (hw.friendlyName)              { adapterObj.FriendlyName             = hw.friendlyName; }
@@ -83,6 +85,78 @@ function buildMtfObject(state: AppState): Record<string, any> {
       pcapSection[idx + 1] = { Adapter: adapterObj };
     });
     mappingsSection.PCAP = pcapSection;
+  }
+
+  // Serial (SerialPort)
+  const serialHardware = hardwareChannels.filter(hw => hw.subclass === 'SerialPort');
+  if (serialHardware.length > 0) {
+    const ports: Record<string, any> = {};
+    serialHardware.forEach(hw => {
+      const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+      if (hwMappings.length === 0) { return; }
+      const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
+      const portObj: Record<string, any> = {};
+      if (hw.portName)             { portObj.PortName             = hw.portName; }
+      if (hw.baudRate)             { portObj.BaudRate             = hw.baudRate; }
+      if (hw.parity)               { portObj.Parity               = hw.parity; }
+      if (hw.dataBits)             { portObj.DataBits             = hw.dataBits; }
+      if (hw.stopBits)             { portObj.StopBits             = hw.stopBits; }
+      if (hw.flowControl)          { portObj.FlowControl          = hw.flowControl; }
+      if (hw.messageTerminator != null) { portObj.MessageTerminator = hw.messageTerminator; }
+      if (hw.separationTimeMs)     { portObj.SeparationTimeMs     = hw.separationTimeMs; }
+      if (hw.maxReceivedDataSize)  { portObj.MaxReceivedDataSize  = hw.maxReceivedDataSize; }
+      ports[logicalChannelName] = portObj;
+    });
+    mappingsSection.Serial = { Ports: ports };
+  }
+
+  // BTS-Revo
+  const btsHardware = hardwareChannels.filter(hw => hw.subclass === 'BTSRevo');
+  if (btsHardware.length > 0) {
+    const boards: Record<string, any> = {};
+    // Collect EthernetConfiguration from the first device (shared config)
+    let ethernetConfig: Record<string, any> | undefined;
+    const firstBts = btsHardware[0];
+    if (firstBts.addressPrefix || firstBts.ethernetPort) {
+      ethernetConfig = {};
+      if (firstBts.addressPrefix) { ethernetConfig.AddressPrefix = firstBts.addressPrefix; }
+      if (firstBts.ethernetPort)  { ethernetConfig.Port = firstBts.ethernetPort; }
+    }
+    btsHardware.forEach((hw, idx) => {
+      const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+      if (hwMappings.length === 0) { return; }
+      const ios: Record<string, any> = {};
+      for (const m of hwMappings) {
+        const ioObj: Record<string, any> = {};
+        if (m.hwChannel !== undefined && m.hwChannel !== null) { ioObj.HWChannel = m.hwChannel; }
+        if (m.measurementAttribute)   { ioObj.MeasurementAttribute = m.measurementAttribute; }
+        if (m.btsFunction)            { ioObj.Function             = m.btsFunction; }
+        if (m.lineContactState != null){ ioObj.LineContactState     = m.lineContactState; }
+        if (m.gndContactState != null) { ioObj.GndContactState      = m.gndContactState; }
+        if (m.vbatContactState != null){ ioObj.VbatContactState     = m.vbatContactState; }
+        if (m.staticChannel != null)   { ioObj.StaticChannel        = m.staticChannel; }
+        if (m.initValue)              { ioObj.InitValue             = m.initValue; }
+        if (m.channelType)            { ioObj.ChannelType           = m.channelType; }
+        if (m.pwmWindowTime != null)  { ioObj.PWMWindowTime         = m.pwmWindowTime; }
+        if (m.measurementConfig?.length) { ioObj.MeasurementConfig  = m.measurementConfig; }
+        if (m.subscriptionConfig && Object.keys(m.subscriptionConfig).length) {
+          const sc = m.subscriptionConfig as any;
+          const scOut: Record<string, any> = {};
+          if (sc.ID)               { scOut.ID             = sc.ID; }
+          if (sc.Type)             { scOut.Type           = sc.Type; }
+          if (sc.IsPeriodic != null){ scOut.IsPeriodic    = sc.IsPeriodic; }
+          if (sc.Polling != null)  { scOut.Polling        = sc.Polling; }
+          if (sc.UpperThreshold != null) { scOut.UpperThreshold = sc.UpperThreshold; }
+          if (sc.LowerThreshold != null) { scOut.LowerThreshold = sc.LowerThreshold; }
+          ioObj.SubscriptionConfig = scOut;
+        }
+        ios[m.logicalChannelName] = ioObj;
+      }
+      boards[idx + 1] = { Id: hw.boardId ?? 0, IOs: ios };
+    });
+    const btsSection: Record<string, any> = { Boards: boards };
+    if (ethernetConfig) { btsSection.EthernetConfiguration = ethernetConfig; }
+    mappingsSection['BTS-Revo'] = btsSection;
   }
 
   // ── FrameworkConfig section ───────────────────────────────────────

@@ -9,3 +9,4 @@ export { CANInterface } from './CANInterface';
 export { CIBInterface } from './CIBInterface';
 export { CMInterface } from './CMInterface';
 export { HHLoad } from './HHLoad';
+export { BTSRevo } from './BTSRevo';

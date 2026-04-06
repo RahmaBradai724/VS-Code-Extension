@@ -23,9 +23,7 @@ let BridgeChannel = class BridgeChannel extends LogicalChannel_1.LogicalChannel 
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             bridgeName: this.bridgeName ?? this.name,
-            physicalAdapter: this.physicalAdapter,
             tunTapAdapterList: this.tunTapAdapterList,
-            manipulatePackets: this.manipulatePackets
         };
     }
     toJSON() {
@@ -38,17 +36,9 @@ __decorate([
     __metadata("design:type", String)
 ], BridgeChannel.prototype, "bridgeName", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], BridgeChannel.prototype, "physicalAdapter", void 0);
-__decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Array)
 ], BridgeChannel.prototype, "tunTapAdapterList", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], BridgeChannel.prototype, "manipulatePackets", void 0);
 exports.BridgeChannel = BridgeChannel = __decorate([
     (0, typeorm_1.Entity)('logical_bridge_channels'),
     __metadata("design:paramtypes", [String, String])

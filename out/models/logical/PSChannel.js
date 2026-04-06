@@ -20,7 +20,7 @@ let PSChannel = class PSChannel extends LogicalChannel_1.LogicalChannel {
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias
+            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
         };
     }
     toJSON() {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HHLoad = exports.CMInterface = exports.CIBInterface = exports.CANInterface = exports.TEAnalog = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = void 0;
+exports.BTSRevo = exports.HHLoad = exports.CMInterface = exports.CIBInterface = exports.CANInterface = exports.TEAnalog = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = void 0;
 var LINCard_1 = require("./LINCard");
 Object.defineProperty(exports, "LINCard", { enumerable: true, get: function () { return LINCard_1.LINCard; } });
 var SerialPort_1 = require("./SerialPort");
@@ -23,4 +23,6 @@ var CMInterface_1 = require("./CMInterface");
 Object.defineProperty(exports, "CMInterface", { enumerable: true, get: function () { return CMInterface_1.CMInterface; } });
 var HHLoad_1 = require("./HHLoad");
 Object.defineProperty(exports, "HHLoad", { enumerable: true, get: function () { return HHLoad_1.HHLoad; } });
+var BTSRevo_1 = require("./BTSRevo");
+Object.defineProperty(exports, "BTSRevo", { enumerable: true, get: function () { return BTSRevo_1.BTSRevo; } });
 //# sourceMappingURL=index.js.map

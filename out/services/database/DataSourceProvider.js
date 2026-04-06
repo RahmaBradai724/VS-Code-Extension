@@ -72,9 +72,9 @@ function getDataSource() {
             logging: false,
             entities: [
                 logicalChannels_1.FlexRayChannel, logicalChannels_1.SerialChannel, logicalChannels_1.CANChannel, logicalChannels_1.IOInputChannel, logicalChannels_1.IOOutputChannel,
-                logicalChannels_1.LINChannel, logicalChannels_1.IPSChannel, logicalChannels_1.BridgeChannel, logicalChannels_1.AnalogChannel, logicalChannels_1.EthernetChannel, logicalChannels_1.PSChannel,
+                logicalChannels_1.LINChannel, logicalChannels_1.IOSerialChannel, logicalChannels_1.BridgeChannel, logicalChannels_1.EthernetChannel, logicalChannels_1.PSChannel,
                 hardwareChannels_1.LINCard, hardwareChannels_1.SerialPort, hardwareChannels_1.HIDRelay, hardwareChannels_1.RelayBoard, hardwareChannels_1.EthernetAdapter, hardwareChannels_1.AnalogDevice,
-                hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad,
+                hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad, hardwareChannels_1.BTSRevo,
                 frameworkConfig_1.Tracer, frameworkConfig_1.PCAPTracer, frameworkConfig_1.ASCIITracer, frameworkConfig_1.FrameworkConfig,
                 configuration_1.Configuration, user_1.User, mapping_1.Mapping,
             ],

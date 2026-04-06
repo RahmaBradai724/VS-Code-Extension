@@ -11,7 +11,6 @@ export enum LogicalChannelCategory {
   SERIAL = 'SERIAL',
   PS = 'PS',
   BRIDGE = 'BRIDGE',
-  ANALOG = 'ANALOG',
   TE_ANALOG = 'TE_ANALOG',
 }
 
@@ -29,7 +28,6 @@ export enum LogicalChannelSubclass {
   LIN = 'LINChannel',
   IOSERIAL = 'IOSerialChannel',
   BRIDGE = 'BridgeChannel',
-  ANALOG = 'AnalogChannel',
   PS = 'PSChannel',
   ETHERNET = 'EthernetChannel',
 }
@@ -43,6 +41,7 @@ export enum HardwareChannelCategory {
   ANALOG_DEVICE = 'ANALOG_DEVICE',
   TE_ANALOG = 'TE_ANALOG',
   HH_LOAD = 'HH_LOAD',
+  BTS_REVO = 'BTS_REVO',
 }
 
 export enum HardwareChannelSubclass {
@@ -57,6 +56,7 @@ export enum HardwareChannelSubclass {
   CIB_INTERFACE = 'CIBInterface',
   CM_INTERFACE = 'CMInterface',
   HH_LOAD = 'HHLoad',
+  BTS_REVO = 'BTSRevo',
 }
 
 export enum CaptureType {

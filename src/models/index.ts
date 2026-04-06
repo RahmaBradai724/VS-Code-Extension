@@ -10,7 +10,7 @@ export {
 } from './enums';
 export { Category } from './category';
 export { Channel, LogicalChannel, HardwareChannel } from './channel';
-export { FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel, LINChannel, IPSChannel, BridgeChannel, AnalogChannel, EthernetChannel, PSChannel } from './logicalChannels';
+export { FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel, LINChannel, IOSerialChannel, BridgeChannel, EthernetChannel, PSChannel } from './logicalChannels';
 export { LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice, CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad } from './hardwareChannels';
 export { Tracer, PCAPTracer, ASCIITracer, PublisherConfig, EthernetConfig, DiagnosticsConfig, FrameworkConfig } from './frameworkConfig';
 export { Mapping } from './mapping';

@@ -51,6 +51,28 @@ class MappingManager {
                 mapping.nodeType = params.nodeType;
             if (params.wakeUpCluster !== undefined)
                 mapping.wakeUpCluster = params.wakeUpCluster;
+            if (params.measurementAttribute !== undefined)
+                mapping.measurementAttribute = params.measurementAttribute;
+            if (params.btsFunction !== undefined)
+                mapping.btsFunction = params.btsFunction;
+            if (params.lineContactState !== undefined)
+                mapping.lineContactState = params.lineContactState;
+            if (params.gndContactState !== undefined)
+                mapping.gndContactState = params.gndContactState;
+            if (params.vbatContactState !== undefined)
+                mapping.vbatContactState = params.vbatContactState;
+            if (params.staticChannel !== undefined)
+                mapping.staticChannel = params.staticChannel;
+            if (params.initValue !== undefined)
+                mapping.initValue = params.initValue;
+            if (params.channelType !== undefined)
+                mapping.channelType = params.channelType;
+            if (params.pwmWindowTime !== undefined)
+                mapping.pwmWindowTime = params.pwmWindowTime;
+            if (params.measurementConfig !== undefined)
+                mapping.measurementConfig = params.measurementConfig;
+            if (params.subscriptionConfig !== undefined)
+                mapping.subscriptionConfig = params.subscriptionConfig;
         }
         this.mappings.set(mappingId, mapping);
         this.channelManager.registerMappingForChannel(logicalChannelId, mappingId);

@@ -21,12 +21,7 @@ let IOInputChannel = class IOInputChannel extends LogicalChannel_1.LogicalChanne
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            hwChannel: this.hwChannel, measurementAttribute: this.measurementAttribute,
-            function: this.function, lineContactState: this.lineContactState,
-            gndContactState: this.gndContactState, batContactState: this.batContactState,
-            staticChannel: this.staticChannel, initValue: this.initValue,
-            channelType: this.channelType, measurementConfig: this.measurementConfig,
-            pwmWindowTime: this.pwmWindowTime, subscriptionConfig: this.subscriptionConfig
+            loggingBusIndex: this.loggingBusIndex,
         };
     }
     toJSON() {
@@ -37,51 +32,7 @@ exports.IOInputChannel = IOInputChannel;
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
-], IOInputChannel.prototype, "hwChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], IOInputChannel.prototype, "measurementAttribute", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], IOInputChannel.prototype, "function", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "lineContactState", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "gndContactState", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "batContactState", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], IOInputChannel.prototype, "staticChannel", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], IOInputChannel.prototype, "initValue", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], IOInputChannel.prototype, "channelType", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
-    __metadata("design:type", Array)
-], IOInputChannel.prototype, "measurementConfig", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], IOInputChannel.prototype, "pwmWindowTime", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
-    __metadata("design:type", Object)
-], IOInputChannel.prototype, "subscriptionConfig", void 0);
+], IOInputChannel.prototype, "loggingBusIndex", void 0);
 exports.IOInputChannel = IOInputChannel = __decorate([
     (0, typeorm_1.Entity)('logical_io_input_channels'),
     __metadata("design:paramtypes", [String, String])

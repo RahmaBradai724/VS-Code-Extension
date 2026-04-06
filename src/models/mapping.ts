@@ -45,6 +45,42 @@ export class Mapping {
   @Column({ nullable: true })
   wakeUpCluster?: boolean;
 
+  // BTS-REVO per-IO mapping parameters
+  @Column({ nullable: true })
+  measurementAttribute?: string;
+
+  @Column({ nullable: true })
+  btsFunction?: string;
+
+  @Column({ nullable: true })
+  lineContactState?: boolean;
+
+  @Column({ nullable: true })
+  gndContactState?: boolean;
+
+  @Column({ nullable: true })
+  vbatContactState?: boolean;
+
+  @Column({ nullable: true })
+  staticChannel?: boolean;
+
+  @Column({ nullable: true })
+  initValue?: string;
+
+  @Column({ nullable: true })
+  channelType?: string;
+
+  @Column({ nullable: true })
+  pwmWindowTime?: number;
+
+  /** List of measurement configuration IDs to apply on this BTS channel */
+  @Column({ type: 'jsonb', nullable: true })
+  measurementConfig?: string[];
+
+  /** Subscription config (IsPeriodic, Polling, thresholds, etc.) per channel */
+  @Column({ type: 'jsonb', nullable: true })
+  subscriptionConfig?: Record<string, unknown>;
+
   @Column()
   createdAt: string;
 
@@ -97,6 +133,17 @@ export class Mapping {
       keySlot: this.keySlot,
       nodeType: this.nodeType,
       wakeUpCluster: this.wakeUpCluster,
+      measurementAttribute: this.measurementAttribute,
+      btsFunction: this.btsFunction,
+      lineContactState: this.lineContactState,
+      gndContactState: this.gndContactState,
+      vbatContactState: this.vbatContactState,
+      staticChannel: this.staticChannel,
+      initValue: this.initValue,
+      channelType: this.channelType,
+      pwmWindowTime: this.pwmWindowTime,
+      measurementConfig: this.measurementConfig,
+      subscriptionConfig: this.subscriptionConfig,
       comment: this.comment,
       createdAt: this.createdAt,
       logicalChannelType: this.logicalChannelType,
@@ -120,6 +167,17 @@ export class Mapping {
     m.keySlot = data.keySlot;
     m.nodeType = data.nodeType;
     m.wakeUpCluster = data.wakeUpCluster;
+    m.measurementAttribute = data.measurementAttribute;
+    m.btsFunction = data.btsFunction;
+    m.lineContactState = data.lineContactState;
+    m.gndContactState = data.gndContactState;
+    m.vbatContactState = data.vbatContactState;
+    m.staticChannel = data.staticChannel;
+    m.initValue = data.initValue;
+    m.channelType = data.channelType;
+    m.pwmWindowTime = data.pwmWindowTime;
+    m.measurementConfig = data.measurementConfig;
+    m.subscriptionConfig = data.subscriptionConfig;
     return m;
   }
 }

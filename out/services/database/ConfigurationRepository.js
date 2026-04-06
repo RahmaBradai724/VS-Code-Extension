@@ -13,9 +13,8 @@ const LOGICAL_MAP = {
     'IOInputChannel': logicalChannels_1.IOInputChannel,
     'IOOutputChannel': logicalChannels_1.IOOutputChannel,
     'LINChannel': logicalChannels_1.LINChannel,
-    'IOSerialChannel': logicalChannels_1.IPSChannel,
+    'IOSerialChannel': logicalChannels_1.IOSerialChannel,
     'BridgeChannel': logicalChannels_1.BridgeChannel,
-    'AnalogChannel': logicalChannels_1.AnalogChannel,
     'EthernetChannel': logicalChannels_1.EthernetChannel,
     'PSChannel': logicalChannels_1.PSChannel,
 };

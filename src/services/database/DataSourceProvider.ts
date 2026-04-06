@@ -7,9 +7,8 @@ import {
   IOInputChannel,
   IOOutputChannel,
   LINChannel,
-  IPSChannel,
+  IOSerialChannel,
   BridgeChannel,
-  AnalogChannel,
   EthernetChannel,
   PSChannel,
 } from '../../models/logicalChannels';
@@ -25,6 +24,7 @@ import {
   TEAnalog,
   CMInterface,
   HHLoad,
+  BTSRevo,
 } from '../../models/hardwareChannels';
 import { Configuration } from '../../models/configuration';
 import { User } from '../../models/user';
@@ -61,9 +61,9 @@ export function getDataSource(): DataSource {
       logging: false,
       entities: [
         FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel,
-        LINChannel, IPSChannel, BridgeChannel, AnalogChannel, EthernetChannel, PSChannel,
+        LINChannel, IOSerialChannel, BridgeChannel, EthernetChannel, PSChannel,
         LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice,
-        CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad,
+        CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo,
         Tracer, PCAPTracer, ASCIITracer, FrameworkConfig,
         Configuration, User, Mapping,
       ],

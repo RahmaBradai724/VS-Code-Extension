@@ -6,12 +6,14 @@ import { ConfirmModal } from '../components/ConfirmModal';
 
 const OPERATION_MODES = ['Active', 'Passive', 'Monitor'];
 const NODE_TYPES = ['ColdStartNode', 'WakeupNode', 'SyncNode'];
+const BTS_FUNCTIONS = ['None', 'Relay', 'Potentiometer', 'ElectronicLoad', 'GNDSwitch', 'VBATSwitch', 'VoltageGenerator'];
+const BTS_MEASUREMENT_ATTRS = ['Voltage', 'Current', 'PWM'];
 
 export default function MappingsPanel() {
   const { state, send, notify } = useApp();
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const removingMapping = state.mappings.find(m => m.id === removingId);
+  const removingMapping = state.mappings.find(m => m.mappingId === removingId);
   const removingLc = removingMapping
     ? state.logicalChannels.find(c => c.id === removingMapping.logicalChannelId)
     : null;
@@ -27,6 +29,24 @@ export default function MappingsPanel() {
     keySlot: '',
     nodeType: '',
     wakeUpCluster: false,
+    // BTS-REVO fields
+    measurementAttribute: '',
+    btsFunction: '',
+    lineContactState: false,
+    gndContactState: false,
+    vbatContactState: false,
+    staticChannel: false,
+    initValue: '',
+    channelType: '',
+    pwmWindowTime: '',
+    // BTS measurement/subscription config
+    measurementConfigRaw: '',       // comma-separated IDs
+    subId: '',
+    subType: '',
+    subIsPeriodic: false,
+    subPolling: '',
+    subUpperThreshold: '',
+    subLowerThreshold: '',
   });
   const [showForm, setShowForm] = useState(false);
 
@@ -40,7 +60,13 @@ export default function MappingsPanel() {
     return ch.category;
   }
 
+  function getHardwareSubclass(id: string) {
+    const hw = state.hardwareChannels.find(h => h.id === id);
+    return hw?.subclass ?? '';
+  }
+
   const isFlexRay = getLogicalCategory(form.logicalId) === 'FLEXRAY';
+  const isBTS = getHardwareSubclass(form.hardwareId) === 'BTSRevo';
 
   function handleAdd() {
     if (!form.logicalId) { notify('error', 'Please select a logical channel.'); return; }
@@ -50,14 +76,34 @@ export default function MappingsPanel() {
       hardwareChannelId: form.hardwareId,
       configurationId: state.currentConfigId,
       params: {
-        hwChannel: form.hwChannel || undefined,
+        hwChannel: form.hwChannel ? Number(form.hwChannel) : undefined,
         operationMode: form.operationMode || undefined,
         keySlot: form.keySlot ? Number(form.keySlot) : undefined,
         nodeType: isFlexRay ? (form.nodeType || undefined) : undefined,
         wakeUpCluster: isFlexRay ? form.wakeUpCluster : undefined,
+        measurementAttribute: isBTS ? (form.measurementAttribute || undefined) : undefined,
+        btsFunction: isBTS ? (form.btsFunction || undefined) : undefined,
+        lineContactState: isBTS ? form.lineContactState : undefined,
+        gndContactState: isBTS ? form.gndContactState : undefined,
+        vbatContactState: isBTS ? form.vbatContactState : undefined,
+        staticChannel: isBTS ? form.staticChannel : undefined,
+        initValue: isBTS ? (form.initValue || undefined) : undefined,
+        channelType: isBTS ? (form.channelType || undefined) : undefined,
+        pwmWindowTime: isBTS && form.pwmWindowTime ? Number(form.pwmWindowTime) : undefined,
+        measurementConfig: isBTS && form.measurementConfigRaw
+          ? form.measurementConfigRaw.split(',').map(s => s.trim()).filter(Boolean)
+          : undefined,
+        subscriptionConfig: isBTS && (form.subId || form.subType) ? {
+          ID: form.subId || undefined,
+          Type: form.subType || undefined,
+          IsPeriodic: form.subIsPeriodic,
+          Polling: form.subPolling ? Number(form.subPolling) : undefined,
+          UpperThreshold: form.subUpperThreshold ? Number(form.subUpperThreshold) : undefined,
+          LowerThreshold: form.subLowerThreshold ? Number(form.subLowerThreshold) : undefined,
+        } : undefined,
       },
     });
-    setForm({ logicalId: '', hardwareId: '', hwChannel: '', operationMode: '', keySlot: '', nodeType: '', wakeUpCluster: false });
+    setForm({ logicalId: '', hardwareId: '', hwChannel: '', operationMode: '', keySlot: '', nodeType: '', wakeUpCluster: false, measurementAttribute: '', btsFunction: '', lineContactState: false, gndContactState: false, vbatContactState: false, staticChannel: false, initValue: '', channelType: '', pwmWindowTime: '', measurementConfigRaw: '', subId: '', subType: '', subIsPeriodic: false, subPolling: '', subUpperThreshold: '', subLowerThreshold: '' });
     setShowForm(false);
   }
 
@@ -145,6 +191,94 @@ export default function MappingsPanel() {
                 </div>
               </>
             )}
+            {isBTS && (
+              <>
+                <div>
+                  <label style={T.label}>Measurement Attribute *</label>
+                  <select style={T.select} value={form.measurementAttribute} onChange={e => setF('measurementAttribute', e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {BTS_MEASUREMENT_ATTRS.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={T.label}>Function *</label>
+                  <select style={T.select} value={form.btsFunction} onChange={e => setF('btsFunction', e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {BTS_FUNCTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={T.label}>Init Value</label>
+                  <input style={T.input} placeholder="" value={form.initValue} onChange={e => setF('initValue', e.target.value)} />
+                </div>
+                <div>
+                  <label style={T.label}>Channel Type</label>
+                  <input style={T.input} placeholder="e.g. HC" value={form.channelType} onChange={e => setF('channelType', e.target.value)} />
+                </div>
+                <div>
+                  <label style={T.label}>PWM Window Time (ms)</label>
+                  <input style={T.input} type="number" placeholder="e.g. 200" value={form.pwmWindowTime} onChange={e => setF('pwmWindowTime', e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginTop: '12px', gridColumn: '1 / -1' }}>
+                  {([
+                    { id: 'lineContactState', label: 'Line Contact State (Open Load)' },
+                    { id: 'gndContactState',  label: 'GND Contact State (Short to GND)' },
+                    { id: 'vbatContactState', label: 'VBAT Contact State' },
+                    { id: 'staticChannel',    label: 'Static Channel' },
+                  ] as const).map(({ id, label }) => (
+                    <div key={id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input type="checkbox" id={id} checked={form[id] as boolean} onChange={e => setF(id, e.target.checked)} style={{ cursor: 'pointer' }} />
+                      <label htmlFor={id} style={{ ...T.label, marginBottom: 0, cursor: 'pointer' }}>{label}</label>
+                    </div>
+                  ))}
+                </div>
+                {/* Measurement Config */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={T.label}>Measurement Config IDs (comma-separated)</label>
+                  <input style={T.input} placeholder="e.g. cfg1, cfg2" value={form.measurementConfigRaw} onChange={e => setF('measurementConfigRaw', e.target.value)} />
+                </div>
+                {/* Subscription Config */}
+                <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                  <p style={{ ...T.cardTitle, marginBottom: '8px' }}>Subscription Config (optional)</p>
+                  <div style={T.grid2}>
+                    <div>
+                      <label style={T.label}>ID</label>
+                      <input style={T.input} placeholder="" value={form.subId} onChange={e => setF('subId', e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={T.label}>Type (Measurement Attribute)</label>
+                      <select style={T.select} value={form.subType} onChange={e => setF('subType', e.target.value)}>
+                        <option value="">-- None --</option>
+                        {BTS_MEASUREMENT_ATTRS.map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={T.label}>Upper Threshold</label>
+                      <input style={T.input} type="number" placeholder="" value={form.subUpperThreshold} onChange={e => setF('subUpperThreshold', e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={T.label}>Lower Threshold</label>
+                      <input style={T.input} type="number" placeholder="" value={form.subLowerThreshold} onChange={e => setF('subLowerThreshold', e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
+                      <input type="checkbox" id="subIsPeriodic" checked={form.subIsPeriodic} onChange={e => setF('subIsPeriodic', e.target.checked)} style={{ cursor: 'pointer' }} />
+                      <label htmlFor="subIsPeriodic" style={{ ...T.label, marginBottom: 0, cursor: 'pointer' }}>Is Periodic</label>
+                    </div>
+                    {form.subIsPeriodic && (
+                      <div>
+                        <label style={T.label}>Polling (ms)</label>
+                        <select style={T.select} value={form.subPolling} onChange={e => setF('subPolling', e.target.value)}>
+                          <option value="">-- Select --</option>
+                          {[5, 10, 25, 50, 100, 250, 500, 1000].map(v => (
+                            <option key={v} value={v}>{v}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div style={{ ...T.divider, marginTop: '16px' }} />
@@ -197,7 +331,7 @@ export default function MappingsPanel() {
                 </div>
                 <button
                   style={T.btnDanger}
-                  onClick={() => setRemovingId(m.id)}
+                  onClick={() => setRemovingId(m.mappingId)}
                 >
                   Remove
                 </button>

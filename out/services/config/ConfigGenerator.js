@@ -113,6 +113,9 @@ class ConfigGenerator {
             if (ch.alias?.length) {
                 obj.Alias = ch.alias;
             }
+            if (ch.loggingBusIndex != null) {
+                obj.LoggingBusIndex = ch.loggingBusIndex;
+            }
             channelsSection[ch.name] = obj;
         });
         // ── Mappings section ──────────────────────────────────────────────
@@ -163,6 +166,9 @@ class ConfigGenerator {
             pcapHardware.forEach((hw, idx) => {
                 const a = hw;
                 const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+                if (hwMappings.length === 0) {
+                    return;
+                }
                 const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
                 const adapterObj = { Name: logicalChannelName };
                 if (a.friendlyName) {
@@ -210,6 +216,140 @@ class ConfigGenerator {
                 pcapSection[idx + 1] = { Adapter: adapterObj };
             });
             mappingsSection.PCAP = pcapSection;
+        }
+        // Serial (SerialPort)
+        const serialHardware = this.config.hardwareChannels.filter(hw => hw.subclass === enums_1.HardwareChannelSubclass.SERIAL_PORT);
+        if (serialHardware.length > 0) {
+            const ports = {};
+            serialHardware.forEach(hw => {
+                const s = hw;
+                const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+                if (hwMappings.length === 0) {
+                    return;
+                }
+                const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
+                const portObj = {};
+                if (s.portName) {
+                    portObj.PortName = s.portName;
+                }
+                if (s.baudRate) {
+                    portObj.BaudRate = s.baudRate;
+                }
+                if (s.parity) {
+                    portObj.Parity = s.parity;
+                }
+                if (s.dataBits) {
+                    portObj.DataBits = s.dataBits;
+                }
+                if (s.stopBits) {
+                    portObj.StopBits = s.stopBits;
+                }
+                if (s.flowControl) {
+                    portObj.FlowControl = s.flowControl;
+                }
+                if (s.messageTerminator != null) {
+                    portObj.MessageTerminator = s.messageTerminator;
+                }
+                if (s.separationTimeMs) {
+                    portObj.SeparationTimeMs = s.separationTimeMs;
+                }
+                if (s.maxReceivedDataSize) {
+                    portObj.MaxReceivedDataSize = s.maxReceivedDataSize;
+                }
+                ports[logicalChannelName] = portObj;
+            });
+            mappingsSection.Serial = { Ports: ports };
+        }
+        // BTS-Revo
+        const btsHardware = this.config.hardwareChannels.filter(hw => hw.subclass === enums_1.HardwareChannelSubclass.BTS_REVO);
+        if (btsHardware.length > 0) {
+            const boards = {};
+            // Shared EthernetConfiguration (from first device)
+            let ethernetConfig;
+            const firstBts = btsHardware[0];
+            if (firstBts.addressPrefix || firstBts.ethernetPort) {
+                ethernetConfig = {};
+                if (firstBts.addressPrefix) {
+                    ethernetConfig.AddressPrefix = firstBts.addressPrefix;
+                }
+                if (firstBts.ethernetPort) {
+                    ethernetConfig.Port = firstBts.ethernetPort;
+                }
+            }
+            btsHardware.forEach((hw, idx) => {
+                const hwAny = hw;
+                const hwMappings = mappingsByHwId.get(hw.id) ?? [];
+                if (hwMappings.length === 0) {
+                    return;
+                }
+                const ios = {};
+                for (const m of hwMappings) {
+                    const ioObj = {};
+                    if (m.hwChannel !== undefined && m.hwChannel !== null) {
+                        ioObj.HWChannel = m.hwChannel;
+                    }
+                    if (m.measurementAttribute) {
+                        ioObj.MeasurementAttribute = m.measurementAttribute;
+                    }
+                    if (m.btsFunction) {
+                        ioObj.Function = m.btsFunction;
+                    }
+                    if (m.lineContactState != null) {
+                        ioObj.LineContactState = m.lineContactState;
+                    }
+                    if (m.gndContactState != null) {
+                        ioObj.GndContactState = m.gndContactState;
+                    }
+                    if (m.vbatContactState != null) {
+                        ioObj.VbatContactState = m.vbatContactState;
+                    }
+                    if (m.staticChannel != null) {
+                        ioObj.StaticChannel = m.staticChannel;
+                    }
+                    if (m.initValue) {
+                        ioObj.InitValue = m.initValue;
+                    }
+                    if (m.channelType) {
+                        ioObj.ChannelType = m.channelType;
+                    }
+                    if (m.pwmWindowTime != null) {
+                        ioObj.PWMWindowTime = m.pwmWindowTime;
+                    }
+                    if (m.measurementConfig?.length) {
+                        ioObj.MeasurementConfig = m.measurementConfig;
+                    }
+                    if (m.subscriptionConfig && Object.keys(m.subscriptionConfig).length) {
+                        const sc = m.subscriptionConfig;
+                        const scOut = {};
+                        if (sc.ID) {
+                            scOut.ID = sc.ID;
+                        }
+                        if (sc.Type) {
+                            scOut.Type = sc.Type;
+                        }
+                        if (sc.IsPeriodic != null) {
+                            scOut.IsPeriodic = sc.IsPeriodic;
+                        }
+                        if (sc.Polling != null) {
+                            scOut.Polling = sc.Polling;
+                        }
+                        if (sc.UpperThreshold != null) {
+                            scOut.UpperThreshold = sc.UpperThreshold;
+                        }
+                        if (sc.LowerThreshold != null) {
+                            scOut.LowerThreshold = sc.LowerThreshold;
+                        }
+                        ioObj.SubscriptionConfig = scOut;
+                    }
+                    ios[m.logicalChannelName] = ioObj;
+                }
+                boards[idx + 1] = { Id: hwAny.boardId ?? 0, IOs: ios };
+            });
+            const btsSection = { Boards: boards };
+            if (ethernetConfig) {
+                btsSection.EthernetConfiguration = ethernetConfig;
+            }
+            mappingsSection['BTS-Revo'] = btsSection;
         }
         // ── FrameworkConfig section ───────────────────────────────────────
         const fc = this.config.frameworkConfig;

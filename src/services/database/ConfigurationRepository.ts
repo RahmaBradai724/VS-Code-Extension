@@ -5,9 +5,8 @@ import {
   IOInputChannel,
   IOOutputChannel,
   LINChannel,
-  IPSChannel,
+  IOSerialChannel,
   BridgeChannel,
-  AnalogChannel,
   EthernetChannel,
   PSChannel,
 } from '../../models/logicalChannels';
@@ -35,9 +34,8 @@ const LOGICAL_MAP: Record<string, any> = {
   'IOInputChannel': IOInputChannel,
   'IOOutputChannel': IOOutputChannel,
   'LINChannel': LINChannel,
-  'IOSerialChannel': IPSChannel,
+  'IOSerialChannel': IOSerialChannel,
   'BridgeChannel': BridgeChannel,
-  'AnalogChannel': AnalogChannel,
   'EthernetChannel': EthernetChannel,
   'PSChannel': PSChannel,
 };

@@ -1,10 +1,10 @@
 import {
   CANChannel, LINChannel, FlexRayChannel, EthernetChannel, SerialChannel,
-  IOInputChannel, IOOutputChannel, BridgeChannel, AnalogChannel, PSChannel, IPSChannel,
+  IOInputChannel, IOOutputChannel, BridgeChannel, PSChannel, IOSerialChannel,
 } from '../models/logicalChannels';
 import {
   LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice,
-  CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad,
+  CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo,
 } from '../models/hardwareChannels';
 import { LogicalChannelSubclass, HardwareChannelSubclass } from '../models/enums';
 
@@ -17,9 +17,8 @@ export const logicalChannelFactories: Record<string, (id: string, name: string) 
   [LogicalChannelSubclass.IOINPUT]: (id, name) => new IOInputChannel(id, name),
   [LogicalChannelSubclass.IOOUTPUT]:(id, name) => new IOOutputChannel(id, name),
   [LogicalChannelSubclass.BRIDGE]:  (id, name) => new BridgeChannel(id, name),
-  [LogicalChannelSubclass.ANALOG]:  (id, name) => new AnalogChannel(id, name),
   [LogicalChannelSubclass.PS]:      (id, name) => new PSChannel(id, name),
-  [LogicalChannelSubclass.IOSERIAL]:(id, name) => new IPSChannel(id, name),
+  [LogicalChannelSubclass.IOSERIAL]:(id, name) => new IOSerialChannel(id, name),
 };
 
 export const hardwareChannelFactories: Record<string, (id: string, name: string) => any> = {
@@ -34,4 +33,5 @@ export const hardwareChannelFactories: Record<string, (id: string, name: string)
   [HardwareChannelSubclass.TE_ANALOG]:       (id, name) => new TEAnalog(id, name),
   [HardwareChannelSubclass.CM_INTERFACE]:    (id, name) => new CMInterface(id, name),
   [HardwareChannelSubclass.HH_LOAD]:         (id, name) => new HHLoad(id, name),
+  [HardwareChannelSubclass.BTS_REVO]:         (id, name) => new BTSRevo(id, name),
 };

@@ -16,31 +16,11 @@ const enums_1 = require("../enums");
 let EthernetChannel = class EthernetChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.ETHERNET, enums_1.LogicalChannelSubclass.ETHERNET);
-        this.ethernetName = name;
-    }
-    get pbIFilter() {
-        return this.pblFilter;
-    }
-    set pbIFilter(value) {
-        this.pblFilter = value;
     }
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            ethernetName: this.ethernetName ?? this.name,
-            friendlyName: this.friendlyName, bufferSize: this.bufferSize,
-            pblFilter: this.pblFilter, timeout: this.timeout,
-            timeStampPrecision: this.timeStampPrecision,
-            timeStampSource: this.timeStampSource, immediateMode: this.immediateMode,
-            snapshotLength: this.snapshotLength, dapDeviceMode: this.dapDeviceMode,
-            useDataLoggerTimeStamp: this.useDataLoggerTimeStamp,
-            removeDataLoggerMetaData: this.removeDataLoggerMetaData,
-            dataLoggerType: this.dataLoggerType,
-            packetProcessingActive: this.packetProcessingActive,
-            packetIdentificationActive: this.packetIdentificationActive,
-            differentHandlerForTxAndRx: this.differentHandlerForTxAndRx,
-            tccmPacketizationActive: this.tccmPacketizationActive
         };
     }
     toJSON() {
@@ -48,74 +28,6 @@ let EthernetChannel = class EthernetChannel extends LogicalChannel_1.LogicalChan
     }
 };
 exports.EthernetChannel = EthernetChannel;
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "ethernetName", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "friendlyName", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], EthernetChannel.prototype, "bufferSize", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "pblFilter", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], EthernetChannel.prototype, "timeout", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "timeStampPrecision", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "timeStampSource", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "immediateMode", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], EthernetChannel.prototype, "snapshotLength", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "dapDeviceMode", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "useDataLoggerTimeStamp", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "removeDataLoggerMetaData", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], EthernetChannel.prototype, "dataLoggerType", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "packetProcessingActive", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "packetIdentificationActive", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "differentHandlerForTxAndRx", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], EthernetChannel.prototype, "tccmPacketizationActive", void 0);
 exports.EthernetChannel = EthernetChannel = __decorate([
     (0, typeorm_1.Entity)('logical_ethernet_channels'),
     __metadata("design:paramtypes", [String, String])

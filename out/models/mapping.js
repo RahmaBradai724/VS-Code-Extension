@@ -44,6 +44,17 @@ let Mapping = Mapping_1 = class Mapping {
             keySlot: this.keySlot,
             nodeType: this.nodeType,
             wakeUpCluster: this.wakeUpCluster,
+            measurementAttribute: this.measurementAttribute,
+            btsFunction: this.btsFunction,
+            lineContactState: this.lineContactState,
+            gndContactState: this.gndContactState,
+            vbatContactState: this.vbatContactState,
+            staticChannel: this.staticChannel,
+            initValue: this.initValue,
+            channelType: this.channelType,
+            pwmWindowTime: this.pwmWindowTime,
+            measurementConfig: this.measurementConfig,
+            subscriptionConfig: this.subscriptionConfig,
             comment: this.comment,
             createdAt: this.createdAt,
             logicalChannelType: this.logicalChannelType,
@@ -62,6 +73,17 @@ let Mapping = Mapping_1 = class Mapping {
         m.keySlot = data.keySlot;
         m.nodeType = data.nodeType;
         m.wakeUpCluster = data.wakeUpCluster;
+        m.measurementAttribute = data.measurementAttribute;
+        m.btsFunction = data.btsFunction;
+        m.lineContactState = data.lineContactState;
+        m.gndContactState = data.gndContactState;
+        m.vbatContactState = data.vbatContactState;
+        m.staticChannel = data.staticChannel;
+        m.initValue = data.initValue;
+        m.channelType = data.channelType;
+        m.pwmWindowTime = data.pwmWindowTime;
+        m.measurementConfig = data.measurementConfig;
+        m.subscriptionConfig = data.subscriptionConfig;
         return m;
     }
 };
@@ -118,6 +140,50 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
 ], Mapping.prototype, "wakeUpCluster", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Mapping.prototype, "measurementAttribute", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Mapping.prototype, "btsFunction", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], Mapping.prototype, "lineContactState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], Mapping.prototype, "gndContactState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], Mapping.prototype, "vbatContactState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Boolean)
+], Mapping.prototype, "staticChannel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Mapping.prototype, "initValue", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Mapping.prototype, "channelType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], Mapping.prototype, "pwmWindowTime", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
+], Mapping.prototype, "measurementConfig", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Mapping.prototype, "subscriptionConfig", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

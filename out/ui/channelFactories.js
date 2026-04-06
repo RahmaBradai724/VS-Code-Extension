@@ -13,9 +13,8 @@ exports.logicalChannelFactories = {
     [enums_1.LogicalChannelSubclass.IOINPUT]: (id, name) => new logicalChannels_1.IOInputChannel(id, name),
     [enums_1.LogicalChannelSubclass.IOOUTPUT]: (id, name) => new logicalChannels_1.IOOutputChannel(id, name),
     [enums_1.LogicalChannelSubclass.BRIDGE]: (id, name) => new logicalChannels_1.BridgeChannel(id, name),
-    [enums_1.LogicalChannelSubclass.ANALOG]: (id, name) => new logicalChannels_1.AnalogChannel(id, name),
     [enums_1.LogicalChannelSubclass.PS]: (id, name) => new logicalChannels_1.PSChannel(id, name),
-    [enums_1.LogicalChannelSubclass.IOSERIAL]: (id, name) => new logicalChannels_1.IPSChannel(id, name),
+    [enums_1.LogicalChannelSubclass.IOSERIAL]: (id, name) => new logicalChannels_1.IOSerialChannel(id, name),
 };
 exports.hardwareChannelFactories = {
     [enums_1.HardwareChannelSubclass.CAN_INTERFACE]: (id, name) => new hardwareChannels_1.CANInterface(id, name),
@@ -29,5 +28,6 @@ exports.hardwareChannelFactories = {
     [enums_1.HardwareChannelSubclass.TE_ANALOG]: (id, name) => new hardwareChannels_1.TEAnalog(id, name),
     [enums_1.HardwareChannelSubclass.CM_INTERFACE]: (id, name) => new hardwareChannels_1.CMInterface(id, name),
     [enums_1.HardwareChannelSubclass.HH_LOAD]: (id, name) => new hardwareChannels_1.HHLoad(id, name),
+    [enums_1.HardwareChannelSubclass.BTS_REVO]: (id, name) => new hardwareChannels_1.BTSRevo(id, name),
 };
 //# sourceMappingURL=channelFactories.js.map

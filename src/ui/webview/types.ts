@@ -125,7 +125,6 @@ export const CHANNEL_COLORS: Record<string, string> = {
   SERIAL: '#98c379',
   IOINPUT: '#e06c75',
   IOOUTPUT: '#f472b6',
-  ANALOG: '#e5c07b',
   TE_ANALOG: '#e5c07b',
   BRIDGE: '#93c5fd',
   PS: '#80cbc4',
@@ -137,6 +136,7 @@ export const CHANNEL_COLORS: Record<string, string> = {
   HID_RELAY: '#f472b6',
   ANALOG_DEVICE: '#e5c07b',
   HH_LOAD: '#fb923c',
+  BTS_REVO: '#f97316',
 };
 
 // ── Logical channel subclass → extra fields ───────────────────────────────
@@ -149,7 +149,6 @@ export const LOGICAL_SUBCLASS_OPTIONS = [
   { value: 'IOInputChannel', label: 'IO Input Channel', category: 'IOINPUT' },
   { value: 'IOOutputChannel', label: 'IO Output Channel', category: 'IOOUTPUT' },
   { value: 'BridgeChannel', label: 'Bridge Channel', category: 'BRIDGE' },
-  { value: 'AnalogChannel', label: 'Analog Channel', category: 'ANALOG' },
   { value: 'PSChannel', label: 'PS Channel', category: 'PS' },
   { value: 'IOSerialChannel', label: 'IO Serial Channel', category: 'IOSERIAL' },
 ];
@@ -158,45 +157,17 @@ export const LOGICAL_EXTRA_FIELDS: Record<string, FieldDef[]> = {
   CANChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. CANFD or CAN20' }],
   LINChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. 2.1' }],
   FlexRayChannel: [],
-  EthernetChannel: [
-    { key: 'friendlyName', label: 'Friendly Name', type: 'text', placeholder: 'e.g. Ethernet Adapter 1' },
-    { key: 'bufferSize', label: 'Buffer Size', type: 'number', placeholder: 'e.g. 1024' },
-    { key: 'immediateMode', label: 'Immediate Mode', type: 'checkbox' },
-    { key: 'snapshotLength', label: 'Snapshot Length', type: 'number', placeholder: 'e.g. 65535' },
-  ],
-  SerialChannel: [
-    { key: 'portName', label: 'Port Name', type: 'text', placeholder: 'e.g. COM1' },
-    { key: 'baudRate', label: 'Baud Rate', type: 'number', placeholder: 'e.g. 9600' },
-    { key: 'parity', label: 'Parity', type: 'select', options: ['None', 'Even', 'Odd', 'Mark', 'Space'] },
-    { key: 'dataBits', label: 'Data Bits', type: 'number', placeholder: 'e.g. 8' },
-    { key: 'stopBits', label: 'Stop Bits', type: 'text', placeholder: 'e.g. 1' },
-    { key: 'flowControl', label: 'Flow Control', type: 'select', options: ['None', 'RTS_CTS', 'XOn_XOff'] },
-  ],
+  EthernetChannel: [],
+  SerialChannel: [],
   IOInputChannel: [
-    { key: 'hwChannel', label: 'HW Channel', type: 'number', placeholder: 'e.g. 0' },
-    { key: 'measurementAttribute', label: 'Measurement Attribute', type: 'text', placeholder: '' },
-    { key: 'channelType', label: 'Channel Type', type: 'text', placeholder: '' },
-    { key: 'staticChannel', label: 'Static Channel', type: 'checkbox' },
+    { key: 'loggingBusIndex', label: 'Logging Bus Index', type: 'number', placeholder: 'e.g. 45' },
   ],
   IOOutputChannel: [
-    { key: 'hwChannel', label: 'HW Channel', type: 'number', placeholder: 'e.g. 0' },
-    { key: 'measurementAttribute', label: 'Measurement Attribute', type: 'text', placeholder: '' },
-    { key: 'channelType', label: 'Channel Type', type: 'text', placeholder: '' },
-    { key: 'staticChannel', label: 'Static Channel', type: 'checkbox' },
+    { key: 'loggingBusIndex', label: 'Logging Bus Index', type: 'number', placeholder: 'e.g. 45' },
   ],
-  BridgeChannel: [
-    { key: 'physicalAdapter', label: 'Physical Adapter', type: 'text', placeholder: 'e.g. eth0' },
-    { key: 'manipulatePackets', label: 'Manipulate Packets', type: 'checkbox' },
-  ],
-  AnalogChannel: [
-    { key: 'hwChannel', label: 'HW Channel', type: 'number', placeholder: 'e.g. 0' },
-    { key: 'deviceId', label: 'Device ID', type: 'number', placeholder: 'e.g. 1' },
-  ],
+  BridgeChannel: [],
   PSChannel: [],
-  IOSerialChannel: [
-    { key: 'openSession', label: 'Open Session', type: 'number', placeholder: 'e.g. 0' },
-    { key: 'openInterface', label: 'Open Interface', type: 'text', placeholder: '' },
-  ],
+  IOSerialChannel: [],
 };
 
 // ── Hardware channel subclass → extra fields ──────────────────────────────
@@ -212,6 +183,7 @@ export const HARDWARE_SUBCLASS_OPTIONS = [
   { value: 'AnalogDevice', label: 'Analog Device', category: 'ANALOG_DEVICE' },
   { value: 'TEAnalog', label: 'TE Analog', category: 'TE_ANALOG' },
   { value: 'HHLoad', label: 'HH Load', category: 'HH_LOAD' },
+  { value: 'BTSRevo', label: 'BTS-REVO', category: 'BTS_REVO' },
 ];
 
 export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
@@ -289,5 +261,10 @@ export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
     { key: 'portName', label: 'Port Name', type: 'text', placeholder: '' },
     { key: 'bitRate', label: 'Bit Rate', type: 'number', placeholder: '' },
     { key: 'loadType', label: 'Load Type', type: 'text', placeholder: '' },
+  ],
+  BTSRevo: [
+    { key: 'addressPrefix', label: 'Address Prefix (first 3 IP octets)', type: 'text', placeholder: 'e.g. 10.104.3' },
+    { key: 'boardId', label: 'Board ID (4th IP byte)', type: 'number', placeholder: 'e.g. 160' },
+    { key: 'ethernetPort', label: 'Ethernet Port', type: 'number', placeholder: 'e.g. 5001' },
   ],
 };
