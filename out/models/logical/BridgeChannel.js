@@ -21,9 +21,7 @@ let BridgeChannel = class BridgeChannel extends LogicalChannel_1.LogicalChannel 
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-            channelId: this.channelId, bridgeName: this.bridgeName ?? this.name,
-            tunTapAdapterList: this.tunTapAdapterList,
+            channelId: this.channelId,
         };
     }
     toJSON() {

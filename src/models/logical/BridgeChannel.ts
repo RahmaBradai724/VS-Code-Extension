@@ -22,9 +22,7 @@ export class BridgeChannel extends LogicalChannel {
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-      loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
-      channelId: this.channelId, bridgeName: this.bridgeName ?? this.name,
-      tunTapAdapterList: this.tunTapAdapterList,
+      channelId: this.channelId,
     };
   }
 

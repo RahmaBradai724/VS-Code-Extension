@@ -158,7 +158,9 @@ export const LOGICAL_EXTRA_FIELDS: Record<string, FieldDef[]> = {
   CANChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. CANFD or CAN20' }],
   LINChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. 2.1' }],
   FlexRayChannel: [],
-  EthernetChannel: [],
+  EthernetChannel: [
+    { key: 'applicationProtocol', label: 'Application Protocol', type: 'select', options: ['SOMEIP', 'DOIP', 'UDPNM', 'DLT', 'NPDU', 'RAW'] },
+  ],
   SerialChannel: [],
   IOInputChannel: [
     { key: 'loggingBusIndex', label: 'Logging Bus Index', type: 'number', placeholder: 'e.g. 45' },

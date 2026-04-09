@@ -100,21 +100,26 @@ class ConfigGenerator {
                 // MTF spec uses 'FR' — normalize both FLEXRAY and FR enum values
                 Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
             };
-            const protocol = ch.protocol;
-            if (protocol) {
-                obj.Protocol = protocol;
-            }
-            if (ch.loggingName) {
-                obj.LoggingName = ch.loggingName;
-            }
-            if (ch.tracerName) {
-                obj.TracerName = ch.tracerName;
-            }
-            if (ch.alias?.length) {
-                obj.Alias = ch.alias;
-            }
-            if (ch.loggingBusIndex != null) {
-                obj.LoggingBusIndex = ch.loggingBusIndex;
+            if (ch.category !== 'BRIDGE') {
+                const protocol = ch.protocol;
+                if (protocol) {
+                    obj.Protocol = protocol;
+                }
+                if (ch.loggingName) {
+                    obj.LoggingName = ch.loggingName;
+                }
+                if (ch.tracerName) {
+                    obj.TracerName = ch.tracerName;
+                }
+                if (ch.alias?.length) {
+                    obj.Alias = ch.alias;
+                }
+                if (ch.loggingBusIndex != null) {
+                    obj.LoggingBusIndex = ch.loggingBusIndex;
+                }
+                if (ch.applicationProtocol) {
+                    obj.ApplicationProtocol = ch.applicationProtocol;
+                }
             }
             channelsSection[ch.name] = obj;
         });

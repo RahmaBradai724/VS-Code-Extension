@@ -22,11 +22,14 @@ function buildMtfObject(state: AppState): Record<string, any> {
       Id: index + 1,
       Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
     };
-    if (ch.protocol)      { obj.Protocol    = ch.protocol; }
-    if (ch.loggingName)   { obj.LoggingName  = ch.loggingName; }
-    if (ch.tracerName)    { obj.TracerName   = ch.tracerName; }
-    if (ch.alias?.length) { obj.Alias        = ch.alias; }
-    if (ch.loggingBusIndex != null) { obj.LoggingBusIndex = ch.loggingBusIndex; }
+    if (ch.category !== 'BRIDGE') {
+      if (ch.protocol)      { obj.Protocol    = ch.protocol; }
+      if (ch.loggingName)   { obj.LoggingName  = ch.loggingName; }
+      if (ch.tracerName)    { obj.TracerName   = ch.tracerName; }
+      if (ch.alias?.length) { obj.Alias        = ch.alias; }
+      if (ch.loggingBusIndex != null) { obj.LoggingBusIndex = ch.loggingBusIndex; }
+      if (ch.applicationProtocol) { obj.ApplicationProtocol = ch.applicationProtocol; }
+    }
     channelsSection[ch.name] = obj;
   });
 

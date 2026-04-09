@@ -4,7 +4,7 @@ import { CHANNEL_COLORS, LOGICAL_SUBCLASS_OPTIONS } from '../types';
 import { T, Badge, SectionHeader } from '../components/shared';
 import { ConfirmModal } from '../components/ConfirmModal';
 
-const OPERATION_MODES = ['Active', 'Passive', 'Monitor'];
+const OPERATION_MODES = ['Normal', 'Spy', 'TxOnly', 'RxOnly'];
 const NODE_TYPES = ['ColdStartNode', 'WakeupNode', 'SyncNode'];
 const BTS_FUNCTIONS = ['None', 'Relay', 'Potentiometer', 'ElectronicLoad', 'GNDSwitch', 'VBATSwitch', 'VoltageGenerator'];
 const BTS_MEASUREMENT_ATTRS = ['Voltage', 'Current', 'PWM'];

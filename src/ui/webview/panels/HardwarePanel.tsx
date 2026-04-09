@@ -84,7 +84,7 @@ export default function HardwarePanel() {
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <label style={T.label}>Hardware Type / Subclass *</label>
+            <label style={T.label}>Hardware Type *</label>
             <select style={T.select} value={form.subclass} onChange={e => setSubclass(e.target.value)}>
               {HARDWARE_SUBCLASS_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>

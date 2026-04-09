@@ -6,6 +6,9 @@ import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
 @Entity('logical_ethernet_channels')
 export class EthernetChannel extends LogicalChannel {
 
+  @Column({ nullable: true })
+  applicationProtocol?: string;
+
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.ETHERNET, LogicalChannelSubclass.ETHERNET);
   }
@@ -15,6 +18,7 @@ export class EthernetChannel extends LogicalChannel {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
       loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
       channelId: this.channelId,
+      applicationProtocol: this.applicationProtocol,
     };
   }
 

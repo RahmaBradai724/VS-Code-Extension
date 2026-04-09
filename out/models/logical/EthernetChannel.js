@@ -22,6 +22,7 @@ let EthernetChannel = class EthernetChannel extends LogicalChannel_1.LogicalChan
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
             loggingName: this.loggingName, tracerName: this.tracerName, alias: this.alias,
             channelId: this.channelId,
+            applicationProtocol: this.applicationProtocol,
         };
     }
     toJSON() {
@@ -29,6 +30,10 @@ let EthernetChannel = class EthernetChannel extends LogicalChannel_1.LogicalChan
     }
 };
 exports.EthernetChannel = EthernetChannel;
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], EthernetChannel.prototype, "applicationProtocol", void 0);
 exports.EthernetChannel = EthernetChannel = __decorate([
     (0, typeorm_1.Entity)('logical_ethernet_channels'),
     __metadata("design:paramtypes", [String, String])

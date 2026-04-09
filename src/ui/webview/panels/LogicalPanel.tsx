@@ -101,6 +101,11 @@ export default function LogicalPanel() {
 
   const extraFields = LOGICAL_EXTRA_FIELDS[form.subclass] ?? [];
   const selectedOpt = LOGICAL_SUBCLASS_OPTIONS.find(o => o.value === form.subclass);
+  const needsProtocol = form.subclass === 'CANChannel' || form.subclass === 'LINChannel';
+  const isBridge = form.subclass === 'BridgeChannel';
+  const canSubmit = form.name.trim() !== '' &&
+    form.channelId.trim() !== '' &&
+    (!needsProtocol || String(form.extras.protocol ?? '').trim() !== '');
 
   return (
     <div>
@@ -118,33 +123,9 @@ export default function LogicalPanel() {
       {showForm && (
         <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
           <p style={T.cardTitle}>New Logical Channel</p>
-          <div style={T.grid2}>
-            <div>
-              <label style={T.label}>Name *</label>
-              <input style={T.input} placeholder="e.g. CAN_Channel_1" value={form.name} onChange={e => setField('name', e.target.value)} />
-            </div>
-            <div>
-              <label style={T.label}>Channel ID</label>
-              <input style={T.input} type="number" placeholder="e.g. 1" value={form.channelId} onChange={e => setField('channelId', e.target.value)} />
-            </div>
-            <div>
-              <label style={T.label}>Logging Name</label>
-              <input style={T.input} placeholder="optional" value={form.loggingName} onChange={e => setField('loggingName', e.target.value)} />
-            </div>
-            <div>
-              <label style={T.label}>Tracer Name</label>
-              <input style={T.input} placeholder="optional" value={form.tracerName} onChange={e => setField('tracerName', e.target.value)} />
-            </div>
-            <div>
-              <label style={T.label}>Aliases (comma-separated)</label>
-              <input style={T.input} placeholder="alias1, alias2" value={form.aliases} onChange={e => setField('aliases', e.target.value)} />
-            </div>
-          </div>
-
-          <div style={T.divider} />
 
           <div style={{ marginBottom: '12px' }}>
-            <label style={T.label}>Type / Subclass *</label>
+            <label style={T.label}>Type *</label>
             <select style={T.select} value={form.subclass} onChange={e => setSubclass(e.target.value)}>
               {LOGICAL_SUBCLASS_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -157,22 +138,44 @@ export default function LogicalPanel() {
             )}
           </div>
 
-          {extraFields.length > 0 && (
-            <>
-              <div style={T.divider} />
-              <p style={{ ...T.cardTitle, marginBottom: '8px', opacity: 0.7 }}>Type-specific fields</p>
-              <div style={T.grid2}>
-                {extraFields.map(f => (
-                  <DynamicField key={f.key} def={f} value={form.extras[f.key]} onChange={setExtra} />
-                ))}
+          <div style={T.divider} />
+
+          <div style={T.grid2}>
+            <div>
+              <label style={T.label}>Name *</label>
+              <input style={T.input} placeholder="e.g. CAN_Channel_1" value={form.name} onChange={e => setField('name', e.target.value)} />
+            </div>
+            <div>
+              <label style={T.label}>Channel ID *</label>
+              <input style={T.input} type="number" placeholder="e.g. 1" value={form.channelId} onChange={e => setField('channelId', e.target.value)} />
+            </div>
+            {extraFields.map(f => (
+              <DynamicField key={f.key} def={f} value={form.extras[f.key]} onChange={setExtra} />
+            ))}
+            {!isBridge && (
+              <div>
+                <label style={T.label}>Logging Name</label>
+                <input style={T.input} placeholder="optional" value={form.loggingName} onChange={e => setField('loggingName', e.target.value)} />
               </div>
-            </>
-          )}
+            )}
+            {!isBridge && (
+              <div>
+                <label style={T.label}>Tracer Name</label>
+                <input style={T.input} placeholder="optional" value={form.tracerName} onChange={e => setField('tracerName', e.target.value)} />
+              </div>
+            )}
+            {!isBridge && (
+              <div>
+                <label style={T.label}>Aliases (comma-separated)</label>
+                <input style={T.input} placeholder="alias1, alias2" value={form.aliases} onChange={e => setField('aliases', e.target.value)} />
+              </div>
+            )}
+          </div>
 
           <div style={{ ...T.divider, marginTop: '16px' }} />
           <div style={{ ...T.row, justifyContent: 'flex-end' }}>
             <button style={T.btnSecondary} onClick={handleCancelForm}>Cancel</button>
-            <button style={T.btnPrimary} onClick={handleAdd}>Add Channel</button>
+            <button style={{ ...T.btnPrimary, opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? 'pointer' : 'not-allowed' }} disabled={!canSubmit} onClick={handleAdd}>Add Channel</button>
           </div>
         </div>
       )}
