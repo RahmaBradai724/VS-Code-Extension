@@ -1,24 +1,45 @@
-import { ChildEntity, Column } from 'typeorm';
-import { Tracer } from './Tracer';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@ChildEntity('PCAP')
-export class PCAPTracer extends Tracer {
+/** Dedicated table for PCAP tracers. */
+@Entity('pcap_tracers')
+export class PCAPTracer {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
   @Column()
-  loggingFilePath: string = '';
+  name: string = '';
 
+  /** FK to framework_configs.id */
   @Column({ nullable: true })
-  loggingFileLong?: string;
+  frameworkConfigId?: number;
 
-  constructor(id: string, name: string) {
-    super(id, name);
-    this.loggingType = 'PCAP';
-  }
+  /** MultipleAdapterMode | PerformanceMode | StandardMode */
+  @Column({ nullable: true })
+  loggingType?: string;
+
+  /** Microsecond | Nanosecond */
+  @Column({ nullable: true })
+  timestamp?: string;
+
+  /** BufferConfig + FileConfig */
+  @Column({ type: 'jsonb', nullable: true })
+  loggerConfiguration?: object;
 
   toYAML(): object {
-    return { id: this.id, name: this.name, type: 'PCAP', loggingFilePath: this.loggingFilePath };
+    const entry: Record<string, any> = { Type: 'PCAP' };
+    if (this.loggingType)         { entry.LoggingType         = this.loggingType; }
+    if (this.timestamp)           { entry.Timestamp           = this.timestamp; }
+    if (this.loggerConfiguration) { entry.LoggerConfiguration = this.loggerConfiguration; }
+    return { [this.name]: entry };
   }
 
   toJSON(): object {
-    return { id: this.id, name: this.name, type: 'PCAP', loggingFilePath: this.loggingFilePath, loggingFileLong: this.loggingFileLong };
+    return {
+      name: this.name,
+      Type: 'PCAP',
+      LoggingType: this.loggingType,
+      Timestamp: this.timestamp,
+      LoggerConfiguration: this.loggerConfiguration,
+    };
   }
 }

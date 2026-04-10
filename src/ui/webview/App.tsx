@@ -16,6 +16,7 @@ import LogicalPanel from './panels/LogicalPanel';
 import HardwarePanel from './panels/HardwarePanel';
 import MappingsPanel from './panels/MappingsPanel';
 import FrameworkPanel from './panels/FrameworkPanel';
+import TracerPanel from './panels/TracerPanel';
 import GeneratePanel from './panels/GeneratePanel';
 import DiagramPanel from './panels/DiagramPanel';
 
@@ -42,6 +43,7 @@ export function App() {
     hardware: <HardwarePanel />,
     mappings: <MappingsPanel />,
     framework: <FrameworkPanel />,
+    tracers: <TracerPanel />,
     generate: <GeneratePanel />,
     diagram: <DiagramPanel />,
   };

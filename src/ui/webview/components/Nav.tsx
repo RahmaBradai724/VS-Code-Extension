@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'hardware',  label: 'Hardware Channels', Icon: Icons.hardware,  countKey: 'hardwareChannels' },
   { id: 'mappings',  label: 'Mappings',          Icon: Icons.mappings,  countKey: 'mappings' },
   { id: 'framework', label: 'Framework',         Icon: Icons.framework },
+  { id: 'tracers',   label: 'Tracers',           Icon: Icons.tracers },
   { id: 'generate',  label: 'Generate',          Icon: Icons.generate },
   { id: 'diagram',   label: 'Diagram',           Icon: Icons.diagram },
 ];

@@ -11,7 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FrameworkConfig = void 0;
 const typeorm_1 = require("typeorm");
-const Tracer_1 = require("./Tracer");
 const PublisherConfig_1 = require("./PublisherConfig");
 const DiagnosticsConfig_1 = require("./DiagnosticsConfig");
 const EthernetConfig_1 = require("./EthernetConfig");
@@ -22,17 +21,16 @@ let FrameworkConfig = class FrameworkConfig {
         this.publisherConfig = new PublisherConfig_1.PublisherConfig();
         this.diagnostics = new DiagnosticsConfig_1.DiagnosticsConfig();
         this.ethernetConfig = new EthernetConfig_1.EthernetConfig();
+        /** Raw tracer data (JSONB cache – source of truth for runtime/globalState). */
         this.tracers = [];
         this.connectedEcus = [];
         this.channelToEcusMapping = new Map();
     }
     toYAML() {
-        const tracers = this.tracing ? this.tracing.map(t => t.toYAML()) : [];
         return {
             publisher: this.publisherConfig.toYAML(),
             diagnostics: this.diagnostics.toYAML(),
             ethernet: this.ethernetConfig.toYAML(),
-            tracing: tracers,
         };
     }
     toJSON() {
@@ -40,7 +38,6 @@ let FrameworkConfig = class FrameworkConfig {
             publisherConfig: this.publisherConfig.toJSON(),
             diagnostics: this.diagnostics.toJSON(),
             ethernetConfig: this.ethernetConfig.toJSON(),
-            tracing: this.tracing ? this.tracing.map(t => t.toJSON()) : [],
             tracers: this.tracers ?? [],
             connectedEcus: this.connectedEcus,
             servicePack: this.servicePack,
@@ -73,10 +70,6 @@ __decorate([
     (0, typeorm_1.Column)(() => EthernetConfig_1.EthernetConfig),
     __metadata("design:type", EthernetConfig_1.EthernetConfig)
 ], FrameworkConfig.prototype, "ethernetConfig", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => Tracer_1.Tracer, (t) => t.configuration),
-    __metadata("design:type", Array)
-], FrameworkConfig.prototype, "tracing", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
     __metadata("design:type", Array)

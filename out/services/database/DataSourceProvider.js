@@ -68,14 +68,14 @@ function getDataSource() {
             username: dbConfig.username,
             password: dbConfig.password,
             database: dbConfig.database,
-            synchronize: true,
+            synchronize: false,
             logging: false,
             entities: [
                 logicalChannels_1.FlexRayChannel, logicalChannels_1.SerialChannel, logicalChannels_1.CANChannel, logicalChannels_1.IOInputChannel, logicalChannels_1.IOOutputChannel,
                 logicalChannels_1.LINChannel, logicalChannels_1.IOSerialChannel, logicalChannels_1.BridgeChannel, logicalChannels_1.EthernetChannel, logicalChannels_1.PSChannel,
                 hardwareChannels_1.LINCard, hardwareChannels_1.SerialPort, hardwareChannels_1.HIDRelay, hardwareChannels_1.RelayBoard, hardwareChannels_1.EthernetAdapter, hardwareChannels_1.AnalogDevice,
                 hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad, hardwareChannels_1.BTSRevo,
-                frameworkConfig_1.Tracer, frameworkConfig_1.PCAPTracer, frameworkConfig_1.ASCIITracer, frameworkConfig_1.FrameworkConfig,
+                frameworkConfig_1.PCAPTracer, frameworkConfig_1.ASCIITracer, frameworkConfig_1.FrameworkConfig,
                 configuration_1.Configuration, user_1.User, mapping_1.Mapping,
             ],
         });
@@ -95,6 +95,29 @@ function initializeDatabase() {
             if (!ds.isInitialized) {
                 await ds.initialize();
             }
+            // Ensure tracer tables exist (safe: IF NOT EXISTS avoids conflicts on reload)
+            await ds.query(`
+        CREATE TABLE IF NOT EXISTS pcap_tracers (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR NOT NULL,
+          "frameworkConfigId" INTEGER,
+          "loggingType" VARCHAR,
+          "timestamp" VARCHAR,
+          "loggerConfiguration" JSONB
+        )
+      `);
+            await ds.query(`
+        CREATE TABLE IF NOT EXISTS ascii_tracers (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR NOT NULL,
+          "frameworkConfigId" INTEGER,
+          base VARCHAR,
+          "internalEventLogged" BOOLEAN NOT NULL DEFAULT false,
+          "timeStampSetting" VARCHAR,
+          "timestamp" VARCHAR,
+          "loggerConfiguration" JSONB
+        )
+      `);
             console.log('Database initialized successfully (TypeORM).');
         }
         catch (err) {

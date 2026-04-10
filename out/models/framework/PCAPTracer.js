@@ -11,31 +11,60 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PCAPTracer = void 0;
 const typeorm_1 = require("typeorm");
-const Tracer_1 = require("./Tracer");
-let PCAPTracer = class PCAPTracer extends Tracer_1.Tracer {
-    constructor(id, name) {
-        super(id, name);
-        this.loggingFilePath = '';
-        this.loggingType = 'PCAP';
+/** Dedicated table for PCAP tracers. */
+let PCAPTracer = class PCAPTracer {
+    constructor() {
+        this.name = '';
     }
     toYAML() {
-        return { id: this.id, name: this.name, type: 'PCAP', loggingFilePath: this.loggingFilePath };
+        const entry = { Type: 'PCAP' };
+        if (this.loggingType) {
+            entry.LoggingType = this.loggingType;
+        }
+        if (this.timestamp) {
+            entry.Timestamp = this.timestamp;
+        }
+        if (this.loggerConfiguration) {
+            entry.LoggerConfiguration = this.loggerConfiguration;
+        }
+        return { [this.name]: entry };
     }
     toJSON() {
-        return { id: this.id, name: this.name, type: 'PCAP', loggingFilePath: this.loggingFilePath, loggingFileLong: this.loggingFileLong };
+        return {
+            name: this.name,
+            Type: 'PCAP',
+            LoggingType: this.loggingType,
+            Timestamp: this.timestamp,
+            LoggerConfiguration: this.loggerConfiguration,
+        };
     }
 };
 exports.PCAPTracer = PCAPTracer;
 __decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], PCAPTracer.prototype, "id", void 0);
+__decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], PCAPTracer.prototype, "loggingFilePath", void 0);
+], PCAPTracer.prototype, "name", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], PCAPTracer.prototype, "frameworkConfigId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], PCAPTracer.prototype, "loggingFileLong", void 0);
+], PCAPTracer.prototype, "loggingType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], PCAPTracer.prototype, "timestamp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], PCAPTracer.prototype, "loggerConfiguration", void 0);
 exports.PCAPTracer = PCAPTracer = __decorate([
-    (0, typeorm_1.ChildEntity)('PCAP'),
-    __metadata("design:paramtypes", [String, String])
+    (0, typeorm_1.Entity)('pcap_tracers')
 ], PCAPTracer);
 //# sourceMappingURL=PCAPTracer.js.map

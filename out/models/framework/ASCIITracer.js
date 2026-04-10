@@ -11,50 +11,76 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ASCIITracer = void 0;
 const typeorm_1 = require("typeorm");
-const Tracer_1 = require("./Tracer");
-const enums_1 = require("../enums");
-let ASCIITracer = class ASCIITracer extends Tracer_1.Tracer {
-    constructor(id, name) {
-        super(id, name);
-        this.base = '';
+/** Dedicated table for ASCII tracers. */
+let ASCIITracer = class ASCIITracer {
+    constructor() {
+        this.name = '';
         this.internalEventLogged = false;
-        this.timeStampSetting = '';
-        this.loggingType = 'ASCII';
     }
     toYAML() {
-        return {
-            id: this.id, name: this.name, type: 'ASCII',
-            base: this.base, internalEventLogged: this.internalEventLogged,
-            timeStampSetting: this.timeStampSetting, timestampPrecision: this.timestampPrecision
-        };
+        const entry = { Type: 'ASCII' };
+        if (this.base) {
+            entry.Base = this.base;
+        }
+        if (this.timeStampSetting) {
+            entry.TimeStampSetting = this.timeStampSetting;
+        }
+        if (this.timestamp) {
+            entry.Timestamp = this.timestamp;
+        }
+        entry.InternalEventLogged = this.internalEventLogged;
+        if (this.loggerConfiguration) {
+            entry.LoggerConfiguration = this.loggerConfiguration;
+        }
+        return { [this.name]: entry };
     }
     toJSON() {
-        return { ...this.toYAML(), loggingFileLong: this.loggingFileLong };
+        return {
+            id: this.id,
+            name: this.name,
+            Type: 'ASCII',
+            Base: this.base,
+            TimeStampSetting: this.timeStampSetting,
+            Timestamp: this.timestamp,
+            InternalEventLogged: this.internalEventLogged,
+            LoggerConfiguration: this.loggerConfiguration,
+        };
     }
 };
 exports.ASCIITracer = ASCIITracer;
 __decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], ASCIITracer.prototype, "id", void 0);
+__decorate([
     (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], ASCIITracer.prototype, "name", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], ASCIITracer.prototype, "frameworkConfigId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], ASCIITracer.prototype, "base", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], ASCIITracer.prototype, "internalEventLogged", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], ASCIITracer.prototype, "timeStampSetting", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], ASCIITracer.prototype, "loggingFileLong", void 0);
+], ASCIITracer.prototype, "timestamp", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
-    __metadata("design:type", String)
-], ASCIITracer.prototype, "timestampPrecision", void 0);
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], ASCIITracer.prototype, "loggerConfiguration", void 0);
 exports.ASCIITracer = ASCIITracer = __decorate([
-    (0, typeorm_1.ChildEntity)('ASCII'),
-    __metadata("design:paramtypes", [String, String])
+    (0, typeorm_1.Entity)('ascii_tracers')
 ], ASCIITracer);
 //# sourceMappingURL=ASCIITracer.js.map

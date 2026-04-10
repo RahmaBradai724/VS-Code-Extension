@@ -246,43 +246,51 @@ export class ConfigGenerator {
     if (rawTracers.length > 0) {
       const tracing: Record<string, any> = {};
       for (const t of rawTracers) {
-        const entry: Record<string, any> = { Type: t.type };
-        if (t.timestamp) { entry.Timestamp = t.timestamp; }
+        const type = t.Type || t.type;
+        const entry: Record<string, any> = { Type: type };
+        const ts = t.Timestamp || t.timestamp;
+        if (ts) { entry.Timestamp = ts; }
 
-        if (t.type === 'PCAP') {
-          if (t.loggingType) { entry.LoggingType = t.loggingType; }
+        const lc = t.LoggerConfiguration || t.loggerConfiguration;
+
+        if (type === 'PCAP') {
+          const lt = t.LoggingType || t.loggingType;
+          if (lt) { entry.LoggingType = lt; }
           const loggerConfig: Record<string, any> = {};
-          if (t.loggerConfiguration?.bufferConfig && Object.keys(t.loggerConfiguration.bufferConfig).length) {
-            const bc = t.loggerConfiguration.bufferConfig;
+          const bc = lc?.BufferConfig || lc?.bufferConfig;
+          if (bc && Object.keys(bc).length) {
             const bufOut: Record<string, any> = {};
-            if (bc.bufferSize  !== undefined) { bufOut.BufferSize     = bc.bufferSize; }
-            if (bc.bufferNumber !== undefined) { bufOut.BufferNumber   = bc.bufferNumber; }
-            if (bc.writeBurstSize !== undefined) { bufOut.WriteBurstSize = bc.writeBurstSize; }
-            loggerConfig.BufferConfig = bufOut;
+            if (bc.BufferSize    ?? bc.bufferSize    !== undefined) { bufOut.BufferSize    = bc.BufferSize    ?? bc.bufferSize; }
+            if (bc.BufferNumber  ?? bc.bufferNumber  !== undefined) { bufOut.BufferNumber  = bc.BufferNumber  ?? bc.bufferNumber; }
+            if (bc.WriteBurstSize ?? bc.writeBurstSize !== undefined) { bufOut.WriteBurstSize = bc.WriteBurstSize ?? bc.writeBurstSize; }
+            if (Object.keys(bufOut).length) { loggerConfig.BufferConfig = bufOut; }
           }
-          if (t.loggerConfiguration?.fileConfig && Object.keys(t.loggerConfiguration.fileConfig).length) {
-            const fc2 = t.loggerConfiguration.fileConfig;
+          const fc2 = lc?.FileConfig || lc?.fileConfig;
+          if (fc2 && Object.keys(fc2).length) {
             const fileOut: Record<string, any> = {};
-            if (fc2.baseFileName !== undefined)    { fileOut.BaseFileName    = fc2.baseFileName; }
-            if (fc2.extension !== undefined)       { fileOut.Extension       = fc2.extension; }
-            if (fc2.maxFile !== undefined)         { fileOut.MaxFile         = fc2.maxFile; }
-            if (fc2.maxFileSize !== undefined)     { fileOut.MaxFileSize     = fc2.maxFileSize; }
-            if (fc2.compressionLevel !== undefined) { fileOut.CompressionLevel = fc2.compressionLevel; }
-            loggerConfig.FileConfig = fileOut;
+            const bn = fc2.BaseFileName ?? fc2.baseFileName; if (bn !== undefined) { fileOut.BaseFileName = bn; }
+            const ex = fc2.Extension    ?? fc2.extension;    if (ex !== undefined) { fileOut.Extension    = ex; }
+            const mf = fc2.MaxFile      ?? fc2.maxFile;      if (mf !== undefined) { fileOut.MaxFile      = mf; }
+            const ms = fc2.MaxFileSize  ?? fc2.maxFileSize;  if (ms !== undefined) { fileOut.MaxFileSize  = ms; }
+            const cl = fc2.CompressionLevel ?? fc2.compressionLevel; if (cl !== undefined) { fileOut.CompressionLevel = cl; }
+            if (Object.keys(fileOut).length) { loggerConfig.FileConfig = fileOut; }
           }
           if (Object.keys(loggerConfig).length) { entry.LoggerConfiguration = loggerConfig; }
-        } else if (t.type === 'ASCII') {
-          if (t.base)             { entry.Base                = t.base; }
-          if (t.timeStampSetting) { entry.TimeStampSetting    = t.timeStampSetting; }
-          if (t.internalEventLogged !== undefined) { entry.InternalEventLogged = t.internalEventLogged; }
-          if (t.loggerConfiguration?.fileConfig && Object.keys(t.loggerConfiguration.fileConfig).length) {
-            const fc2 = t.loggerConfiguration.fileConfig;
+        } else if (type === 'ASCII') {
+          const base = t.Base || t.base;
+          const tss  = t.TimeStampSetting || t.timeStampSetting;
+          const iel  = t.InternalEventLogged ?? t.internalEventLogged;
+          if (base) { entry.Base = base; }
+          if (tss)  { entry.TimeStampSetting = tss; }
+          if (iel !== undefined) { entry.InternalEventLogged = iel; }
+          const fc2 = lc?.FileConfig || lc?.fileConfig;
+          if (fc2 && Object.keys(fc2).length) {
             const fileOut: Record<string, any> = {};
-            if (fc2.baseFileName !== undefined) { fileOut.BaseFileName = fc2.baseFileName; }
-            if (fc2.extension !== undefined)    { fileOut.Extension    = fc2.extension; }
-            if (fc2.maxFile !== undefined)      { fileOut.MaxFile      = fc2.maxFile; }
-            if (fc2.maxFileSize !== undefined)  { fileOut.MaxFileSize  = fc2.maxFileSize; }
-            entry.LoggerConfiguration = { FileConfig: fileOut };
+            const bn = fc2.BaseFileName ?? fc2.baseFileName; if (bn !== undefined) { fileOut.BaseFileName = bn; }
+            const ex = fc2.Extension    ?? fc2.extension;    if (ex !== undefined) { fileOut.Extension    = ex; }
+            const mf = fc2.MaxFile      ?? fc2.maxFile;      if (mf !== undefined) { fileOut.MaxFile      = mf; }
+            const ms = fc2.MaxFileSize  ?? fc2.maxFileSize;  if (ms !== undefined) { fileOut.MaxFileSize  = ms; }
+            if (Object.keys(fileOut).length) { entry.LoggerConfiguration = { FileConfig: fileOut }; }
           }
         }
 

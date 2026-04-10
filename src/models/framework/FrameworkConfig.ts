@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Tracer } from './Tracer';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { PublisherConfig } from './PublisherConfig';
 import { DiagnosticsConfig } from './DiagnosticsConfig';
 import { EthernetConfig } from './EthernetConfig';
@@ -25,9 +24,7 @@ export class FrameworkConfig {
   @Column(() => EthernetConfig)
   ethernetConfig: EthernetConfig = new EthernetConfig();
 
-  @OneToMany(() => Tracer, (t) => t.configuration)
-  tracing!: Tracer[];
-
+  /** Raw tracer data (JSONB cache – source of truth for runtime/globalState). */
   @Column({ type: 'jsonb', default: [] })
   tracers: object[] = [];
 
@@ -41,12 +38,10 @@ export class FrameworkConfig {
   channelToEcusMapping: Map<string, string[]> = new Map();
 
   toYAML(): object {
-    const tracers: object[] = this.tracing ? this.tracing.map(t => t.toYAML()) : [];
     return {
       publisher: this.publisherConfig.toYAML(),
       diagnostics: this.diagnostics.toYAML(),
       ethernet: this.ethernetConfig.toYAML(),
-      tracing: tracers,
     };
   }
 
@@ -55,8 +50,7 @@ export class FrameworkConfig {
       publisherConfig: this.publisherConfig.toJSON(),
       diagnostics: this.diagnostics.toJSON(),
       ethernetConfig: this.ethernetConfig.toJSON(),
-      tracing: this.tracing ? this.tracing.map(t => t.toJSON()) : [],
-      tracers: (this as any).tracers ?? [],
+      tracers: this.tracers ?? [],
       connectedEcus: this.connectedEcus,
       servicePack: this.servicePack,
       channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,

@@ -68,6 +68,7 @@ export class MessageHandler {
       case 'addMapping':              return this._addMapping(message, webview);
       case 'removeMapping':           return this._removeMapping(message, webview);
       case 'generateConfig':          return this._generateConfig(message, webview);
+      case 'saveFramework':            return this._saveFramework(message, webview);
       case 'runAIValidation':         return this._runAIValidation(webview);
       case 'importConfig':            return this._importConfig(webview);
       case 'applyYamlEdit':           return this._applyYamlEdit(message, webview);
@@ -352,6 +353,27 @@ export class MessageHandler {
   }
 
   // ── Generate & AI handlers ──────────────────────────────────────────────
+
+  private async _saveFramework(message: any, webview: vscode.Webview) {
+    if (!this.currentConfig) {
+      webview.postMessage({ command: 'error', message: 'No configuration loaded.' });
+      return;
+    }
+    const fw = message.frameworkData;
+    if (!fw) { return; }
+    if (!this.currentConfig.frameworkConfig) {
+      (this.currentConfig as any).frameworkConfig = {};
+    }
+    const fc = this.currentConfig.frameworkConfig as any;
+    fc.tracers        = fw.tracers        || [];
+    fc.publisherType  = fw.publisherType;
+    fc.channelsGroups = fw.channelsGroups || [];
+    fc.connectedEcus  = fw.connectedEcus  || [];
+    fc.servicePack    = fw.servicePack;
+    if (fw.ethernetConfig) { fc.ethernetConfig = fw.ethernetConfig; }
+    await this._saveCurrentConfig();
+    webview.postMessage({ command: 'frameworkSaved' });
+  }
 
   private async _generateConfig(message: any, webview: vscode.Webview) {
     if (!this.currentConfig) {

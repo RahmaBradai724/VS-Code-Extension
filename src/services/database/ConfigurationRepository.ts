@@ -25,6 +25,9 @@ import {
 } from '../../models/hardwareChannels';
 import { Configuration } from '../../models/configuration';
 import { Mapping } from '../../models/mapping';
+import { FrameworkConfig } from '../../models/framework';
+import { PCAPTracer } from '../../models/framework/PCAPTracer';
+import { ASCIITracer } from '../../models/framework/ASCIITracer';
 import { getDataSource, initializeDatabase } from './DataSourceProvider';
 
 const LOGICAL_MAP: Record<string, any> = {
@@ -115,6 +118,55 @@ export class ConfigurationRepository {
       const mappingRepo = ds.getRepository(Mapping);
       for (const m of parsedData.mappings) {
         await mappingRepo.save(mappingRepo.create(m));
+      }
+    }
+
+    if (parsedData.frameworkConfig) {
+      const fwRepo = ds.getRepository(FrameworkConfig);
+      const existingWithFw = await repo.findOne({
+        where: { id: configId },
+        relations: ['frameworkConfig'],
+      });
+      const fwEntity = existingWithFw?.frameworkConfig ?? new FrameworkConfig();
+      const fw = parsedData.frameworkConfig;
+      fwEntity.tracers       = fw.tracers        ?? [];
+      fwEntity.connectedEcus = fw.connectedEcus  ?? [];
+      if (fw.servicePack !== undefined) { fwEntity.servicePack = fw.servicePack; }
+      if (fw.publisherType)    { fwEntity.publisherConfig.publisherType    = fw.publisherType; }
+      if (fw.channelsGroups)   { fwEntity.publisherConfig.channelsGroups   = fw.channelsGroups; }
+      const savedFw = await fwRepo.save(fwEntity);
+      // Link the saved FrameworkConfig back to the Configuration row
+      await repo.update(configId, { frameworkConfig: savedFw } as any);
+
+      // Save tracers to their dedicated tables (pcap_tracers / ascii_tracers)
+      const tracers: any[] = fw.tracers ?? [];
+      const pcapRepo  = ds.getRepository(PCAPTracer);
+      const asciiRepo = ds.getRepository(ASCIITracer);
+
+      // Remove stale rows for this frameworkConfig before reinserting
+      await pcapRepo.delete({ frameworkConfigId: savedFw.id });
+      await asciiRepo.delete({ frameworkConfigId: savedFw.id });
+
+      for (const t of tracers) {
+        if (t.Type === 'PCAP') {
+          await pcapRepo.save(pcapRepo.create({
+            name:                t.name,
+            frameworkConfigId:   savedFw.id,
+            loggingType:         t.LoggingType,
+            timestamp:           t.Timestamp,
+            loggerConfiguration: t.LoggerConfiguration,
+          }));
+        } else if (t.Type === 'ASCII') {
+          await asciiRepo.save(asciiRepo.create({
+            name:                t.name,
+            frameworkConfigId:   savedFw.id,
+            base:                t.Base,
+            internalEventLogged: t.InternalEventLogged ?? false,
+            timeStampSetting:    t.TimeStampSetting,
+            timestamp:           t.Timestamp,
+            loggerConfiguration: t.LoggerConfiguration,
+          }));
+        }
       }
     }
 

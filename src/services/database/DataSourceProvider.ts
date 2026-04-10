@@ -29,7 +29,7 @@ import {
 import { Configuration } from '../../models/configuration';
 import { User } from '../../models/user';
 import { Mapping } from '../../models/mapping';
-import { FrameworkConfig, PCAPTracer, ASCIITracer, Tracer } from '../../models/frameworkConfig';
+import { FrameworkConfig, PCAPTracer, ASCIITracer } from '../../models/frameworkConfig';
 
 // ── Database configuration ──────────────────────────────────────────────────
 const dbConfig = {
@@ -57,14 +57,14 @@ export function getDataSource(): DataSource {
       username: dbConfig.username,
       password: dbConfig.password,
       database: dbConfig.database,
-      synchronize: true,
+      synchronize: false,
       logging: false,
       entities: [
         FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel,
         LINChannel, IOSerialChannel, BridgeChannel, EthernetChannel, PSChannel,
         LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice,
         CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo,
-        Tracer, PCAPTracer, ASCIITracer, FrameworkConfig,
+        PCAPTracer, ASCIITracer, FrameworkConfig,
         Configuration, User, Mapping,
       ],
     });
@@ -86,6 +86,29 @@ export function initializeDatabase(): Promise<void> {
       if (!ds.isInitialized) {
         await ds.initialize();
       }
+      // Ensure tracer tables exist (safe: IF NOT EXISTS avoids conflicts on reload)
+      await ds.query(`
+        CREATE TABLE IF NOT EXISTS pcap_tracers (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR NOT NULL,
+          "frameworkConfigId" INTEGER,
+          "loggingType" VARCHAR,
+          "timestamp" VARCHAR,
+          "loggerConfiguration" JSONB
+        )
+      `);
+      await ds.query(`
+        CREATE TABLE IF NOT EXISTS ascii_tracers (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR NOT NULL,
+          "frameworkConfigId" INTEGER,
+          base VARCHAR,
+          "internalEventLogged" BOOLEAN NOT NULL DEFAULT false,
+          "timeStampSetting" VARCHAR,
+          "timestamp" VARCHAR,
+          "loggerConfiguration" JSONB
+        )
+      `);
       console.log('Database initialized successfully (TypeORM).');
     } catch (err: any) {
       console.error('Error initializing database:', err);

@@ -1,20 +1,41 @@
-export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'generate' | 'diagram';
+export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'diagram';
 
 export interface Notification {
   type: 'success' | 'error' | 'warning' | 'info';
   message: string;
 }
 
+export interface TracerFileConfig {
+  BaseFileName?: string;
+  Extension?: string;
+  MaxFile?: number;
+  MaxFileSize?: number;
+  CompressionLevel?: number;
+}
+
+export interface TracerBufferConfig {
+  BufferSize?: number;
+  BufferNumber?: number;
+  WriteBurstSize?: number;
+}
+
+export interface TracerLoggerConfiguration {
+  FileConfig?: TracerFileConfig;
+  BufferConfig?: TracerBufferConfig;
+}
+
 export interface TracerConfig {
+  /** Key name in the YAML Tracing section */
   name: string;
-  tracerType: 'PCAP' | 'ASCII';
-  timestampMode?: string;
-  filter?: string;
-  file?: { path?: string; splitSize?: number; splitTime?: number; cyclic?: boolean };
-  pcapInterface?: string;
-  ethernetPaddingActive?: boolean;
-  asciiOutputLineSeparator?: string;
-  asciiMsgTextSeparator?: string;
+  Type: 'PCAP' | 'ASCII';
+  Timestamp?: 'Microsecond' | 'Nanosecond';
+  LoggerConfiguration?: TracerLoggerConfiguration;
+  // PCAP-specific
+  LoggingType?: 'MultipleAdapterMode' | 'PerformanceMode' | 'StandardMode';
+  // ASCII-specific
+  Base?: 'Hex' | 'Decimal';
+  InternalEventLogged?: boolean;
+  TimeStampSetting?: 'Absolute' | 'Relative';
 }
 
 export interface EthernetConfigData {

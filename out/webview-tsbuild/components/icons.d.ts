@@ -17,5 +17,6 @@ export declare const Icons: {
     upload: () => React.JSX.Element;
     expand: () => React.JSX.Element;
     sparkle: () => React.JSX.Element;
+    tracers: () => React.JSX.Element;
     gear: () => React.JSX.Element;
 };

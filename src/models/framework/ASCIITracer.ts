@@ -1,38 +1,57 @@
-import { ChildEntity, Column } from 'typeorm';
-import { Tracer } from './Tracer';
-import { TimestampPrecision } from '../enums';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@ChildEntity('ASCII')
-export class ASCIITracer extends Tracer {
-  @Column()
-  base: string = '';
+/** Dedicated table for ASCII tracers. */
+@Entity('ascii_tracers')
+export class ASCIITracer {
+  @PrimaryGeneratedColumn()
+  id!: number;
 
   @Column()
+  name: string = '';
+
+  /** FK to framework_configs.id */
+  @Column({ nullable: true })
+  frameworkConfigId?: number;
+
+  /** Hex | Decimal */
+  @Column({ nullable: true })
+  base?: string;
+
+  @Column({ default: false })
   internalEventLogged: boolean = false;
 
-  @Column()
-  timeStampSetting: string = '';
-
+  /** Absolute | Relative */
   @Column({ nullable: true })
-  loggingFileLong?: string;
+  timeStampSetting?: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  timestampPrecision?: TimestampPrecision;
+  /** Microsecond | Nanosecond */
+  @Column({ nullable: true })
+  timestamp?: string;
 
-  constructor(id: string, name: string) {
-    super(id, name);
-    this.loggingType = 'ASCII';
-  }
+  /** FileConfig: Extension, BaseFileName, MaxFile, MaxFileSize */
+  @Column({ type: 'jsonb', nullable: true })
+  loggerConfiguration?: object;
 
   toYAML(): object {
-    return {
-      id: this.id, name: this.name, type: 'ASCII',
-      base: this.base, internalEventLogged: this.internalEventLogged,
-      timeStampSetting: this.timeStampSetting, timestampPrecision: this.timestampPrecision
-    };
+    const entry: Record<string, any> = { Type: 'ASCII' };
+    if (this.base)                { entry.Base                 = this.base; }
+    if (this.timeStampSetting)    { entry.TimeStampSetting     = this.timeStampSetting; }
+    if (this.timestamp)           { entry.Timestamp            = this.timestamp; }
+    entry.InternalEventLogged = this.internalEventLogged;
+    if (this.loggerConfiguration) { entry.LoggerConfiguration  = this.loggerConfiguration; }
+    return { [this.name]: entry };
   }
 
   toJSON(): object {
-    return { ...this.toYAML(), loggingFileLong: this.loggingFileLong };
+    return {
+      id: this.id,
+      name: this.name,
+      Type: 'ASCII',
+      Base: this.base,
+      TimeStampSetting: this.timeStampSetting,
+      Timestamp: this.timestamp,
+      InternalEventLogged: this.internalEventLogged,
+      LoggerConfiguration: this.loggerConfiguration,
+    };
   }
 }

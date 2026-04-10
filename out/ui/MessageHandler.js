@@ -89,6 +89,7 @@ class MessageHandler {
             case 'addMapping': return this._addMapping(message, webview);
             case 'removeMapping': return this._removeMapping(message, webview);
             case 'generateConfig': return this._generateConfig(message, webview);
+            case 'saveFramework': return this._saveFramework(message, webview);
             case 'runAIValidation': return this._runAIValidation(webview);
             case 'importConfig': return this._importConfig(webview);
             case 'applyYamlEdit': return this._applyYamlEdit(message, webview);
@@ -371,6 +372,30 @@ class MessageHandler {
         }
     }
     // ── Generate & AI handlers ──────────────────────────────────────────────
+    async _saveFramework(message, webview) {
+        if (!this.currentConfig) {
+            webview.postMessage({ command: 'error', message: 'No configuration loaded.' });
+            return;
+        }
+        const fw = message.frameworkData;
+        if (!fw) {
+            return;
+        }
+        if (!this.currentConfig.frameworkConfig) {
+            this.currentConfig.frameworkConfig = {};
+        }
+        const fc = this.currentConfig.frameworkConfig;
+        fc.tracers = fw.tracers || [];
+        fc.publisherType = fw.publisherType;
+        fc.channelsGroups = fw.channelsGroups || [];
+        fc.connectedEcus = fw.connectedEcus || [];
+        fc.servicePack = fw.servicePack;
+        if (fw.ethernetConfig) {
+            fc.ethernetConfig = fw.ethernetConfig;
+        }
+        await this._saveCurrentConfig();
+        webview.postMessage({ command: 'frameworkSaved' });
+    }
     async _generateConfig(message, webview) {
         if (!this.currentConfig) {
             webview.postMessage({ command: 'error', message: 'No configuration loaded.' });
