@@ -45,6 +45,7 @@ const channelFactories_1 = require("./channelFactories");
 const AuthService_1 = require("../services/auth/AuthService");
 const UserRepository_1 = require("../services/database/UserRepository");
 const YamlParser_1 = require("../services/config/YamlParser");
+const autoLoadState_1 = require("./autoLoadState");
 /**
  * Owns all mutable runtime state and handles every webview message command.
  * Extracted from WebviewProvider to keep that class small.
@@ -108,9 +109,16 @@ class MessageHandler {
         }
         this.loggedInUserId = payload.userId;
         this.storageService.purgeOrphanedConfigs();
+        // Send authSuccess (with the stored token) so the webview dispatches AUTH_SUCCESS
+        // and the auth gate opens — identical shape to what _login/_register send
         webview.postMessage({
+            command: 'authSuccess',
+            token: stored,
             user: { id: payload.userId, name: payload.name, email: payload.email },
         });
+        // Auto-load is deferred: authSuccess triggers getConfigurations in the webview,
+        // then _applyAutoLoad fires after the list is re-rendered
+        this._applyAutoLoad(webview);
     }
     async _register(message, webview) {
         try {
@@ -128,6 +136,7 @@ class MessageHandler {
                 token,
                 user: { id: user.id, name: user.name, email: user.email },
             });
+            this._applyAutoLoad(webview);
         }
         catch (e) {
             webview.postMessage({ command: 'authError', message: e.message });
@@ -149,6 +158,7 @@ class MessageHandler {
                 token,
                 user: { id: user.id, name: user.name, email: user.email },
             });
+            this._applyAutoLoad(webview);
         }
         catch (e) {
             webview.postMessage({ command: 'authError', message: e.message });
@@ -386,13 +396,23 @@ class MessageHandler {
             const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
             const yamlContent = generator.generate();
             webview.postMessage({ command: 'configGenerated', yaml: yamlContent });
-            const uri = await vscode.window.showSaveDialog({
-                filters: { YAML: ['yaml', 'yml'] },
-                defaultUri: vscode.Uri.file('config.yaml'),
-            });
-            if (uri) {
-                await vscode.workspace.fs.writeFile(uri, Buffer.from(yamlContent, 'utf8'));
-                vscode.window.showInformationMessage(`config.yaml saved to ${uri.fsPath}`);
+            // Write directly to MTF.yaml in the workspace root if a workspace is open
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (workspaceFolders && workspaceFolders.length > 0) {
+                const mtfUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'MTF.yaml');
+                await vscode.workspace.fs.writeFile(mtfUri, Buffer.from(yamlContent, 'utf8'));
+                vscode.window.showInformationMessage(`config.yaml saved to MTF.yaml in your workspace.`);
+            }
+            else {
+                // Fallback: show save dialog if no workspace is open
+                const uri = await vscode.window.showSaveDialog({
+                    filters: { YAML: ['yaml', 'yml'] },
+                    defaultUri: vscode.Uri.file('MTF.yaml'),
+                });
+                if (uri) {
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(yamlContent, 'utf8'));
+                    vscode.window.showInformationMessage(`config.yaml saved to ${uri.fsPath}`);
+                }
             }
         }
         catch (e) {
@@ -483,6 +503,36 @@ class MessageHandler {
         }
     }
     // ── Persistence helper ──────────────────────────────────────────────────
+    /**
+     * If a config was queued for auto-load (from MTF.yaml detection), load it now.
+     * Sends both configurationsLoaded (so the list re-renders) and configurationLoaded
+     * (so the config is set as active), all in one shot after successful auth.
+     */
+    _applyAutoLoad(webview) {
+        const pending = (0, autoLoadState_1.consumeAutoLoad)();
+        if (!pending) {
+            return;
+        }
+        // Stamp with the now-known logged-in userId
+        const raw = { ...pending, userId: this.loggedInUserId };
+        // Only NOW save to globalState and DB — userId is known and the FK is satisfied
+        this.storageService.saveRaw(raw);
+        (0, databaseService_1.saveConfigurationToDb)(raw.id || raw.configId, raw.name, this.loggedInUserId, JSON.stringify(raw)).catch((dbErr) => console.warn(`MTF config DB insert failed: ${dbErr.message}`));
+        // Build the in-memory Configuration object
+        this.currentConfig = new models_1.Configuration(raw.id || raw.configId, raw.name, raw.userId);
+        this.currentConfig.logicalChannels = raw.logicalChannels || [];
+        this.currentConfig.hardwareChannels = raw.hardwareChannels || [];
+        this.currentConfig.mappings = raw.mappings || [];
+        this.currentConfig.frameworkConfig = raw.frameworkConfig || {};
+        this.channelManager = new channelManager_1.ChannelManager();
+        this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
+        // 1) Re-send the full config list so the UI list re-renders with the new entry
+        const all = this.storageService.getAllConfigurations();
+        const mine = all.filter(c => Number(c.userId) === this.loggedInUserId);
+        webview.postMessage({ command: 'configurationsLoaded', data: mine });
+        // 2) Auto-load the MTF config as the active config
+        webview.postMessage({ command: 'configurationLoaded', data: raw });
+    }
     async _saveCurrentConfig() {
         if (!this.currentConfig) {
             return;

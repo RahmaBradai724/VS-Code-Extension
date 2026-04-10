@@ -11,7 +11,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "workspaceContains:**/MTF.yaml"
   ],
   "main": "./out/extension.js",
   "contributes": {

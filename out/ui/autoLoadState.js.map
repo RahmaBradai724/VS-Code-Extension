@@ -1,0 +1,1 @@
+{"version":3,"file":"autoLoadState.js","sourceRoot":"","sources":["../../src/ui/autoLoadState.ts"],"names":[],"mappings":";AAAA;;;GAGG;;AAIH,kCAEC;AAED,0CAIC;AAVD,IAAI,QAAQ,GAAQ,SAAS,CAAC;AAE9B,SAAgB,WAAW,CAAC,MAAW;IACrC,QAAQ,GAAG,MAAM,CAAC;AACpB,CAAC;AAED,SAAgB,eAAe;IAC7B,MAAM,CAAC,GAAG,QAAQ,CAAC;IACnB,QAAQ,GAAG,SAAS,CAAC;IACrB,OAAO,CAAC,CAAC;AACX,CAAC"}

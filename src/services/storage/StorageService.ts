@@ -33,6 +33,23 @@ export class StorageService implements IConfigurationStorage, IUserStorage {
     this.context.globalState.update(STORAGE_KEY_CONFIGS, all);
   }
 
+  /**
+   * Save a plain config object (e.g. from YamlParser) without requiring a Configuration class instance.
+   * Normalises configId → id so the stored format is consistent.
+   */
+  saveRaw(plainConfig: any): void {
+    const all = this.getAll();
+    const id = plainConfig.id || plainConfig.configId;
+    const normalised = { ...plainConfig, id };
+    const idx = all.findIndex((c: any) => (c.id || (c as any).configId) === id);
+    if (idx >= 0) {
+      all[idx] = normalised;
+    } else {
+      all.push(normalised);
+    }
+    this.context.globalState.update(STORAGE_KEY_CONFIGS, all);
+  }
+
   delete(id: string): void {
     const all = this.getAll().filter((c: any) => (c.id || c.configId) !== id);
     this.context.globalState.update(STORAGE_KEY_CONFIGS, all);

@@ -56,9 +56,12 @@ class ConfigImporter {
         if (!uris || uris.length === 0) {
             return undefined;
         }
-        const fileContent = await vscode.workspace.fs.readFile(uris[0]);
+        return this.importFromUri(uris[0]);
+    }
+    async importFromUri(uri) {
+        const fileContent = await vscode.workspace.fs.readFile(uri);
         const yamlText = Buffer.from(fileContent).toString('utf8');
-        return this.parser.parse(yamlText, path.basename(uris[0].fsPath));
+        return this.parser.parse(yamlText, path.basename(uri.fsPath));
     }
     parseYAML(yamlText, sourceName = 'imported') {
         return this.parser.parse(yamlText, sourceName);
