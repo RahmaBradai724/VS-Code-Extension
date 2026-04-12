@@ -4,26 +4,21 @@ import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 
 @Entity('hardware_hh_loads')
 export class HHLoad extends HardwareChannel {
-  @Column({ type: 'float', nullable: true })
-  maxLoad?: number;
-
+  /** Device ID */
   @Column({ nullable: true })
   deviceId?: number;
 
+  /** Serial port name (e.g. COM19) */
   @Column({ nullable: true })
   portName?: string;
 
+  /** Device type: PLI (single-channel) or PMLI (multi-channel) */
   @Column({ nullable: true })
-  flag?: boolean;
+  loadType?: string;
 
+  /** Serial baud rate (e.g. 115200) */
   @Column({ nullable: true })
   bitRate?: number;
-
-  @Column({ nullable: true })
-  loadType?: string; // Using loadType to avoid conflict with 'type' from base class
-
-  @Column({ type: 'jsonb', nullable: true })
-  channels?: object;
 
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.HH_LOAD, HardwareChannelSubclass.HH_LOAD);
@@ -35,14 +30,14 @@ export class HHLoad extends HardwareChannel {
 
   toYAML(): object {
     return {
-      id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-      maxLoad: this.maxLoad, deviceId: this.deviceId,
-      portName: this.portName, bitRate: this.bitRate,
-      loadType: this.loadType, flag: this.flag, channels: this.channels
+      id: this.id, name: this.name, subclass: this.subclass,
+      deviceId: this.deviceId,
+      portName: this.portName,
+      loadType: this.loadType,
+      bitRate: this.bitRate,
     };
   }
 
-  toJSON(): object {
-    return this.toYAML();
-  }
+  toJSON(): object { return this.toYAML(); }
 }
+

@@ -1,6 +1,7 @@
 ﻿import * as vscode from 'vscode';
 import { StorageService } from '../services/storageService';
 import { AIValidator } from '../ai/aiValidator';
+import { TokenStorage } from '../services/auth/TokenStorage';
 import { MessageHandler } from './MessageHandler';
 import { getHtmlForWebview } from './webviewHtml';
 
@@ -22,9 +23,10 @@ export class WebviewProvider {
     context: vscode.ExtensionContext,
   ) {
     const storageService = new StorageService(context);
+    const tokenStorage   = new TokenStorage(context);
     const apiKey = vscode.workspace.getConfiguration('channelConfig').get<string>('geminiApiKey') || '';
     const aiValidator = new AIValidator(apiKey);
-    this.handler = new MessageHandler(storageService, aiValidator, extensionUri);
+    this.handler = new MessageHandler(storageService, tokenStorage, aiValidator, extensionUri);
 
     this._panel = vscode.window.createWebviewPanel(
       WebviewProvider.viewType,

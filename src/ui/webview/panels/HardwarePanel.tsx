@@ -13,8 +13,10 @@ function initExtras(subclass: string): Record<string, any> {
 }
 
 const SUBCLASS_COLOR: Record<string, string> = {
+  // Capture Module variants (legacy CIBInterface/CMInterface kept for existing data)
   CANInterface: '#569cd6', CIBInterface: '#569cd6', CMInterface: '#9cdcfe',
-  LINCard: '#dcb67a', EthernetAdapter: '#4ec9b0', RelayBoard: '#c678dd',
+  LINCard: '#dcb67a',
+  EthernetAdapter: '#4ec9b0', RelayBoard: '#c678dd',
   HIDRelay: '#c678dd', SerialPort: '#d4d4d4', AnalogDevice: '#f0c040',
   TEAnalog: '#f0c040', HHLoad: '#f87171',
 };
@@ -96,7 +98,7 @@ export default function HardwarePanel() {
             <>
               <div style={T.divider} />
               <p style={{ ...T.cardTitle, marginBottom: '8px', opacity: 0.7 }}>Hardware-specific fields</p>
-              <div style={T.grid2}>
+              <div className="ccm-grid2" style={T.grid2}>
                 {extraFields.map(f => (
                   <DynamicField key={f.key} def={f} value={form.extras[f.key]} onChange={setExtra} />
                 ))}

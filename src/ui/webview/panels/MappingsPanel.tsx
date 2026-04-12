@@ -5,7 +5,7 @@ import { T, Badge, SectionHeader } from '../components/shared';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 const OPERATION_MODES = ['Normal', 'Spy', 'TxOnly', 'RxOnly'];
-const NODE_TYPES = ['ColdStartNode', 'WakeupNode', 'SyncNode'];
+const NODE_TYPES = ['ColdStartFollowing', 'ColdStartLeading', 'NonColdStartNonSync', 'NonColdStartSync'];
 const BTS_FUNCTIONS = ['None', 'Relay', 'Potentiometer', 'ElectronicLoad', 'GNDSwitch', 'VBATSwitch', 'VoltageGenerator'];
 const BTS_MEASUREMENT_ATTRS = ['Voltage', 'Current', 'PWM'];
 
@@ -142,7 +142,7 @@ export default function MappingsPanel() {
       {showForm && (
         <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
           <p style={T.cardTitle}>New Channel Mapping</p>
-          <div style={T.grid2}>
+          <div className="ccm-grid2" style={T.grid2}>
             <div>
               <label style={T.label}>Logical Channel *</label>
               <select style={T.select} value={form.logicalId} onChange={e => setF('logicalId', e.target.value)}>
@@ -162,8 +162,8 @@ export default function MappingsPanel() {
               </select>
             </div>
             <div>
-              <label style={T.label}>HW Channel</label>
-              <input style={T.input} placeholder="e.g. 1" value={form.hwChannel} onChange={e => setF('hwChannel', e.target.value)} />
+              <label style={T.label}>HW Channel (CM Web Interface ID)</label>
+              <input style={T.input} placeholder="e.g. 619" value={form.hwChannel} onChange={e => setF('hwChannel', e.target.value)} />
             </div>
             <div>
               <label style={T.label}>Operation Mode</label>
@@ -240,7 +240,7 @@ export default function MappingsPanel() {
                 {/* Subscription Config */}
                 <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
                   <p style={{ ...T.cardTitle, marginBottom: '8px' }}>Subscription Config (optional)</p>
-                  <div style={T.grid2}>
+                  <div className="ccm-grid2" style={T.grid2}>
                     <div>
                       <label style={T.label}>ID</label>
                       <input style={T.input} placeholder="" value={form.subId} onChange={e => setF('subId', e.target.value)} />

@@ -128,12 +128,17 @@ export type AppAction =
   | { type: 'AUTH_LOADING'; loading: boolean }
   | { type: 'AUTH_ERROR'; error: string | null };
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
 export interface FieldDef {
   key: string;
   label: string;
   type: 'text' | 'number' | 'checkbox' | 'select';
   placeholder?: string;
-  options?: string[];
+  options?: (string | SelectOption)[];
 }
 
 // ── Channel type badge colors ─────────────────────────────────────────────
@@ -196,38 +201,50 @@ export const LOGICAL_EXTRA_FIELDS: Record<string, FieldDef[]> = {
 
 // ── Hardware channel subclass → extra fields ──────────────────────────────
 export const HARDWARE_SUBCLASS_OPTIONS = [
-  { value: 'CANInterface', label: 'CAN Interface (CM)', category: 'CAN_INTERFACE' },
-  { value: 'CIBInterface', label: 'CIB Interface (CM)', category: 'CAN_INTERFACE' },
-  { value: 'CMInterface', label: 'CM Interface', category: 'CAN_INTERFACE' },
-  { value: 'LINCard', label: 'LIN Card (CM)', category: 'CAN_INTERFACE' },
-  { value: 'EthernetAdapter', label: 'Ethernet Adapter (PCAP)', category: 'ETHERNET_ADAPTER' },
-  { value: 'SerialPort', label: 'Serial Port', category: 'SERIAL_PORT' },
-  { value: 'RelayBoard', label: 'Relay Board', category: 'RELAY_BOARD' },
-  { value: 'HIDRelay', label: 'HID Relay', category: 'HID_RELAY' },
-  { value: 'AnalogDevice', label: 'Analog Device', category: 'ANALOG_DEVICE' },
-  { value: 'TEAnalog', label: 'TE Analog', category: 'TE_ANALOG' },
-  { value: 'HHLoad', label: 'HH Load', category: 'HH_LOAD' },
-  { value: 'BTSRevo', label: 'BTS-REVO', category: 'BTS_REVO' },
+  { value: 'CANInterface', label: 'Capture Module – CAN / CAN-FD / FlexRay (CM)', category: 'CAN_INTERFACE' },
+  { value: 'LINCard',      label: 'Capture Module – LIN (CM)',                  category: 'CAN_INTERFACE' },
+  { value: 'EthernetAdapter',      label: 'Network Adapter (PCAP)',             category: 'ETHERNET_ADAPTER' },
+  { value: 'SerialPort',           label: 'Serial Port',                        category: 'SERIAL_PORT' },
+  { value: 'RelayBoard',           label: 'SHS Relay Board (Technica)',         category: 'RELAY_BOARD' },
+  { value: 'HIDRelay',             label: 'HID Relay Board (DCTTECH)',          category: 'HID_RELAY' },
+  { value: 'AnalogDevice',         label: 'Analog Device',                     category: 'ANALOG_DEVICE' },
+  { value: 'TEAnalog',             label: 'TE-Analog (LIN/CM-sense)',           category: 'TE_ANALOG' },
+  { value: 'HHLoad',               label: 'H\&H Electrical Load (PLI/PMLI)',   category: 'HH_LOAD' },
+  { value: 'BTSRevo',              label: 'BTS-REVO (Body Electronics)',        category: 'BTS_REVO' },
+  { value: 'GenesysPowerSupply',   label: 'Genesys Power Supply',              category: 'GENESYS_PS' },
+  { value: 'MansonPowerSupply',    label: 'Manson Power Supply',               category: 'MANSON_PS' },
 ];
 
 export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
+  // CIBInterface / CMInterface are legacy subclass values — keep entries here so
+  // existing channels still render their fields correctly.
   CANInterface: [
-    { key: 'cmId', label: 'CM ID', type: 'number', placeholder: 'e.g. 1' },
-    { key: 'cmType', label: 'CM Type', type: 'select', options: ['CAN_Combo', 'LIN_Combo'] },
+    { key: 'cmId',   label: 'CM ID (last byte of IP)', type: 'number', placeholder: 'e.g. 64' },
+    { key: 'cmType', label: 'CM Type',                 type: 'select', options: [
+      { value: 'CAN_Combo', label: 'CAN_Combo – CAN / CAN-FD / FlexRay' },
+      { value: 'LIN_Combo', label: 'LIN_Combo – LIN' },
+    ]},
   ],
   CIBInterface: [
-    { key: 'cmId', label: 'CM ID', type: 'number', placeholder: 'e.g. 1' },
-    { key: 'cmType', label: 'CM Type', type: 'text', placeholder: 'e.g. CAN_Combo' },
-    { key: 'bitRate', label: 'Bit Rate', type: 'number', placeholder: '' },
+    { key: 'cmId',   label: 'CM ID (last byte of IP)', type: 'number', placeholder: 'e.g. 64' },
+    { key: 'cmType', label: 'CM Type',                 type: 'select', options: [
+      { value: 'CAN_Combo', label: 'CAN_Combo – CAN / CAN-FD / FlexRay' },
+      { value: 'LIN_Combo', label: 'LIN_Combo – LIN' },
+    ]},
   ],
   CMInterface: [
-    { key: 'cmId', label: 'CM ID', type: 'number', placeholder: 'e.g. 1' },
-    { key: 'cmType', label: 'CM Type', type: 'text', placeholder: 'e.g. CAN_Combo' },
-    { key: 'bitrate', label: 'Bitrate', type: 'number', placeholder: '' },
+    { key: 'cmId',   label: 'CM ID (last byte of IP)', type: 'number', placeholder: 'e.g. 64' },
+    { key: 'cmType', label: 'CM Type',                 type: 'select', options: [
+      { value: 'CAN_Combo', label: 'CAN_Combo – CAN / CAN-FD / FlexRay' },
+      { value: 'LIN_Combo', label: 'LIN_Combo – LIN' },
+    ]},
   ],
   LINCard: [
-    { key: 'cmId', label: 'CM ID', type: 'number', placeholder: 'e.g. 1' },
-    { key: 'cmType', label: 'CM Type', type: 'text', placeholder: 'e.g. LIN_Combo' },
+    { key: 'cmId',   label: 'CM ID (last byte of IP)', type: 'number', placeholder: 'e.g. 64' },
+    { key: 'cmType', label: 'CM Type',                 type: 'select', options: [
+      { value: 'CAN_Combo', label: 'CAN_Combo – CAN / CAN-FD / FlexRay' },
+      { value: 'LIN_Combo', label: 'LIN_Combo – LIN' },
+    ]},
   ],
   EthernetAdapter: [
     { key: 'macAddress', label: 'MAC Address', type: 'text', placeholder: 'e.g. 00:00:00:00:00:01' },
@@ -280,11 +297,36 @@ export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
     { key: 'deviceId', label: 'Device ID', type: 'number', placeholder: '' },
   ],
   HHLoad: [
-    { key: 'maxLoad', label: 'Max Load', type: 'number', placeholder: '' },
-    { key: 'deviceId', label: 'Device ID', type: 'number', placeholder: '' },
-    { key: 'portName', label: 'Port Name', type: 'text', placeholder: '' },
-    { key: 'bitRate', label: 'Bit Rate', type: 'number', placeholder: '' },
-    { key: 'loadType', label: 'Load Type', type: 'text', placeholder: '' },
+    { key: 'deviceId',  label: 'Device ID',            type: 'number',  placeholder: 'e.g. 2' },
+    { key: 'portName',  label: 'Port Name',             type: 'text',    placeholder: 'e.g. COM19' },
+    { key: 'loadType',  label: 'Device Type',           type: 'select',  options: ['PLI', 'PMLI'] },
+    { key: 'bitRate',   label: 'Bit Rate',              type: 'number',  placeholder: 'e.g. 115200' },
+  ],
+  GenesysPowerSupply: [
+    { key: 'communicationProtocol', label: 'Communication Protocol', type: 'select', options: ['Serial', 'Tcp'] },
+    { key: 'defaultVoltage',        label: 'Default Voltage (V)',    type: 'number', placeholder: 'e.g. 12' },
+    { key: 'maxVoltage',            label: 'Max Voltage (V)',        type: 'number', placeholder: 'e.g. 20' },
+    { key: 'defaultMaxCurrent',     label: 'Default Max Current (A)', type: 'number', placeholder: 'e.g. 35' },
+    { key: 'samplingInterval',      label: 'Sampling Interval (ms)', type: 'number', placeholder: 'e.g. 100' },
+    // Serial fields
+    { key: 'portName',              label: 'Port Name (Serial)',     type: 'text',   placeholder: 'e.g. COM2' },
+    { key: 'bitRate',               label: 'Bit Rate (Serial)',      type: 'number', placeholder: 'e.g. 19200' },
+    // TCP fields
+    { key: 'ip',                    label: 'IP Address (TCP)',       type: 'text',   placeholder: 'e.g. 169.254.16.136' },
+    { key: 'port',                  label: 'TCP Port',               type: 'number', placeholder: 'e.g. 8003' },
+    { key: 'language',              label: 'Language',               type: 'select', options: ['SCPI', 'GEN'] },
+    { key: 'continuousMonitoringActive', label: 'Continuous Monitoring', type: 'checkbox' },
+    { key: 'keepStatus',            label: 'Keep Status between tests', type: 'checkbox' },
+  ],
+  MansonPowerSupply: [
+    { key: 'portName',               label: 'Port Name',              type: 'text',   placeholder: 'e.g. COM3' },
+    { key: 'bitRate',                label: 'Bit Rate',               type: 'number', placeholder: 'e.g. 9600' },
+    { key: 'maxVoltage',             label: 'Max Voltage (V)',        type: 'number', placeholder: 'e.g. 20' },
+    { key: 'maxCurrent',             label: 'Max Current (A)',        type: 'number', placeholder: 'e.g. 12' },
+    { key: 'defaultVoltage',         label: 'Default Voltage (V)',    type: 'number', placeholder: 'e.g. 12' },
+    { key: 'keepStatus',             label: 'Keep Status between tests', type: 'checkbox' },
+    { key: 'continuousRead',         label: 'Continuous Read',        type: 'checkbox' },
+    { key: 'continuousReadingInterval', label: 'Continuous Reading Interval (ms)', type: 'number', placeholder: 'e.g. 1000' },
   ],
   BTSRevo: [
     { key: 'addressPrefix', label: 'Address Prefix (first 3 IP octets)', type: 'text', placeholder: 'e.g. 10.104.3' },

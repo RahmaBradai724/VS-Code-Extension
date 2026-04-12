@@ -1,5 +1,6 @@
 import { Configuration, Mapping } from '../models';
 import { MappingManager } from '../services/mappingManager';
+import { LocalValidator, ValidationResult } from './LocalValidator';
 
 export interface AIValidationResult {
   isValid: boolean;
@@ -8,139 +9,41 @@ export interface AIValidationResult {
   suggestions: string[];
 }
 
-export class ValidationResult {
-  isValid: boolean = true;
-  errors: string[] = [];
-  warnings: string[] = [];
-  suggestions: string[] = [];
-
-  constructor(isValid: boolean = true, errors: string[] = [], warnings: string[] = [], suggestions: string[] = []) {
-    this.isValid = isValid;
-    this.errors = errors;
-    this.warnings = warnings;
-    this.suggestions = suggestions;
-  }
-}
+export { ValidationResult };
 
 /**
- * AIValidator uses the Gemini API to analyze a configuration
- * and detect potential issues. It also performs local rule-based
- * checks for speed and offline functionality.
+ * AIValidator enriches local validation results with suggestions from the Gemini API.
+ * SRP: Gemini API integration only — local rule checks are delegated to LocalValidator.
  */
 export class AIValidator {
   private apiKey: string;
+  private localValidator: LocalValidator;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, localValidator: LocalValidator = new LocalValidator()) {
     this.apiKey = apiKey;
+    this.localValidator = localValidator;
   }
 
-  // ─── Local Rule-Based Checks ──────────────────────────────────────────
-
-  detectDuplicateMappings(mappings: Mapping[]): string[] {
-    const errors: string[] = [];
-    const seen = new Set<string>();
-    for (const mapping of mappings) {
-      const key = `${mapping.logicalChannelId}:${mapping.hardwareChannelId}`;
-      if (seen.has(key)) {
-        errors.push(`Duplicate mapping: "${mapping.logicalChannelName}" → "${mapping.hardwareChannelName || mapping.hardwareChannelId}".`);
-      }
-      seen.add(key);
-    }
-    return errors;
-  }
-
-  detectUnusedHardware(config: Configuration, mappings: Mapping[]): string[] {
-    const warnings: string[] = [];
-    const usedHwIds = new Set(mappings.map(m => m.hardwareChannelId));
-    for (const hw of config.hardwareChannels) {
-      if (!usedHwIds.has(hw.id)) {
-        warnings.push(`Hardware channel "${hw.name}" (${hw.category || hw.subclass || hw.type}) is defined but not mapped to any logical channel.`);
-      }
-    }
-    return warnings;
-  }
-
-  detectInvalidType(config: Configuration, mappings: Mapping[]): string[] {
-    const warnings: string[] = [];
-    const usedLogicalIds = new Set(mappings.map(m => m.hardwareChannelId));
-    for (const lc of config.logicalChannels) {
-      if (!usedLogicalIds.has(lc.id)) {
-        warnings.push(`Logical channel "${lc.name}" (${lc.category || lc.subclass || lc.type}) is defined but has no mapping.`);
-      }
-    }
-    return warnings;
-  }
-
-  detectMissingElements(config: Configuration): string[] {
-    const errors: string[] = [];
-    if (!config.name) { errors.push('Configuration is missing a name.'); }
-    if (config.logicalChannels.length === 0) { errors.push('No logical channels defined.'); }
-    if (config.hardwareChannels.length === 0) { errors.push('No hardware channels defined.'); }
-
-    for (const lc of config.logicalChannels) {
-      if (!lc.name) { errors.push(`A logical channel is missing a name (id: ${lc.id}).`); }
-    }
-    for (const hw of config.hardwareChannels) {
-      if (!hw.name) { errors.push(`A hardware channel is missing a name (id: ${hw.id}).`); }
-    }
-    return errors;
-  }
-
-  detectInvalidChannelTypes(config: Configuration): string[] {
-    const errors: string[] = [];
-    // Validate that category and subclass are non-empty/defined
-    for (const lc of config.logicalChannels) {
-      if (!lc.category) {
-        errors.push(`Logical channel "${lc.name}" has no category assigned.`);
-      }
-      if (!lc.subclass) {
-        errors.push(`Logical channel "${lc.name}" has no subclass assigned.`);
-      }
-    }
-    for (const hw of config.hardwareChannels) {
-      if (!hw.category) {
-        errors.push(`Hardware channel "${hw.name}" has no category assigned.`);
-      }
-      if (!hw.subclass) {
-        errors.push(`Hardware channel "${hw.name}" has no subclass assigned.`);
-      }
-    }
-    return errors;
-  }
-
-  // ─── Combined Local Validation ────────────────────────────────────────
-
+  /** Run local checks only (no API call). */
   validate(config: Configuration, mappings: Mapping[]): ValidationResult {
-    const errors: string[] = [
-      ...this.detectDuplicateMappings(mappings),
-      ...this.detectMissingElements(config),
-      ...this.detectInvalidChannelTypes(config),
-    ];
-    const warnings: string[] = [
-      ...this.detectUnusedHardware(config, mappings),
-      ...this.detectInvalidType(config, mappings),
-    ];
-    return new ValidationResult(errors.length === 0, errors, warnings);
+    return this.localValidator.validate(config, mappings);
   }
 
-  // ─── AI-Powered Validation (Gemini) ───────────────────────────────────
-
+  /** Run local checks first, then enrich with Gemini suggestions if an API key is present. */
   async runAIValidation(config: Configuration, mappings: Mapping[], yamlContent: string): Promise<AIValidationResult> {
-    // First run local checks
-    const localResult = this.validate(config, mappings);
+    const localResult = this.localValidator.validate(config, mappings);
 
     if (!this.apiKey) {
       return {
         ...localResult,
-        suggestions: localResult.suggestions || [],
         warnings: [...localResult.warnings, 'AI validation skipped: no API key configured.'],
       };
     }
 
     try {
-      const prompt = this.buildPrompt(config, mappings, yamlContent);
-      const response = await this.callGeminiAPI(prompt);
-      const aiResult = this.parseGeminiResponse(response);
+      const prompt = this._buildPrompt(config, mappings, yamlContent);
+      const response = await this._callGeminiAPI(prompt);
+      const aiResult = this._parseGeminiResponse(response);
 
       return {
         isValid: localResult.isValid && aiResult.isValid,
@@ -151,13 +54,14 @@ export class AIValidator {
     } catch (err: any) {
       return {
         ...localResult,
-        suggestions: localResult.suggestions || [],
         warnings: [...localResult.warnings, `AI validation failed: ${err.message}`],
       };
     }
   }
 
-  private buildPrompt(config: Configuration, mappings: Mapping[], yamlContent: string): string {
+  // ─── Gemini helpers ───────────────────────────────────────────────────
+
+  private _buildPrompt(config: Configuration, mappings: Mapping[], yamlContent: string): string {
     return `You are an expert in hardware/software channel configuration for automotive and embedded systems.
 Analyze the following config.yaml and respond ONLY in JSON format.
 
@@ -187,7 +91,7 @@ Respond in this exact JSON format:
 }`;
   }
 
-  private async callGeminiAPI(prompt: string): Promise<string> {
+  private async _callGeminiAPI(prompt: string): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.apiKey}`;
     const body = {
       contents: [{ parts: [{ text: prompt }] }],
@@ -208,13 +112,10 @@ Respond in this exact JSON format:
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
-  private parseGeminiResponse(responseText: string): AIValidationResult {
+  private _parseGeminiResponse(responseText: string): AIValidationResult {
     try {
-      // Extract JSON from the response (model may wrap it in markdown)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in AI response.');
-      }
+      if (!jsonMatch) { throw new Error('No JSON found in AI response.'); }
       const parsed = JSON.parse(jsonMatch[0]);
       return {
         isValid: parsed.isValid ?? true,

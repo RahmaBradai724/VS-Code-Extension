@@ -46,6 +46,8 @@ var HardwareChannelCategory;
     HardwareChannelCategory["TE_ANALOG"] = "TE_ANALOG";
     HardwareChannelCategory["HH_LOAD"] = "HH_LOAD";
     HardwareChannelCategory["BTS_REVO"] = "BTS_REVO";
+    HardwareChannelCategory["GENESYS_PS"] = "GENESYS_PS";
+    HardwareChannelCategory["MANSON_PS"] = "MANSON_PS";
 })(HardwareChannelCategory || (exports.HardwareChannelCategory = HardwareChannelCategory = {}));
 var HardwareChannelSubclass;
 (function (HardwareChannelSubclass) {
@@ -61,6 +63,8 @@ var HardwareChannelSubclass;
     HardwareChannelSubclass["CM_INTERFACE"] = "CMInterface";
     HardwareChannelSubclass["HH_LOAD"] = "HHLoad";
     HardwareChannelSubclass["BTS_REVO"] = "BTSRevo";
+    HardwareChannelSubclass["GENESYS_PS"] = "GenesysPowerSupply";
+    HardwareChannelSubclass["MANSON_PS"] = "MansonPowerSupply";
 })(HardwareChannelSubclass || (exports.HardwareChannelSubclass = HardwareChannelSubclass = {}));
 var CaptureType;
 (function (CaptureType) {

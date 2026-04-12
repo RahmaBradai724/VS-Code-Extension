@@ -37,6 +37,7 @@ exports.WebviewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const storageService_1 = require("../services/storageService");
 const aiValidator_1 = require("../ai/aiValidator");
+const TokenStorage_1 = require("../services/auth/TokenStorage");
 const MessageHandler_1 = require("./MessageHandler");
 const webviewHtml_1 = require("./webviewHtml");
 /**
@@ -46,9 +47,10 @@ const webviewHtml_1 = require("./webviewHtml");
 class WebviewProvider {
     constructor(extensionUri, context) {
         const storageService = new storageService_1.StorageService(context);
+        const tokenStorage = new TokenStorage_1.TokenStorage(context);
         const apiKey = vscode.workspace.getConfiguration('channelConfig').get('geminiApiKey') || '';
         const aiValidator = new aiValidator_1.AIValidator(apiKey);
-        this.handler = new MessageHandler_1.MessageHandler(storageService, aiValidator, extensionUri);
+        this.handler = new MessageHandler_1.MessageHandler(storageService, tokenStorage, aiValidator, extensionUri);
         this._panel = vscode.window.createWebviewPanel(WebviewProvider.viewType, 'Channel Config Manager', vscode.ViewColumn.One, {
             enableScripts: true,
             localResourceRoots: [extensionUri],

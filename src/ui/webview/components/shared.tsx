@@ -34,7 +34,11 @@ export function DynamicField({ def, value, onChange }: DynamicFieldProps) {
         <label style={T.label}>{def.label}</label>
         <select style={T.select} value={value ?? ''} onChange={e => onChange(def.key, e.target.value)}>
           <option value="">-- None --</option>
-          {def.options?.map(o => <option key={o} value={o}>{o}</option>)}
+          {def.options?.map(o => {
+            const v = typeof o === 'string' ? o : o.value;
+            const l = typeof o === 'string' ? o : o.label;
+            return <option key={v} value={v}>{l}</option>;
+          })}
         </select>
       </div>
     );

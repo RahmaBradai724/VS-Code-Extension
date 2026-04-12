@@ -51,15 +51,16 @@ const autoLoadState_1 = require("./autoLoadState");
  * Extracted from WebviewProvider to keep that class small.
  */
 class MessageHandler {
-    constructor(storageService, aiValidator, extensionUri) {
+    constructor(storageService, tokenStorage, aiValidator, extensionUri) {
         this.storageService = storageService;
+        this.tokenStorage = tokenStorage;
         this.aiValidator = aiValidator;
         this.extensionUri = extensionUri;
         /** userId of the currently authenticated user (null = not logged in) */
         this.loggedInUserId = null;
         this.channelManager = new channelManager_1.ChannelManager();
         this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
-        const jwtSecret = this.storageService.getOrCreateJwtSecret();
+        const jwtSecret = this.tokenStorage.getOrCreateJwtSecret();
         this.authService = new AuthService_1.AuthService(jwtSecret);
         this.userRepository = new UserRepository_1.UserRepository(this.authService);
     }
@@ -97,14 +98,14 @@ class MessageHandler {
     }
     // ── Auth handlers ───────────────────────────────────────────────────────
     _checkAuth(webview) {
-        const stored = this.storageService.getAuthToken();
+        const stored = this.tokenStorage.getAuthToken();
         if (!stored) {
             webview.postMessage({ command: 'authRequired' });
             return;
         }
         const payload = this.authService.verifyToken(stored);
         if (!payload) {
-            this.storageService.clearAuthToken();
+            this.tokenStorage.clearAuthToken();
             webview.postMessage({ command: 'authRequired' });
             return;
         }
@@ -129,7 +130,7 @@ class MessageHandler {
             }
             const user = await this.userRepository.register(name, email, password);
             const token = this.authService.signToken({ userId: user.id, name: user.name, email: user.email });
-            this.storageService.setAuthToken(token);
+            this.tokenStorage.setAuthToken(token);
             this.loggedInUserId = user.id;
             this.storageService.purgeOrphanedConfigs();
             webview.postMessage({
@@ -151,7 +152,7 @@ class MessageHandler {
             }
             const user = await this.userRepository.login(email, password);
             const token = this.authService.signToken({ userId: user.id, name: user.name, email: user.email });
-            this.storageService.setAuthToken(token);
+            this.tokenStorage.setAuthToken(token);
             this.loggedInUserId = user.id;
             this.storageService.purgeOrphanedConfigs();
             webview.postMessage({
@@ -167,7 +168,7 @@ class MessageHandler {
     }
     _logout(webview) {
         this.loggedInUserId = null;
-        this.storageService.clearAuthToken();
+        this.tokenStorage.clearAuthToken();
         this.currentConfig = undefined;
         this.channelManager = new channelManager_1.ChannelManager();
         this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
@@ -210,29 +211,7 @@ class MessageHandler {
             this.currentConfig.mappings = raw.mappings || [];
             this.currentConfig.frameworkConfig = raw.frameworkConfig || {};
             // Re-build in-memory managers (lost on extension reload)
-            this.channelManager = new channelManager_1.ChannelManager();
-            this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
-            for (const ch of this.currentConfig.logicalChannels) {
-                const factory = channelFactories_1.logicalChannelFactories[ch.subclass];
-                if (factory) {
-                    const rebuilt = factory(ch.id, ch.name);
-                    Object.assign(rebuilt, ch);
-                    this.channelManager.addLogicalChannel(rebuilt);
-                }
-            }
-            for (const hw of this.currentConfig.hardwareChannels) {
-                const factory = channelFactories_1.hardwareChannelFactories[hw.subclass];
-                if (factory) {
-                    const rebuilt = factory(hw.id, hw.name);
-                    Object.assign(rebuilt, hw);
-                    this.channelManager.addHardwareChannel(rebuilt);
-                }
-            }
-            for (const m of this.currentConfig.mappings) {
-                this.mappingManager.mappings.set(m.mappingId, m);
-                this.channelManager.registerMappingForChannel(m.logicalChannelId, m.mappingId);
-                this.channelManager.registerMappingForChannel(m.hardwareChannelId, m.mappingId);
-            }
+            this._rebuildManagers(this.currentConfig);
         }
         webview.postMessage({ command: 'configurationLoaded', data: raw });
     }
@@ -381,18 +360,7 @@ class MessageHandler {
         if (!fw) {
             return;
         }
-        if (!this.currentConfig.frameworkConfig) {
-            this.currentConfig.frameworkConfig = {};
-        }
-        const fc = this.currentConfig.frameworkConfig;
-        fc.tracers = fw.tracers || [];
-        fc.publisherType = fw.publisherType;
-        fc.channelsGroups = fw.channelsGroups || [];
-        fc.connectedEcus = fw.connectedEcus || [];
-        fc.servicePack = fw.servicePack;
-        if (fw.ethernetConfig) {
-            fc.ethernetConfig = fw.ethernetConfig;
-        }
+        this._applyFrameworkData(fw);
         await this._saveCurrentConfig();
         webview.postMessage({ command: 'frameworkSaved' });
     }
@@ -403,19 +371,7 @@ class MessageHandler {
         }
         try {
             if (message.frameworkData) {
-                const fw = message.frameworkData;
-                if (!this.currentConfig.frameworkConfig) {
-                    this.currentConfig.frameworkConfig = {};
-                }
-                const fc = this.currentConfig.frameworkConfig;
-                fc.tracers = fw.tracers || [];
-                fc.publisherType = fw.publisherType;
-                fc.channelsGroups = fw.channelsGroups || [];
-                fc.connectedEcus = fw.connectedEcus || [];
-                fc.servicePack = fw.servicePack;
-                if (fw.ethernetConfig) {
-                    fc.ethernetConfig = fw.ethernetConfig;
-                }
+                this._applyFrameworkData(message.frameworkData);
                 this._saveCurrentConfig();
             }
             const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
@@ -484,29 +440,7 @@ class MessageHandler {
                 this.currentConfig.frameworkConfig = p.frameworkConfig;
             }
             // Rebuild in-memory managers
-            this.channelManager = new channelManager_1.ChannelManager();
-            this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
-            for (const ch of this.currentConfig.logicalChannels) {
-                const factory = channelFactories_1.logicalChannelFactories[ch.subclass];
-                if (factory) {
-                    const rebuilt = factory(ch.id, ch.name);
-                    Object.assign(rebuilt, ch);
-                    this.channelManager.addLogicalChannel(rebuilt);
-                }
-            }
-            for (const hw of this.currentConfig.hardwareChannels) {
-                const factory = channelFactories_1.hardwareChannelFactories[hw.subclass];
-                if (factory) {
-                    const rebuilt = factory(hw.id, hw.name);
-                    Object.assign(rebuilt, hw);
-                    this.channelManager.addHardwareChannel(rebuilt);
-                }
-            }
-            for (const m of this.currentConfig.mappings) {
-                this.mappingManager.mappings.set(m.mappingId, m);
-                this.channelManager.registerMappingForChannel(m.logicalChannelId, m.mappingId);
-                this.channelManager.registerMappingForChannel(m.hardwareChannelId, m.mappingId);
-            }
+            this._rebuildManagers(this.currentConfig);
             await this._saveCurrentConfig();
             webview.postMessage({ command: 'yamlApplied', data: this.currentConfig.toJSON() });
         }
@@ -525,6 +459,48 @@ class MessageHandler {
                 command: 'importedConfig',
                 content: Buffer.from(content).toString('utf8'),
             });
+        }
+    }
+    // ── Shared helpers ────────────────────────────────────────────────────────
+    /** Merges frameworkData from a webview message into the current config's frameworkConfig. */
+    _applyFrameworkData(fw) {
+        if (!this.currentConfig.frameworkConfig) {
+            this.currentConfig.frameworkConfig = {};
+        }
+        const fc = this.currentConfig.frameworkConfig;
+        fc.tracers = fw.tracers || [];
+        fc.publisherType = fw.publisherType;
+        fc.channelsGroups = fw.channelsGroups || [];
+        fc.connectedEcus = fw.connectedEcus || [];
+        fc.servicePack = fw.servicePack;
+        if (fw.ethernetConfig) {
+            fc.ethernetConfig = fw.ethernetConfig;
+        }
+    }
+    /** Rebuilds channelManager and mappingManager from a fully populated Configuration. */
+    _rebuildManagers(config) {
+        this.channelManager = new channelManager_1.ChannelManager();
+        this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
+        for (const ch of config.logicalChannels) {
+            const factory = channelFactories_1.logicalChannelFactories[ch.subclass];
+            if (factory) {
+                const rebuilt = factory(ch.id, ch.name);
+                Object.assign(rebuilt, ch);
+                this.channelManager.addLogicalChannel(rebuilt);
+            }
+        }
+        for (const hw of config.hardwareChannels) {
+            const factory = channelFactories_1.hardwareChannelFactories[hw.subclass];
+            if (factory) {
+                const rebuilt = factory(hw.id, hw.name);
+                Object.assign(rebuilt, hw);
+                this.channelManager.addHardwareChannel(rebuilt);
+            }
+        }
+        for (const m of config.mappings) {
+            this.mappingManager.mappings.set(m.mappingId, m);
+            this.channelManager.registerMappingForChannel(m.logicalChannelId, m.mappingId);
+            this.channelManager.registerMappingForChannel(m.hardwareChannelId, m.mappingId);
         }
     }
     // ── Persistence helper ──────────────────────────────────────────────────

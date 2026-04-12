@@ -39,7 +39,7 @@ export default function ConfigsPanel() {
         onCancel={() => setDeletingId(null)}
       />
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '22px' }}>
         <div>
           <h2 style={T.pageTitle}>Configurations</h2>
           <p style={{ ...T.pageSub, marginBottom: 0 }}>Manage your channel configuration files</p>
@@ -91,6 +91,7 @@ export default function ConfigsPanel() {
                 className="ccm-config-card"
                 style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  flexWrap: 'wrap', gap: '10px',
                   padding: '16px 20px',
                   background: isActive
                     ? 'var(--vscode-editorWidget-background)'
@@ -100,7 +101,7 @@ export default function ConfigsPanel() {
                   boxShadow: isActive ? '0 0 0 1px var(--vscode-button-background)30, 0 4px 16px rgba(0,0,0,0.12)' : undefined,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
                   <div style={{
                     width: '38px', height: '38px',
                     borderRadius: '10px',
@@ -112,9 +113,9 @@ export default function ConfigsPanel() {
                   }}>
                     {isActive ? '✓' : '📄'}
                   </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                      <span style={{ fontWeight: 700, fontSize: '14px' }}>{cfg.name}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>{cfg.name}</span>
                       {isActive && (
                         <span style={{
                           fontSize: '10px', padding: '2px 10px', borderRadius: '999px',
@@ -133,7 +134,7 @@ export default function ConfigsPanel() {
                         }}>read-only</span>
                       )}
                     </div>
-                    <span style={{ fontSize: '11px', opacity: 0.4, fontFamily: 'monospace', letterSpacing: '0.02em' }}>
+                    <span style={{ fontSize: '11px', opacity: 0.4, fontFamily: 'monospace', letterSpacing: '0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '220px' }}>
                       {cfg.id}
                     </span>
                   </div>

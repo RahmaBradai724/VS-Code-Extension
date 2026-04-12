@@ -10,3 +10,5 @@ export { CIBInterface } from './CIBInterface';
 export { CMInterface } from './CMInterface';
 export { HHLoad } from './HHLoad';
 export { BTSRevo } from './BTSRevo';
+export { GenesysPowerSupply } from './GenesysPowerSupply';
+export { MansonPowerSupply } from './MansonPowerSupply';

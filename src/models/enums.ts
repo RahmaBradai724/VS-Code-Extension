@@ -42,6 +42,8 @@ export enum HardwareChannelCategory {
   TE_ANALOG = 'TE_ANALOG',
   HH_LOAD = 'HH_LOAD',
   BTS_REVO = 'BTS_REVO',
+  GENESYS_PS = 'GENESYS_PS',
+  MANSON_PS = 'MANSON_PS',
 }
 
 export enum HardwareChannelSubclass {
@@ -57,6 +59,8 @@ export enum HardwareChannelSubclass {
   CM_INTERFACE = 'CMInterface',
   HH_LOAD = 'HHLoad',
   BTS_REVO = 'BTSRevo',
+  GENESYS_PS = 'GenesysPowerSupply',
+  MANSON_PS = 'MansonPowerSupply',
 }
 
 export enum CaptureType {

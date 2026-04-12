@@ -2,12 +2,13 @@ import * as vscode from 'vscode';
 import { Configuration, User } from '../../models';
 import { IConfigurationStorage, IUserStorage } from '../interfaces/IStorage';
 
-const STORAGE_KEY_CONFIGS = 'channelConfig.configurations';
-const STORAGE_KEY_CURRENT_USER = 'channelConfig.currentUser';
-const STORAGE_KEY_AUTH_TOKEN = 'channelConfig.authToken';
-const STORAGE_KEY_JWT_SECRET = 'channelConfig.jwtSecret';
+const STORAGE_KEY_CONFIGS       = 'channelConfig.configurations';
+const STORAGE_KEY_CURRENT_USER  = 'channelConfig.currentUser';
 
-
+/**
+ * StorageService manages configuration and user persistence in VS Code globalState.
+ * SRP: config/user storage only — auth token persistence is handled by TokenStorage.
+ */
 export class StorageService implements IConfigurationStorage, IUserStorage {
   private context: vscode.ExtensionContext;
 
@@ -27,14 +28,14 @@ export class StorageService implements IConfigurationStorage, IUserStorage {
     const serialized = config.toJSON();
     if (idx >= 0) {
       all[idx] = serialized;
-    } else {
+    } else {0
       all.push(serialized);
     }
     this.context.globalState.update(STORAGE_KEY_CONFIGS, all);
   }
 
   /**
-   * Save a plain config object (e.g. from YamlParser) without requiring a Configuration class instance.
+   * Save a plain config object (e.g. from YamlParser) without requiring a Configuration instance.
    * Normalises configId → id so the stored format is consistent.
    */
   saveRaw(plainConfig: any): void {
@@ -57,6 +58,12 @@ export class StorageService implements IConfigurationStorage, IUserStorage {
 
   getById(id: string): object | undefined {
     return this.getAll().find((c: any) => (c.id || c.configId) === id);
+  }
+
+  /** Remove from globalState any configs that have no userId (orphaned/legacy). */
+  purgeOrphanedConfigs(): void {
+    const cleaned = this.getAll().filter((c: any) => c.userId != null);
+    this.context.globalState.update(STORAGE_KEY_CONFIGS, cleaned);
   }
 
   // ─── IUserStorage ─────────────────────────────────────────────────────
@@ -82,43 +89,4 @@ export class StorageService implements IConfigurationStorage, IUserStorage {
   getCurrentUser(): object | undefined { return this.getCurrent(); }
   setCurrentUser(user: User): void { return this.setCurrent(user); }
   clearCurrentUser(): void { return this.clear(); }
-
-  clearAll(): void {
-    this.context.globalState.update(STORAGE_KEY_CONFIGS, []);
-    this.context.globalState.update(STORAGE_KEY_CURRENT_USER, undefined);
-  }
-
-  /** Remove from globalState any configs that have no userId (orphaned/legacy). */
-  purgeOrphanedConfigs(): void {
-    const cleaned = this.getAll().filter((c: any) => c.userId != null);
-    this.context.globalState.update(STORAGE_KEY_CONFIGS, cleaned);
-  }
-
-  // ─── JWT / Auth ────────────────────────────────────────────────────────
-
-  getAuthToken(): string | undefined {
-    return this.context.globalState.get<string>(STORAGE_KEY_AUTH_TOKEN);
-  }
-
-  setAuthToken(token: string): void {
-    this.context.globalState.update(STORAGE_KEY_AUTH_TOKEN, token);
-  }
-
-  clearAuthToken(): void {
-    this.context.globalState.update(STORAGE_KEY_AUTH_TOKEN, undefined);
-  }
-
-  /**
-   * Returns the persisted JWT secret, generating + saving one if it doesn't exist yet.
-   * A stable per-installation secret means tokens survive VS Code restarts.
-   */
-  getOrCreateJwtSecret(): string {
-    const existing = this.context.globalState.get<string>(STORAGE_KEY_JWT_SECRET);
-    if (existing) { return existing; }
-    // Generate a 64-char hex secret
-    const { randomBytes } = require('crypto') as typeof import('crypto');
-    const secret = randomBytes(32).toString('hex');
-    this.context.globalState.update(STORAGE_KEY_JWT_SECRET, secret);
-    return secret;
-  }
 }

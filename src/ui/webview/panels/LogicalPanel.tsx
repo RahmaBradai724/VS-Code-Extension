@@ -140,7 +140,7 @@ export default function LogicalPanel() {
 
           <div style={T.divider} />
 
-          <div style={T.grid2}>
+          <div className="ccm-grid2" style={T.grid2}>
             <div>
               <label style={T.label}>Name *</label>
               <input style={T.input} placeholder="e.g. CAN_Channel_1" value={form.name} onChange={e => setField('name', e.target.value)} />

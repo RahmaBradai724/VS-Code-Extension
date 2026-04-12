@@ -63,7 +63,7 @@ export default function FrameworkPanel() {
       {/* Publisher */}
       <div style={T.card}>
         <p style={T.cardTitle}>Publisher</p>
-        <div style={T.grid2}>
+        <div className="ccm-grid2" style={T.grid2}>
           <div>
             <label style={T.label}>Publisher Type</label>
             <select style={T.select} value={data.publisherType || 'SingleThreaded'} onChange={e => setD('publisherType', e.target.value)}>
@@ -100,7 +100,7 @@ export default function FrameworkPanel() {
       {/* Ethernet Config */}
       <div style={T.card}>
         <p style={T.cardTitle}>Ethernet Configuration (optional)</p>
-        <div style={T.grid2}>
+        <div className="ccm-grid2" style={T.grid2}>
           {[
             { key: 'pdus', label: 'PDUs' },
             { key: 'ipduContainers', label: 'iPDU Containers' },

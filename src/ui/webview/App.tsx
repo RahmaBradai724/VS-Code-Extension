@@ -61,13 +61,13 @@ export function App() {
         />
       ) : (
         /* ── Main application UI ──────────────────────────────────── */
-        <div style={S.root}>
+        <div className="ccm-root" style={S.root}>
           <Nav />
 
-          <div style={S.main}>
+          <div className="ccm-main" style={S.main}>
             {/* Top header bar */}
-            <div style={S.header}>
-              <div style={S.headerLeft}>
+            <div className="ccm-header" style={S.header}>
+              <div className="ccm-header-left" style={S.headerLeft}>
                 <span style={S.headerTitle}>
                   {state.currentConfigName || 'Channel Config Manager'}
                 </span>
@@ -80,14 +80,15 @@ export function App() {
               </div>
 
               {/* User info + logout */}
-              <div style={S.headerRight}>
+              <div className="ccm-header-right" style={S.headerRight}>
                 <span style={S.userChip}>
                   <span style={S.userAvatar}>
                     {state.authUser?.name?.[0]?.toUpperCase() ?? '?'}
                   </span>
-                  <span style={S.userName}>{state.authUser?.name}</span>
+                  <span className="ccm-user-name" style={S.userName}>{state.authUser?.name}</span>
                 </span>
                 <button
+                  className="ccm-logout-btn"
                   style={S.logoutBtn}
                   onClick={() => { send('logout'); dispatch({ type: 'AUTH_LOGOUT' }); }}
                   title="Sign out"
@@ -98,8 +99,8 @@ export function App() {
             </div>
 
             {/* Panel content — split when preview is visible */}
-            <div style={S.workArea}>
-              <div style={S.panelArea}>
+            <div className="ccm-work-area" style={S.workArea}>
+              <div className="ccm-panel-area" style={S.panelArea}>
               {!state.currentConfigId && state.page !== 'configs' ? (
                 <div style={S.noConfig}>
                   <div style={S.noConfigIcon}>⚙</div>
@@ -120,7 +121,7 @@ export function App() {
 
               {/* Live YAML preview pane */}
               {showPreview && (
-                <div style={S.previewPane}>
+                <div className="ccm-preview-pane" style={S.previewPane}>
                   <YamlPreview yaml={liveYaml} />
                 </div>
               )}
@@ -218,7 +219,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   contentSolo: { flex: 1, overflow: 'auto', padding: '24px' },
   splitRow: { flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 },
-  previewPane: { width: '380px', flexShrink: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+  previewPane: { width: '300px', flexShrink: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   workArea: { flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 },
   panelArea: { flex: 1, overflow: 'auto', padding: '24px', minWidth: 0 },
   noConfig: {

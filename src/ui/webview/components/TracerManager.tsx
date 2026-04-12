@@ -250,7 +250,7 @@ export default function TracerManager({ tracers, onChange, onNotify, suggestedNa
       {showForm && (
         <div style={{ background: 'var(--vscode-input-background)', borderRadius: '6px', padding: '14px', marginBottom: '12px', border: '1px solid var(--vscode-panel-border, #3a3a3a)' }}>
           <p style={{ ...T.cardTitle, marginBottom: '12px' }}>New Tracer</p>
-          <div style={T.grid2}>
+          <div className="ccm-grid2" style={T.grid2}>
             <div style={{ gridColumn: suggestedNames.length > 0 && !useCustomName ? undefined : undefined }}>
               <label style={T.label}>Name *</label>
               {suggestedNames.length > 0 && !useCustomName ? (
@@ -332,7 +332,7 @@ export default function TracerManager({ tracers, onChange, onNotify, suggestedNa
 
           {editing === t._id && (
             <div style={{ padding: '14px', background: 'var(--vscode-editorWidget-background)' }}>
-              <div style={T.grid2}>
+              <div className="ccm-grid2" style={T.grid2}>
                 <div>
                   <label style={T.label}>Name</label>
                   <input style={T.input} value={t.name} onChange={e => update(t._id, 'name', e.target.value)} />

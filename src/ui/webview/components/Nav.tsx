@@ -27,7 +27,7 @@ export function Nav() {
   const [hoveredItem, setHoveredItem] = useState<Page | null>(null);
 
   return (
-    <aside style={{
+    <aside className="ccm-nav" style={{
       width: '215px',
       flexShrink: 0,
       display: 'flex',
@@ -76,7 +76,7 @@ export function Nav() {
       </div>
 
       {/* Active config chip */}
-      <div style={{
+      <div className="ccm-nav-config-chip" style={{
         padding: '8px 10px',
         borderBottom: `1px solid ${tokens.border}`,
         flexShrink: 0,
@@ -164,7 +164,7 @@ export function Nav() {
               }}>
                 <Icon />
               </span>
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="ccm-nav-label">{label}</span>
               {count > 0 && (
                 <span
                   className="ccm-badge"
@@ -187,7 +187,7 @@ export function Nav() {
 
       {/* Stats footer */}
       {state.currentConfigId && (
-        <div style={{
+        <div className="ccm-nav-stats" style={{
           padding: '10px',
           borderTop: `1px solid ${tokens.border}`,
           flexShrink: 0,

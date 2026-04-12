@@ -163,12 +163,16 @@ export type AppAction = {
     type: 'AUTH_ERROR';
     error: string | null;
 };
+export interface SelectOption {
+    value: string;
+    label: string;
+}
 export interface FieldDef {
     key: string;
     label: string;
     type: 'text' | 'number' | 'checkbox' | 'select';
     placeholder?: string;
-    options?: string[];
+    options?: (string | SelectOption)[];
 }
 export declare const CHANNEL_COLORS: Record<string, string>;
 export declare const LOGICAL_SUBCLASS_OPTIONS: {

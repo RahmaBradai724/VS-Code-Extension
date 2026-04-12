@@ -22,21 +22,16 @@ let HHLoad = class HHLoad extends HardwareChannel_1.HardwareChannel {
     }
     toYAML() {
         return {
-            id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            maxLoad: this.maxLoad, deviceId: this.deviceId,
-            portName: this.portName, bitRate: this.bitRate,
-            loadType: this.loadType, flag: this.flag, channels: this.channels
+            id: this.id, name: this.name, subclass: this.subclass,
+            deviceId: this.deviceId,
+            portName: this.portName,
+            loadType: this.loadType,
+            bitRate: this.bitRate,
         };
     }
-    toJSON() {
-        return this.toYAML();
-    }
+    toJSON() { return this.toYAML(); }
 };
 exports.HHLoad = HHLoad;
-__decorate([
-    (0, typeorm_1.Column)({ type: 'float', nullable: true }),
-    __metadata("design:type", Number)
-], HHLoad.prototype, "maxLoad", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
@@ -47,20 +42,12 @@ __decorate([
 ], HHLoad.prototype, "portName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Boolean)
-], HHLoad.prototype, "flag", void 0);
+    __metadata("design:type", String)
+], HHLoad.prototype, "loadType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], HHLoad.prototype, "bitRate", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], HHLoad.prototype, "loadType", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
-    __metadata("design:type", Object)
-], HHLoad.prototype, "channels", void 0);
 exports.HHLoad = HHLoad = __decorate([
     (0, typeorm_1.Entity)('hardware_hh_loads'),
     __metadata("design:paramtypes", [String, String])
