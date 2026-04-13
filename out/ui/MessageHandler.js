@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageHandler = void 0;
 const vscode = __importStar(require("vscode"));
+const yaml = __importStar(require("js-yaml"));
 const models_1 = require("../models");
 const channelManager_1 = require("../services/channelManager");
 const mappingManager_1 = require("../services/mappingManager");
@@ -44,7 +45,6 @@ const enums_1 = require("../models/enums");
 const channelFactories_1 = require("./channelFactories");
 const AuthService_1 = require("../services/auth/AuthService");
 const UserRepository_1 = require("../services/database/UserRepository");
-const YamlParser_1 = require("../services/config/YamlParser");
 const autoLoadState_1 = require("./autoLoadState");
 /**
  * Owns all mutable runtime state and handles every webview message command.
@@ -431,32 +431,43 @@ class MessageHandler {
             return;
         }
         try {
-            const parser = new YamlParser_1.YamlParser();
-            const { config: parsed } = parser.parse(message.yaml, this.currentConfig.name);
-            const p = parsed;
-            const hadLogical = this.currentConfig.logicalChannels.length;
-            const hadHardware = this.currentConfig.hardwareChannels.length;
-            const gotLogical = (p.logicalChannels || []).length;
-            const gotHardware = (p.hardwareChannels || []).length;
-            // Guard: the preview YAML is in MTF format; YamlParser reads the internal format.
-            // If the original config had channels but the parse returned none, the YAML is in
-            // the wrong format for the parser — reject instead of silently wiping the config.
-            if ((hadLogical > 0 && gotLogical === 0) || (hadHardware > 0 && gotHardware === 0)) {
-                webview.postMessage({
-                    command: 'yamlApplyError',
-                    message: 'The YAML preview uses the MTF output format and cannot be applied directly. ' +
-                        'To change a channel ID, edit it in the Logical Channels panel.',
-                });
-                return;
+            const parsed = yaml.load(message.yaml);
+            if (!parsed || typeof parsed !== 'object') {
+                throw new Error('YAML content is empty or not an object.');
             }
-            this.currentConfig.logicalChannels = p.logicalChannels || [];
-            this.currentConfig.hardwareChannels = p.hardwareChannels || [];
-            this.currentConfig.mappings = p.mappings || [];
-            if (p.frameworkConfig) {
-                this.currentConfig.frameworkConfig = p.frameworkConfig;
+            const channels = parsed.Channels;
+            if (!channels || typeof channels !== 'object') {
+                throw new Error("Missing 'Channels' section. Use 'Channels' (capital C).");
             }
-            // Rebuild in-memory managers
-            this._rebuildManagers(this.currentConfig);
+            // Apply per-channel property updates matched by channel name.
+            // Hardware channels and mappings are not touched.
+            for (const [name, entry] of Object.entries(channels)) {
+                const lc = this.currentConfig.logicalChannels.find(c => c.name === name);
+                if (!lc || !entry) {
+                    continue;
+                }
+                if (entry.Id !== undefined) {
+                    lc.channelId = Number(entry.Id);
+                }
+                if (entry.Protocol !== undefined) {
+                    lc.protocol = entry.Protocol;
+                }
+                if (entry.LoggingName !== undefined) {
+                    lc.loggingName = entry.LoggingName;
+                }
+                if (entry.TracerName !== undefined) {
+                    lc.tracerName = entry.TracerName;
+                }
+                if (entry.Alias !== undefined) {
+                    lc.alias = Array.isArray(entry.Alias) ? entry.Alias : [entry.Alias];
+                }
+                if (entry.LoggingBusIndex !== undefined) {
+                    lc.loggingBusIndex = entry.LoggingBusIndex;
+                }
+                if (entry.ApplicationProtocol !== undefined) {
+                    lc.applicationProtocol = entry.ApplicationProtocol;
+                }
+            }
             await this._saveCurrentConfig();
             webview.postMessage({ command: 'yamlApplied', data: this.currentConfig.toJSON() });
         }

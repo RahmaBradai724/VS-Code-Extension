@@ -19,7 +19,7 @@ function buildMtfObject(state: AppState): Record<string, any> {
   const channelsSection: Record<string, any> = {};
   logicalChannels.forEach((ch, index) => {
     const obj: Record<string, any> = {
-      Id: index + 1,
+      Id: (ch.channelId != null && ch.channelId > 0) ? ch.channelId : index + 1,
       Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
     };
     if (ch.category !== 'BRIDGE') {

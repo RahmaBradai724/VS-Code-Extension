@@ -1,9 +1,82 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { postMessage } from '../vscodeApi';
 import * as jsYaml from 'js-yaml';
 
 interface Props {
   yaml: string;
+}
+
+// ── MTF YAML Validator ──────────────────────────────────────────────────────
+const VALID_MTF_TYPES = [
+  'CAN', 'CANFD', 'LIN', 'FR', 'FLEXRAY', 'ETHERNET',
+  'SERIAL', 'BRIDGE', 'PS', 'IOINPUT', 'IOOUTPUT', 'IOSERIAL', 'TE_ANALOG',
+];
+const KNOWN_CHANNEL_FIELDS = [
+  'Id', 'Type', 'Protocol', 'LoggingName', 'TracerName',
+  'Alias', 'LoggingBusIndex', 'ApplicationProtocol',
+];
+const KNOWN_TOPLEVEL_KEYS = ['Channels', 'Mappings', 'FrameworkConfig'];
+
+function validateMtfYaml(yamlText: string): string[] {
+  const errors: string[] = [];
+  let parsed: any;
+  try { parsed = jsYaml.load(yamlText); } catch { return []; }
+  if (!parsed || typeof parsed !== 'object') { return []; }
+
+  // 1. Top-level key casing check
+  for (const key of Object.keys(parsed)) {
+    if (!KNOWN_TOPLEVEL_KEYS.includes(key)) {
+      const match = KNOWN_TOPLEVEL_KEYS.find(k => k.toLowerCase() === key.toLowerCase());
+      if (match) { errors.push(`Unknown key '${key}'. Did you mean '${match}'?`); }
+    }
+  }
+
+  const channels = parsed.Channels;
+  if (!channels || typeof channels !== 'object') { return errors; }
+
+  // 2. Per-channel validation
+  const seenIds = new Map<number, string>();
+  for (const [name, entry] of Object.entries(channels) as [string, any][]) {
+    if (!entry || typeof entry !== 'object') {
+      errors.push(`Channel '${name}': entry must be an object.`);
+      continue;
+    }
+
+    // Unknown / wrong-case field names
+    for (const field of Object.keys(entry)) {
+      if (!KNOWN_CHANNEL_FIELDS.includes(field)) {
+        const match = KNOWN_CHANNEL_FIELDS.find(f => f.toLowerCase() === field.toLowerCase());
+        errors.push(match
+          ? `Channel '${name}': unknown field '${field}'. Did you mean '${match}'?`
+          : `Channel '${name}': unknown field '${field}'.`);
+      }
+    }
+
+    // Id: required, positive integer, unique
+    const idVal = entry.Id;
+    if (idVal === undefined || idVal === null) {
+      errors.push(`Channel '${name}': 'Id' is required.`);
+    } else {
+      const idNum = Number(idVal);
+      if (!Number.isInteger(idNum) || idNum <= 0) {
+        errors.push(`Channel '${name}': 'Id' must be a positive integer, got '${idVal}'.`);
+      } else if (seenIds.has(idNum)) {
+        errors.push(`Channel '${name}': Id ${idNum} is already used by '${seenIds.get(idNum)}'.`);
+      } else {
+        seenIds.set(idNum, name);
+      }
+    }
+
+    // Type: required, valid value
+    const typeVal = entry.Type;
+    if (!typeVal) {
+      errors.push(`Channel '${name}': 'Type' is required.`);
+    } else if (!VALID_MTF_TYPES.includes(String(typeVal))) {
+      errors.push(`Channel '${name}': unknown Type '${typeVal}'. Valid: ${VALID_MTF_TYPES.join(', ')}.`);
+    }
+  }
+
+  return errors;
 }
 
 export default function YamlPreview({ yaml }: Props) {
@@ -23,6 +96,12 @@ export default function YamlPreview({ yaml }: Props) {
       return e?.message ?? 'Invalid YAML syntax.';
     }
   }, [localYaml]);
+
+  // MTF semantic validation (id uniqueness, type validity, field casing)
+  const mtfErrors = useMemo<string[]>(() => {
+    if (!localYaml.trim() || !!yamlSyntaxError) { return []; }
+    return validateMtfYaml(localYaml);
+  }, [localYaml, yamlSyntaxError]);
 
   // Sync from live preview only when user has no unsaved edits
   useEffect(() => {
@@ -84,10 +163,10 @@ export default function YamlPreview({ yaml }: Props) {
           )}
           {isDirty && (
             <button
-              style={{ ...S.applyBtn, opacity: (applying || !!yamlSyntaxError) ? 0.6 : 1 }}
+              style={{ ...S.applyBtn, opacity: (applying || !!yamlSyntaxError || mtfErrors.length > 0) ? 0.6 : 1 }}
               onClick={handleApply}
-              disabled={applying || !!yamlSyntaxError}
-              title={yamlSyntaxError ? 'Fix YAML syntax errors before applying' : 'Apply YAML changes to config'}
+              disabled={applying || !!yamlSyntaxError || mtfErrors.length > 0}
+              title={yamlSyntaxError ? 'Fix YAML syntax errors before applying' : mtfErrors.length > 0 ? 'Fix validation errors before applying' : 'Apply YAML changes to config'}
             >
               {applying ? '⏳' : '✓ Apply'}
             </button>
@@ -109,6 +188,18 @@ export default function YamlPreview({ yaml }: Props) {
         <div style={S.syntaxError}>
           <span style={{ fontWeight: 700, marginRight: '6px' }}>✗ YAML syntax error:</span>
           {yamlSyntaxError}
+        </div>
+      )}
+
+      {/* MTF semantic validation errors */}
+      {isDirty && !yamlSyntaxError && mtfErrors.length > 0 && (
+        <div style={S.mtfErrors}>
+          {mtfErrors.map((msg, i) => (
+            <div key={i} style={S.mtfErrorItem}>
+              <span style={{ color: '#fca5a5', fontWeight: 700, marginRight: '5px', flexShrink: 0 }}>✗</span>
+              {msg}
+            </div>
+          ))}
         </div>
       )}
 
@@ -226,5 +317,23 @@ const S: Record<string, React.CSSProperties> = {
     whiteSpace: 'pre',
     overflowWrap: 'normal',
     overflow: 'auto',
+  },
+  mtfErrors: {
+    padding: '5px 14px 8px',
+    fontSize: '11px',
+    lineHeight: 1.5,
+    color: '#fca5a5',
+    background: 'rgba(248,113,113,0.08)',
+    borderBottom: '1px solid rgba(248,113,113,0.2)',
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column' as React.CSSProperties['flexDirection'],
+    gap: '3px',
+    maxHeight: '120px',
+    overflowY: 'auto' as React.CSSProperties['overflowY'],
+  },
+  mtfErrorItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
   },
 };

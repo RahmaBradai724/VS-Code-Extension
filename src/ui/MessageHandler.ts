@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as yaml from 'js-yaml';
 import { Configuration } from '../models';
 import { ChannelManager } from '../services/channelManager';
 import { MappingManager } from '../services/mappingManager';
@@ -414,37 +415,29 @@ export class MessageHandler {
       return;
     }
     try {
-      const parser = new YamlParser();
-      const { config: parsed } = parser.parse(message.yaml, this.currentConfig.name);
-      const p = parsed as any;
-
-      const hadLogical  = this.currentConfig.logicalChannels.length;
-      const hadHardware = this.currentConfig.hardwareChannels.length;
-      const gotLogical  = (p.logicalChannels  || []).length;
-      const gotHardware = (p.hardwareChannels || []).length;
-
-      // Guard: the preview YAML is in MTF format; YamlParser reads the internal format.
-      // If the original config had channels but the parse returned none, the YAML is in
-      // the wrong format for the parser — reject instead of silently wiping the config.
-      if ((hadLogical > 0 && gotLogical === 0) || (hadHardware > 0 && gotHardware === 0)) {
-        webview.postMessage({
-          command: 'yamlApplyError',
-          message:
-            'The YAML preview uses the MTF output format and cannot be applied directly. ' +
-            'To change a channel ID, edit it in the Logical Channels panel.',
-        });
-        return;
+      const parsed = yaml.load(message.yaml) as any;
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('YAML content is empty or not an object.');
+      }
+      const channels = parsed.Channels;
+      if (!channels || typeof channels !== 'object') {
+        throw new Error("Missing 'Channels' section. Use 'Channels' (capital C).");
       }
 
-      this.currentConfig.logicalChannels  = p.logicalChannels  || [];
-      this.currentConfig.hardwareChannels = p.hardwareChannels || [];
-      this.currentConfig.mappings         = p.mappings         || [];
-      if (p.frameworkConfig) {
-        this.currentConfig.frameworkConfig = p.frameworkConfig;
+      // Apply per-channel property updates matched by channel name.
+      // Hardware channels and mappings are not touched.
+      for (const [name, entry] of Object.entries(channels) as [string, any][]) {
+        const lc = this.currentConfig.logicalChannels.find(c => c.name === name) as any;
+        if (!lc || !entry) { continue; }
+        if (entry.Id !== undefined)                  { lc.channelId           = Number(entry.Id); }
+        if (entry.Protocol !== undefined)            { lc.protocol            = entry.Protocol; }
+        if (entry.LoggingName !== undefined)         { lc.loggingName         = entry.LoggingName; }
+        if (entry.TracerName !== undefined)          { lc.tracerName          = entry.TracerName; }
+        if (entry.Alias !== undefined)               { lc.alias               = Array.isArray(entry.Alias) ? entry.Alias : [entry.Alias]; }
+        if (entry.LoggingBusIndex !== undefined)     { lc.loggingBusIndex     = entry.LoggingBusIndex; }
+        if (entry.ApplicationProtocol !== undefined) { lc.applicationProtocol = entry.ApplicationProtocol; }
       }
 
-      // Rebuild in-memory managers
-      this._rebuildManagers(this.currentConfig);
       await this._saveCurrentConfig();
       webview.postMessage({ command: 'yamlApplied', data: this.currentConfig.toJSON() });
     } catch (e: any) {
