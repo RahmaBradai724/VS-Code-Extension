@@ -19,7 +19,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'framework', label: 'Framework',         Icon: Icons.framework },
   { id: 'tracers',   label: 'Tracers',           Icon: Icons.tracers },
   { id: 'generate',  label: 'Generate',          Icon: Icons.generate },
-  { id: 'diagram',   label: 'Diagram',           Icon: Icons.diagram },
+  { id: 'dashboard', label: 'Dashboard',          Icon: Icons.dashboard },
+  { id: 'diagrams',  label: 'Diagrams',           Icon: Icons.diagrams  },
 ];
 
 export function Nav() {

@@ -16,9 +16,50 @@ function initExtras(subclass: string): Record<string, any> {
   return obj;
 }
 
+const NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
+
+function validateLogicalForm(
+  form: { name: string; channelId: string; aliases: string },
+  existingChannels: { channelId?: number | string }[],
+  editingId?: string,
+): Record<string, string> {
+  const errs: Record<string, string> = {};
+  // Name
+  if (!form.name.trim()) {
+    errs.name = 'Name is required.';
+  } else if (!NAME_RE.test(form.name.trim())) {
+    errs.name = 'Invalid name — must start with a letter or underscore; no spaces. Allowed: A–Z, a–z, 0–9, _, -';
+  }
+  // ChannelId
+  if (!form.channelId.trim()) {
+    errs.channelId = 'Channel ID is required.';
+  } else {
+    const id = Number(form.channelId.trim());
+    if (!Number.isInteger(id) || id <= 0) {
+      errs.channelId = 'ID must be a positive integer (e.g. 1, 2, 3…).';
+    } else {
+      const conflict = existingChannels.find(
+        ch => Number((ch as any).channelId) === id
+      );
+      if (conflict) {
+        errs.channelId = `ID ${id} is already used by another channel.`;
+      }
+    }
+  }
+  // Aliases
+  if (form.aliases.trim()) {
+    const badAliases = form.aliases.split(',').map(s => s.trim()).filter(a => a && !NAME_RE.test(a));
+    if (badAliases.length > 0) {
+      errs.aliases = `Invalid alias(es): ${badAliases.join(', ')} — same naming rules as channel name.`;
+    }
+  }
+  return errs;
+}
+
 export default function LogicalPanel() {
   const { state, dispatch, send, notify } = useApp();
   const [showForm, setShowForm] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
     name: '', channelId: '', loggingName: '', tracerName: '', aliases: '',
@@ -53,6 +94,12 @@ export default function LogicalPanel() {
     setForm(f => {
       const next = { ...f, [key]: val };
       pushDraft(next);
+      if (key === 'name' || key === 'channelId' || key === 'aliases') {
+        setFieldErrors(validateLogicalForm(
+          { name: next.name, channelId: next.channelId, aliases: next.aliases },
+          state.logicalChannels,
+        ));
+      }
       return next;
     });
   }
@@ -75,6 +122,18 @@ export default function LogicalPanel() {
 
   function handleAdd() {
     if (!form.name.trim()) { notify('error', 'Channel name is required.'); return; }
+
+    // Run full validation before submitting
+    const errs = validateLogicalForm(
+      { name: form.name, channelId: form.channelId, aliases: form.aliases },
+      state.logicalChannels,
+    );
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      notify('error', 'Please fix the highlighted errors before adding.');
+      return;
+    }
+
     const selectedOpt = LOGICAL_SUBCLASS_OPTIONS.find(o => o.value === form.subclass)!;
     const channel: LogicalChannel = {
       id: `lc_${Date.now()}`,
@@ -89,12 +148,14 @@ export default function LogicalPanel() {
       ...form.extras,
     };
     send('addLogicalChannel', { channel });
+    setFieldErrors({});
     setForm({ name: '', channelId: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
     setShowForm(false);
   }
 
   function handleCancelForm() {
     dispatch({ type: 'SET_DRAFT_LOGICAL', draft: null });
+    setFieldErrors({});
     setForm({ name: '', channelId: '', loggingName: '', tracerName: '', aliases: '', subclass: LOGICAL_SUBCLASS_OPTIONS[0].value, extras: initExtras(LOGICAL_SUBCLASS_OPTIONS[0].value) });
     setShowForm(false);
   }
@@ -105,6 +166,7 @@ export default function LogicalPanel() {
   const isBridge = form.subclass === 'BridgeChannel';
   const canSubmit = form.name.trim() !== '' &&
     form.channelId.trim() !== '' &&
+    Object.keys(fieldErrors).length === 0 &&
     (!needsProtocol || String(form.extras.protocol ?? '').trim() !== '');
 
   return (
@@ -143,11 +205,24 @@ export default function LogicalPanel() {
           <div className="ccm-grid2" style={T.grid2}>
             <div>
               <label style={T.label}>Name *</label>
-              <input style={T.input} placeholder="e.g. CAN_Channel_1" value={form.name} onChange={e => setField('name', e.target.value)} />
+              <input
+                style={{ ...T.input, ...(fieldErrors.name ? { borderColor: '#f87171', outline: '1px solid #f87171' } : {}) }}
+                placeholder="e.g. CAN_Channel_1"
+                value={form.name}
+                onChange={e => setField('name', e.target.value)}
+              />
+              {fieldErrors.name && <span style={S_ERR}>{fieldErrors.name}</span>}
             </div>
             <div>
               <label style={T.label}>Channel ID *</label>
-              <input style={T.input} type="number" placeholder="e.g. 1" value={form.channelId} onChange={e => setField('channelId', e.target.value)} />
+              <input
+                style={{ ...T.input, ...(fieldErrors.channelId ? { borderColor: '#f87171', outline: '1px solid #f87171' } : {}) }}
+                type="number"
+                placeholder="e.g. 1"
+                value={form.channelId}
+                onChange={e => setField('channelId', e.target.value)}
+              />
+              {fieldErrors.channelId && <span style={S_ERR}>{fieldErrors.channelId}</span>}
             </div>
             {extraFields.map(f => (
               <DynamicField key={f.key} def={f} value={form.extras[f.key]} onChange={setExtra} />
@@ -167,7 +242,13 @@ export default function LogicalPanel() {
             {!isBridge && (
               <div>
                 <label style={T.label}>Aliases (comma-separated)</label>
-                <input style={T.input} placeholder="alias1, alias2" value={form.aliases} onChange={e => setField('aliases', e.target.value)} />
+                <input
+                  style={{ ...T.input, ...(fieldErrors.aliases ? { borderColor: '#f87171', outline: '1px solid #f87171' } : {}) }}
+                  placeholder="alias1, alias2"
+                  value={form.aliases}
+                  onChange={e => setField('aliases', e.target.value)}
+                />
+                {fieldErrors.aliases && <span style={S_ERR}>{fieldErrors.aliases}</span>}
               </div>
             )}
           </div>
@@ -204,3 +285,11 @@ export default function LogicalPanel() {
     </div>
   );
 }
+
+const S_ERR: React.CSSProperties = {
+  display: 'block',
+  marginTop: '4px',
+  fontSize: '11px',
+  color: '#f87171',
+  lineHeight: 1.4,
+};

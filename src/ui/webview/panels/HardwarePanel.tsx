@@ -21,9 +21,12 @@ const SUBCLASS_COLOR: Record<string, string> = {
   TEAnalog: '#f0c040', HHLoad: '#f87171',
 };
 
+const HW_NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
+
 export default function HardwarePanel() {
   const { state, send, notify } = useApp();
   const [showForm, setShowForm] = useState(false);
+  const [nameError, setNameError] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -33,6 +36,16 @@ export default function HardwarePanel() {
 
   function setField(key: string, val: any) {
     setForm(f => ({ ...f, [key]: val }));
+    if (key === 'name') {
+      const v = String(val).trim();
+      if (!v) {
+        setNameError('Name is required.');
+      } else if (!HW_NAME_RE.test(v)) {
+        setNameError('Invalid name — must start with a letter or underscore; no spaces. Allowed: A–Z, a–z, 0–9, _, -');
+      } else {
+        setNameError('');
+      }
+    }
   }
 
   function setSubclass(val: string) {
@@ -45,6 +58,11 @@ export default function HardwarePanel() {
 
   function handleAdd() {
     if (!form.name.trim()) { notify('error', 'Channel name is required.'); return; }
+    if (!HW_NAME_RE.test(form.name.trim())) {
+      setNameError('Invalid name — must start with a letter or underscore; no spaces.');
+      notify('error', 'Please fix the highlighted errors before adding.');
+      return;
+    }
     const channel: HardwareChannel = {
       id: `hw_${Date.now()}`,
       name: form.name.trim(),
@@ -53,11 +71,13 @@ export default function HardwarePanel() {
       ...form.extras,
     };
     send('addHardwareChannel', { channel });
+    setNameError('');
     setForm({ name: '', subclass: HARDWARE_SUBCLASS_OPTIONS[0].value, extras: initExtras(HARDWARE_SUBCLASS_OPTIONS[0].value) });
     setShowForm(false);
   }
 
   function handleCancelForm() {
+    setNameError('');
     setForm({ name: '', subclass: HARDWARE_SUBCLASS_OPTIONS[0].value, extras: initExtras(HARDWARE_SUBCLASS_OPTIONS[0].value) });
     setShowForm(false);
   }
@@ -82,7 +102,13 @@ export default function HardwarePanel() {
 
           <div style={{ marginBottom: '12px' }}>
             <label style={T.label}>Name *</label>
-            <input style={T.input} placeholder="e.g. CAN_Interface_1" value={form.name} onChange={e => setField('name', e.target.value)} />
+            <input
+              style={{ ...T.input, ...(nameError ? { borderColor: '#f87171', outline: '1px solid #f87171' } : {}) }}
+              placeholder="e.g. CAN_Interface_1"
+              value={form.name}
+              onChange={e => setField('name', e.target.value)}
+            />
+            {nameError && <span style={HW_S_ERR}>{nameError}</span>}
           </div>
 
           <div style={{ marginBottom: '12px' }}>
@@ -136,3 +162,11 @@ export default function HardwarePanel() {
     </div>
   );
 }
+
+const HW_S_ERR: React.CSSProperties = {
+  display: 'block',
+  marginTop: '4px',
+  fontSize: '11px',
+  color: '#f87171',
+  lineHeight: 1.4,
+};

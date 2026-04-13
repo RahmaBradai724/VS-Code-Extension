@@ -74,6 +74,7 @@ export class MessageHandler {
       case 'runAIValidation':         return this._runAIValidation(webview);
       case 'importConfig':            return this._importConfig(webview);
       case 'applyYamlEdit':           return this._applyYamlEdit(message, webview);
+      case 'openUrl':                 return this._openUrl(message);
     }
   }
 
@@ -417,6 +418,24 @@ export class MessageHandler {
       const { config: parsed } = parser.parse(message.yaml, this.currentConfig.name);
       const p = parsed as any;
 
+      const hadLogical  = this.currentConfig.logicalChannels.length;
+      const hadHardware = this.currentConfig.hardwareChannels.length;
+      const gotLogical  = (p.logicalChannels  || []).length;
+      const gotHardware = (p.hardwareChannels || []).length;
+
+      // Guard: the preview YAML is in MTF format; YamlParser reads the internal format.
+      // If the original config had channels but the parse returned none, the YAML is in
+      // the wrong format for the parser — reject instead of silently wiping the config.
+      if ((hadLogical > 0 && gotLogical === 0) || (hadHardware > 0 && gotHardware === 0)) {
+        webview.postMessage({
+          command: 'yamlApplyError',
+          message:
+            'The YAML preview uses the MTF output format and cannot be applied directly. ' +
+            'To change a channel ID, edit it in the Logical Channels panel.',
+        });
+        return;
+      }
+
       this.currentConfig.logicalChannels  = p.logicalChannels  || [];
       this.currentConfig.hardwareChannels = p.hardwareChannels || [];
       this.currentConfig.mappings         = p.mappings         || [];
@@ -544,5 +563,11 @@ export class MessageHandler {
       this.currentConfig.userId,
       JSON.stringify(this.currentConfig.toJSON()),
     );
+  }
+
+  private _openUrl(message: any) {
+    if (typeof message.url === 'string' && message.url.startsWith('https://')) {
+      vscode.env.openExternal(vscode.Uri.parse(message.url));
+    }
   }
 }

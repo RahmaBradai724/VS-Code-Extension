@@ -1,0 +1,62 @@
+Channels:
+  CAN_CHANNEL_TEST:
+    Id: 1
+    Type: CAN
+    Protocol: CANFD
+    LoggingName: CAN_CHANNEL_TEST
+    TracerName: CAN_CHANNEL_TEST
+    Alias:
+      - CAN_CHANNEL_TEST
+  FLEXRAY_CHANNEL:
+    Id: 2
+    Type: FR
+    LoggingName: FLEXRAY_CHANNEL
+    TracerName: FLEXRAY_CHANNEL
+    Alias:
+      - alias
+Mappings:
+  CM:
+    Devices:
+      1:
+        Id: 64
+        Type: CAN_Combo
+        Buses:
+          CAN_CHANNEL_TEST:
+            HWChannel: 619
+            OperationMode: Normal
+      2:
+        Id: 65
+        Type: CAN_Combo
+        Buses:
+          FLEXRAY_CHANNEL:
+            HWChannel: 620
+            OperationMode: Normal
+            KeySlot: 2
+            NodeType: ColdStartFollowing
+            WakeUpCluster: true
+FrameworkConfig:
+  Tracing:
+    CAN_CHANNEL_TEST:
+      Type: PCAP
+      Timestamp: Microsecond
+      LoggingType: MultipleAdapterMode
+      LoggerConfiguration:
+        BufferConfig:
+          BufferSize: 200
+        FileConfig:
+          BaseFileName: trace_eth_1
+          Extension: .pcapng
+          MaxFile: 2000
+          MaxFileSize: 200
+    FLEXRAY_CHANNEL:
+      Type: ASCII
+      Timestamp: Microsecond
+      InternalEventLogged: true
+      LoggerConfiguration:
+        FileConfig:
+          BaseFileName: can_trace
+          Extension: .pcapng
+          MaxFile: 150
+          MaxFileSize: 300
+  PublisherConfig:
+    PublisherType: SingleThreaded

@@ -1,4 +1,4 @@
-export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'diagram';
+export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams';
 export interface Notification {
     type: 'success' | 'error' | 'warning' | 'info';
     message: string;

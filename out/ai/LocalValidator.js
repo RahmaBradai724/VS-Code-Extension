@@ -53,10 +53,52 @@ class LocalValidator {
             if (!lc.name) {
                 errors.push(`A logical channel is missing a name (id: ${lc.id}).`);
             }
+            const rawId = lc.channelId;
+            if (rawId === undefined || rawId === null || rawId === '') {
+                errors.push(`Logical channel "${lc.name}" is missing an Id (must be a unique positive integer).`);
+            }
+            else {
+                const id = Number(rawId);
+                if (!Number.isInteger(id) || id <= 0) {
+                    errors.push(`Logical channel "${lc.name}" has an invalid Id "${rawId}". Id must be a positive integer.`);
+                }
+            }
+        }
+        // Check Id uniqueness across logical channels
+        const idCounts = new Map();
+        for (const lc of config.logicalChannels) {
+            const id = Number(lc.channelId);
+            if (!isNaN(id) && id > 0) {
+                const names = idCounts.get(id) ?? [];
+                names.push(lc.name);
+                idCounts.set(id, names);
+            }
+        }
+        for (const [id, names] of idCounts) {
+            if (names.length > 1) {
+                errors.push(`Duplicate Id ${id} used by channels: ${names.join(', ')}. Each channel must have a unique Id.`);
+            }
         }
         for (const hw of config.hardwareChannels) {
             if (!hw.name) {
                 errors.push(`A hardware channel is missing a name (id: ${hw.id}).`);
+            }
+        }
+        return errors;
+    }
+    detectNameFormatErrors(config) {
+        const errors = [];
+        const NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
+        for (const lc of config.logicalChannels) {
+            if (lc.name && !NAME_RE.test(lc.name)) {
+                errors.push(`Logical channel name "${lc.name}" is invalid. ` +
+                    'Names must not start with a digit and may only contain letters, digits, underscores, or hyphens (no spaces).');
+            }
+            for (const alias of (lc.alias ?? [])) {
+                if (!NAME_RE.test(alias)) {
+                    errors.push(`Alias "${alias}" on channel "${lc.name}" is invalid. ` +
+                        'Aliases follow the same naming rules as channel names.');
+                }
             }
         }
         return errors;
@@ -85,6 +127,7 @@ class LocalValidator {
         const errors = [
             ...this.detectDuplicateMappings(mappings),
             ...this.detectMissingElements(config),
+            ...this.detectNameFormatErrors(config),
             ...this.detectInvalidChannelTypes(config),
         ];
         const warnings = [

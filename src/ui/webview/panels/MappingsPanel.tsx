@@ -78,7 +78,7 @@ export default function MappingsPanel() {
       params: {
         hwChannel: form.hwChannel ? Number(form.hwChannel) : undefined,
         operationMode: form.operationMode || undefined,
-        keySlot: form.keySlot ? Number(form.keySlot) : undefined,
+        keySlot: isFlexRay && form.keySlot ? Number(form.keySlot) : undefined,
         nodeType: isFlexRay ? (form.nodeType || undefined) : undefined,
         wakeUpCluster: isFlexRay ? form.wakeUpCluster : undefined,
         measurementAttribute: isBTS ? (form.measurementAttribute || undefined) : undefined,

@@ -94,6 +94,7 @@ class MessageHandler {
             case 'runAIValidation': return this._runAIValidation(webview);
             case 'importConfig': return this._importConfig(webview);
             case 'applyYamlEdit': return this._applyYamlEdit(message, webview);
+            case 'openUrl': return this._openUrl(message);
         }
     }
     // ── Auth handlers ───────────────────────────────────────────────────────
@@ -433,6 +434,21 @@ class MessageHandler {
             const parser = new YamlParser_1.YamlParser();
             const { config: parsed } = parser.parse(message.yaml, this.currentConfig.name);
             const p = parsed;
+            const hadLogical = this.currentConfig.logicalChannels.length;
+            const hadHardware = this.currentConfig.hardwareChannels.length;
+            const gotLogical = (p.logicalChannels || []).length;
+            const gotHardware = (p.hardwareChannels || []).length;
+            // Guard: the preview YAML is in MTF format; YamlParser reads the internal format.
+            // If the original config had channels but the parse returned none, the YAML is in
+            // the wrong format for the parser — reject instead of silently wiping the config.
+            if ((hadLogical > 0 && gotLogical === 0) || (hadHardware > 0 && gotHardware === 0)) {
+                webview.postMessage({
+                    command: 'yamlApplyError',
+                    message: 'The YAML preview uses the MTF output format and cannot be applied directly. ' +
+                        'To change a channel ID, edit it in the Logical Channels panel.',
+                });
+                return;
+            }
             this.currentConfig.logicalChannels = p.logicalChannels || [];
             this.currentConfig.hardwareChannels = p.hardwareChannels || [];
             this.currentConfig.mappings = p.mappings || [];
@@ -540,6 +556,11 @@ class MessageHandler {
         }
         this.storageService.saveConfiguration(this.currentConfig);
         await (0, databaseService_1.saveConfigurationToDb)(this.currentConfig.id, this.currentConfig.name, this.currentConfig.userId, JSON.stringify(this.currentConfig.toJSON()));
+    }
+    _openUrl(message) {
+        if (typeof message.url === 'string' && message.url.startsWith('https://')) {
+            vscode.env.openExternal(vscode.Uri.parse(message.url));
+        }
     }
 }
 exports.MessageHandler = MessageHandler;

@@ -18,6 +18,7 @@ import MappingsPanel from './panels/MappingsPanel';
 import FrameworkPanel from './panels/FrameworkPanel';
 import TracerPanel from './panels/TracerPanel';
 import GeneratePanel from './panels/GeneratePanel';
+import DashboardPanel from './panels/DashboardPanel';
 import DiagramPanel from './panels/DiagramPanel';
 
 export function App() {
@@ -35,7 +36,7 @@ export function App() {
   useMessageHandler({ state, dispatch, send, notify });
 
   const liveYaml = useYamlPreview(state);
-  const showPreview = !!state.currentConfigId && state.page !== 'diagram';
+  const showPreview = !!state.currentConfigId && state.page !== 'dashboard' && state.page !== 'diagrams';
 
   const panels: Record<Page, React.ReactNode> = {
     configs: <ConfigsPanel />,
@@ -45,7 +46,8 @@ export function App() {
     framework: <FrameworkPanel />,
     tracers: <TracerPanel />,
     generate: <GeneratePanel />,
-    diagram: <DiagramPanel />,
+    dashboard: <DashboardPanel />,
+    diagrams: <DiagramPanel />,
   };
 
   return (

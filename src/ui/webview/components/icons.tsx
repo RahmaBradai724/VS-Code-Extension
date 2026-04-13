@@ -27,8 +27,11 @@ export const Icons = {
   generate: () => icon(
     <path d="M13.5 2H9L4 7 1 10l5 5 3-3 5-5V2h-0.5zm-8 11L2 9.5 4.5 7 8 10.5 5.5 13zM12 3v3.5L9 9.5 6.5 7 9.5 4H12V3zm-1 1.5a.5.5 0 1 0 1 0 .5.5 0 0 0-1 0z" />
   ),
-  diagram: () => icon(
-    <path d="M1 2h4v4H1V2zm0 8h4v4H1v-4zm10-4h4v4h-4V6zm-4-4h4v4H7V2zm0 8h4v4H7v-4zm-5.5 1.5L6 11m9-5H9.5M6 4h1M6 12h1" />,
+  dashboard: () => icon(
+    <path d="M1 2h5v5H1V2zm0 7h5v5H1V9zm7-7h5v5H8V2zm0 7h5v5H8V9zm1-6v3h3V3H9zm-7 0v3h3V3H2zm0 7v3h3v-3H2zm7 0v3h3v-3H9z" />,
+  ),
+  diagrams: () => icon(
+    <path d="M1 3h4v3H1V3zm5 1.5h4M10 3h5v3h-5V3zm-4.5 5H8m2 .5h4m-4 2h4M1 9h4v5H1V9zm9 0h5v5h-5V9z" />,
   ),
   chevronRight: () => icon(<path d="M6 3l5 5-5 5V3z" />),
   plus: (size?: number) => icon(<path d="M8 1.5a.75.75 0 0 1 .75.75V7h4.75a.75.75 0 0 1 0 1.5H8.75v4.75a.75.75 0 0 1-1.5 0V8.5H2.5a.75.75 0 0 1 0-1.5h4.75V2.25A.75.75 0 0 1 8 1.5z" />, size),

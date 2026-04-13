@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { postMessage } from '../vscodeApi';
+import * as jsYaml from 'js-yaml';
 
 interface Props {
   yaml: string;
@@ -11,6 +12,17 @@ export default function YamlPreview({ yaml }: Props) {
   const [copied, setCopied]       = useState(false);
   const [applying, setApplying]   = useState(false);
   const prevYamlRef               = useRef(yaml);
+
+  // Detect YAML syntax errors in the current textarea content
+  const yamlSyntaxError = useMemo<string | null>(() => {
+    if (!localYaml.trim()) { return null; }
+    try {
+      jsYaml.load(localYaml); 
+      return null;
+    } catch (e: any) {
+      return e?.message ?? 'Invalid YAML syntax.';
+    }
+  }, [localYaml]);
 
   // Sync from live preview only when user has no unsaved edits
   useEffect(() => {
@@ -72,10 +84,10 @@ export default function YamlPreview({ yaml }: Props) {
           )}
           {isDirty && (
             <button
-              style={{ ...S.applyBtn, opacity: applying ? 0.6 : 1 }}
+              style={{ ...S.applyBtn, opacity: (applying || !!yamlSyntaxError) ? 0.6 : 1 }}
               onClick={handleApply}
-              disabled={applying}
-              title="Apply YAML changes to config"
+              disabled={applying || !!yamlSyntaxError}
+              title={yamlSyntaxError ? 'Fix YAML syntax errors before applying' : 'Apply YAML changes to config'}
             >
               {applying ? '⏳' : '✓ Apply'}
             </button>
@@ -91,6 +103,14 @@ export default function YamlPreview({ yaml }: Props) {
           )}
         </div>
       </div>
+
+      {/* YAML syntax error bar */}
+      {yamlSyntaxError && (
+        <div style={S.syntaxError}>
+          <span style={{ fontWeight: 700, marginRight: '6px' }}>✗ YAML syntax error:</span>
+          {yamlSyntaxError}
+        </div>
+      )}
 
       {/* Editable textarea */}
       <textarea
@@ -179,6 +199,17 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     fontWeight: 700,
     cursor: 'pointer',
+  },
+  syntaxError: {
+    padding: '7px 14px',
+    fontSize: '11px',
+    lineHeight: 1.5,
+    color: '#fca5a5',
+    background: 'rgba(248,113,113,0.10)',
+    borderBottom: '1px solid rgba(248,113,113,0.25)',
+    flexShrink: 0,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
   },
   textarea: {
     flex: 1,

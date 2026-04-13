@@ -6,7 +6,8 @@ export declare const Icons: {
     mappings: () => React.JSX.Element;
     framework: () => React.JSX.Element;
     generate: () => React.JSX.Element;
-    diagram: () => React.JSX.Element;
+    dashboard: () => React.JSX.Element;
+    diagrams: () => React.JSX.Element;
     chevronRight: () => React.JSX.Element;
     plus: (size?: number) => React.JSX.Element;
     trash: (size?: number) => React.JSX.Element;

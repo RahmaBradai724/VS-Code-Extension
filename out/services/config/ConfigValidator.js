@@ -21,10 +21,44 @@ class ConfigValidator {
         if (mappings.length === 0) {
             errors.push('At least one mapping must be defined.');
         }
+        // ── Channel name format: no spaces, must not start with a digit
+        const NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
+        for (const ch of config.logicalChannels) {
+            if (!NAME_RE.test(ch.name)) {
+                errors.push(`Logical channel name "${ch.name}" is invalid. ` +
+                    'Names must not start with a digit and may only contain letters, digits, underscores, or hyphens (no spaces).');
+            }
+            // Validate aliases follow the same naming rules
+            for (const alias of (ch.alias ?? [])) {
+                if (!NAME_RE.test(alias)) {
+                    errors.push(`Alias "${alias}" on channel "${ch.name}" is invalid. ` +
+                        'Aliases follow the same naming rules as channel names.');
+                }
+            }
+        }
         const logicalNames = config.logicalChannels.map(c => c.name);
         const logicalDupes = logicalNames.filter((n, i) => logicalNames.indexOf(n) !== i);
         if (logicalDupes.length > 0) {
             errors.push(`Duplicate logical channel names detected: ${logicalDupes.join(', ')}.`);
+        }
+        // ── Id must be a positive integer and unique across all logical channels
+        const seenIds = new Set();
+        for (const ch of config.logicalChannels) {
+            const chAny = ch;
+            const rawId = chAny.channelId;
+            if (rawId === undefined || rawId === null || rawId === '') {
+                errors.push(`Logical channel "${ch.name}" is missing an Id. Set a unique integer Id.`);
+                continue;
+            }
+            const id = Number(rawId);
+            if (!Number.isInteger(id) || id <= 0) {
+                errors.push(`Logical channel "${ch.name}" has an invalid Id "${rawId}". Id must be a positive integer.`);
+                continue;
+            }
+            if (seenIds.has(id)) {
+                errors.push(`Duplicate Id ${id} detected on logical channel "${ch.name}". Each channel must have a unique Id.`);
+            }
+            seenIds.add(id);
         }
         const hwNames = config.hardwareChannels.map(c => c.name);
         const hwDupes = hwNames.filter((n, i) => hwNames.indexOf(n) !== i);

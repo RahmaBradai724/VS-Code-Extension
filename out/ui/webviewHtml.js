@@ -56,7 +56,7 @@ function getHtmlForWebview(webview, extensionUri) {
     content="default-src 'none';
              script-src 'nonce-${nonce}';
              style-src 'unsafe-inline';
-             img-src ${webview.cspSource} data:;
+             img-src ${webview.cspSource} data: https://cdn.prod.website-files.com;
              font-src ${webview.cspSource};">
   <title>Channel Config Manager</title>
   <style>

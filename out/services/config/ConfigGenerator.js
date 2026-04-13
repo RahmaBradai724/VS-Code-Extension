@@ -106,9 +106,11 @@ class ConfigGenerator {
     _buildChannelsSection() {
         const channelsSection = {};
         this.config.logicalChannels.forEach((ch, index) => {
+            const chAny = ch;
             const obj = {
-                Id: index + 1,
-                // MTF spec uses 'FR' â€” normalize both FLEXRAY and FR enum values
+                // Use user-defined channelId if set; fall back to 1-based index
+                Id: (chAny.channelId != null && chAny.channelId !== '') ? Number(chAny.channelId) : index + 1,
+                // MTF spec uses 'FR' — normalize both FLEXRAY and FR enum values
                 Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
             };
             if (ch.category !== 'BRIDGE') {

@@ -91,9 +91,11 @@ export class ConfigGenerator {
   private _buildChannelsSection(): Record<string, any> {
     const channelsSection: Record<string, any> = {};
     this.config.logicalChannels.forEach((ch, index) => {
+      const chAny = ch as any;
       const obj: Record<string, any> = {
-        Id: index + 1,
-        // MTF spec uses 'FR' â€” normalize both FLEXRAY and FR enum values
+        // Use user-defined channelId if set; fall back to 1-based index
+        Id: (chAny.channelId != null && chAny.channelId !== '') ? Number(chAny.channelId) : index + 1,
+        // MTF spec uses 'FR' — normalize both FLEXRAY and FR enum values
         Type: ch.category === 'FLEXRAY' ? 'FR' : ch.category,
       };
       if (ch.category !== 'BRIDGE') {
