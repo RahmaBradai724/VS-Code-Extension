@@ -20,4 +20,5 @@ export declare const Icons: {
     sparkle: () => React.JSX.Element;
     tracers: () => React.JSX.Element;
     gear: () => React.JSX.Element;
+    agent: () => React.JSX.Element;
 };

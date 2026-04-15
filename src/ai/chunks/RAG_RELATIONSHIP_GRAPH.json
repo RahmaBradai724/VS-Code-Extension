@@ -1,0 +1,283 @@
+{
+  "relationshipTypes": {
+    "parent": "Chunk A contains/defines Chunk B (parent-child hierarchy)",
+    "child": "Reverse of parent link",
+    "sibling": "Related topics at same level (non-hierarchical)",
+    "prerequisite": "Chunk A must be understood before Chunk B",
+    "extends": "Chunk A provides details on Chunk B",
+    "conflictsWith": "Chunks provide alternative or mutually exclusive configs",
+    "exampleOf": "Chunk B is an example concrete implementation of Chunk A",
+    "references": "Chunk A mentions or uses Chunk B"
+  },
+  "relationships": [
+    {
+      "from": "mtf_overview_001",
+      "to": "mtf_structure_001",
+      "type": "prerequisite",
+      "direction": "bidirectional",
+      "confidence": "high",
+      "explanation": "Must understand purpose before learning structure"
+    },
+    {
+      "from": "mtf_structure_001",
+      "to": "mtf_channels_001",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Channels section is one of three main sections"
+    },
+    {
+      "from": "mtf_structure_001",
+      "to": "mtf_mappings_001",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Mappings section is one of three main sections"
+    },
+    {
+      "from": "mtf_structure_001",
+      "to": "mtf_framework_001",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "FrameworkConfig section is one of three main sections"
+    },
+    {
+      "from": "mtf_channels_001",
+      "to": "mtf_channels_naming",
+      "type": "extends",
+      "direction": "bidirectional",
+      "confidence": "high",
+      "explanation": "Naming is detailed specification of channel definition"
+    },
+    {
+      "from": "mtf_channels_001",
+      "to": "mtf_channels_fields",
+      "type": "extends",
+      "direction": "bidirectional",
+      "confidence": "high",
+      "explanation": "Fields are detailed specification of channel properties"
+    },
+    {
+      "from": "mtf_channels_naming",
+      "to": "mtf_channels_autosar",
+      "type": "prerequisite",
+      "direction": "prerequisite->dependent",
+      "confidence": "high",
+      "explanation": "Must follow basic naming rules before AUTOSAR constraint"
+    },
+    {
+      "from": "mtf_mappings_001",
+      "to": "mtf_mappings_devices",
+      "type": "extends",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Device types overview extends general mappings concept"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_cm_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "CM is one example of supported device types"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_bts_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "BTS is one example of supported device types"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_pcap_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "PCAP is one example of supported device types"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_powersupply_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Power supply is one example of supported device types"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_serial_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Serial is one example of supported device types"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_relay_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Relay is one example of supported device types"
+    },
+    {
+      "from": "mtf_mappings_devices",
+      "to": "mtf_hhload_mapping",
+      "type": "exampleOf",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "HH Load is one example of supported device types"
+    },
+    {
+      "from": "mtf_cm_mapping",
+      "to": "mtf_channels_001",
+      "type": "references",
+      "direction": "bidirectional",
+      "confidence": "high",
+      "explanation": "CM mapping references logical channels defined in Channels section"
+    },
+    {
+      "from": "mtf_channels_fields",
+      "to": "mtf_framework_tracers",
+      "type": "references",
+      "direction": "forward",
+      "confidence": "high",
+      "explanation": "TracerName field links channels to tracers"
+    },
+    {
+      "from": "mtf_framework_001",
+      "to": "mtf_framework_tracers",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Tracers are part of FrameworkConfig"
+    },
+    {
+      "from": "mtf_framework_001",
+      "to": "mtf_framework_ecu",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "ECUs are configured in FrameworkConfig"
+    },
+    {
+      "from": "mtf_framework_001",
+      "to": "mtf_framework_publisher",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Publisher is part of FrameworkConfig"
+    },
+    {
+      "from": "mtf_framework_001",
+      "to": "mtf_framework_ethernet",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Ethernet configuration is part of FrameworkConfig"
+    },
+    {
+      "from": "mtf_framework_001",
+      "to": "mtf_framework_diagnostics",
+      "type": "parent",
+      "direction": "parent->child",
+      "confidence": "high",
+      "explanation": "Diagnostics are configured in FrameworkConfig"
+    },
+    {
+      "from": "mtf_framework_publisher",
+      "to": "mtf_performance",
+      "type": "references",
+      "direction": "bidirectional",
+      "confidence": "high",
+      "explanation": "Threading mode affects system performance"
+    },
+    {
+      "from": "mtf_pcap_mapping",
+      "to": "mtf_performance",
+      "type": "references",
+      "direction": "bidirectional",
+      "confidence": "high",
+      "explanation": "PCAP adapter configuration impacts performance"
+    }
+  ],
+  "reverseLinks": {
+    "mtf_overview_001": ["mtf_overview_002"],
+    "mtf_structure_001": ["mtf_overview_001", "mtf_overview_002", "mtf_channels_001", "mtf_mappings_001", "mtf_framework_001"],
+    "mtf_channels_001": ["mtf_structure_001", "mtf_channels_naming", "mtf_channels_fields", "mtf_mappings_001", "mtf_framework_tracers"],
+    "mtf_channels_naming": ["mtf_channels_001", "mtf_channels_autosar"],
+    "mtf_channels_fields": ["mtf_channels_001", "mtf_framework_tracers"],
+    "mtf_channels_autosar": ["mtf_channels_naming"],
+    "mtf_mappings_001": ["mtf_structure_001", "mtf_channels_001", "mtf_mappings_devices", "mtf_cm_mapping", "mtf_bts_mapping"],
+    "mtf_mappings_devices": ["mtf_mappings_001", "mtf_cm_mapping", "mtf_bts_mapping", "mtf_pcap_mapping"],
+    "mtf_cm_mapping": ["mtf_mappings_001", "mtf_mappings_devices", "mtf_channels_001", "mtf_relay_mapping"],
+    "mtf_bts_mapping": ["mtf_mappings_001", "mtf_mappings_devices"],
+    "mtf_pcap_mapping": ["mtf_mappings_001", "mtf_mappings_devices", "mtf_performance"],
+    "mtf_framework_001": ["mtf_structure_001", "mtf_framework_tracers", "mtf_framework_ecu", "mtf_framework_publisher", "mtf_framework_ethernet"],
+    "mtf_framework_tracers": ["mtf_framework_001", "mtf_channels_001", "mtf_channels_fields"],
+    "mtf_framework_ecu": ["mtf_framework_001"],
+    "mtf_framework_publisher": ["mtf_framework_001", "mtf_performance"],
+    "mtf_framework_ethernet": ["mtf_framework_001"],
+    "mtf_performance": ["mtf_framework_publisher", "mtf_pcap_mapping"]
+  },
+  "dependencyMatrix": {
+    "description": "Shows which chunks must be understood before others",
+    "mtf_overview_001": {
+      "prerequisite_for": ["mtf_structure_001", "mtf_overview_002"],
+      "required_knowledge": [],
+      "difficulty": "beginner"
+    },
+    "mtf_structure_001": {
+      "prerequisite_for": ["mtf_channels_001", "mtf_mappings_001", "mtf_framework_001"],
+      "required_knowledge": ["mtf_overview_001"],
+      "difficulty": "beginner"
+    },
+    "mtf_channels_001": {
+      "prerequisite_for": ["mtf_channels_naming", "mtf_channels_fields", "mtf_mappings_001"],
+      "required_knowledge": ["mtf_structure_001"],
+      "difficulty": "intermediate"
+    },
+    "mtf_channels_naming": {
+      "prerequisite_for": ["mtf_channels_autosar"],
+      "required_knowledge": ["mtf_channels_001"],
+      "difficulty": "intermediate"
+    },
+    "mtf_channels_autosar": {
+      "prerequisite_for": [],
+      "required_knowledge": ["mtf_channels_naming"],
+      "difficulty": "advanced"
+    },
+    "mtf_mappings_001": {
+      "prerequisite_for": ["mtf_mappings_devices", "mtf_cm_mapping", "mtf_bts_mapping"],
+      "required_knowledge": ["mtf_structure_001", "mtf_channels_001"],
+      "difficulty": "intermediate"
+    },
+    "mtf_mappings_devices": {
+      "prerequisite_for": ["mtf_cm_mapping", "mtf_bts_mapping", "mtf_pcap_mapping"],
+      "required_knowledge": ["mtf_mappings_001"],
+      "difficulty": "intermediate"
+    },
+    "mtf_cm_mapping": {
+      "prerequisite_for": [],
+      "required_knowledge": ["mtf_mappings_devices"],
+      "difficulty": "advanced"
+    },
+    "mtf_framework_001": {
+      "prerequisite_for": ["mtf_framework_tracers", "mtf_framework_ecu", "mtf_framework_publisher"],
+      "required_knowledge": ["mtf_structure_001"],
+      "difficulty": "intermediate"
+    },
+    "mtf_framework_tracers": {
+      "prerequisite_for": [],
+      "required_knowledge": ["mtf_framework_001", "mtf_channels_001"],
+      "difficulty": "advanced"
+    },
+    "mtf_performance": {
+      "prerequisite_for": [],
+      "required_knowledge": ["mtf_framework_publisher", "mtf_pcap_mapping"],
+      "difficulty": "advanced"
+    }
+  }
+}

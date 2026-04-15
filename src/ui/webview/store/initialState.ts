@@ -28,4 +28,8 @@ export const initialState: AppState = {
   authUser: null,
   authLoading: true,   // true while checkAuth is in-flight
   authError: null,
+  // MTF Agent
+  agentMessages: [],
+  agentLoading: false,
+  agentStreamingText: '',
 };

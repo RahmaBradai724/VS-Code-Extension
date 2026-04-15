@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MTF Knowledge Base Chunk Schema",
+  "description": "Enforces structure, types, and validation rules for RAG chunks",
+  "type": "object",
+  "definitions": {
+    "chunk": {
+      "type": "object",
+      "required": ["id", "title", "category", "content", "summary", "tags", "importance"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z_0-9]+$",
+          "minLength": 5,
+          "maxLength": 50,
+          "description": "Unique identifier in snake_case format"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 100,
+          "description": "Human-readable title (3-10 words recommended)"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["MTF Configuration"],
+          "description": "Main topic category"
+        },
+        "subcategory": {
+          "type": "string",
+          "enum": [
+            "General",
+            "Channels",
+            "Mappings - General",
+            "Mappings - CM",
+            "Mappings - BTS",
+            "Mappings - PCAP",
+            "Mappings - Power Supply",
+            "Mappings - Serial",
+            "Mappings - Relay",
+            "Mappings - HH Load",
+            "FrameworkConfig",
+            "FrameworkConfig - Tracers",
+            "FrameworkConfig - ECUs",
+            "FrameworkConfig - Publisher",
+            "FrameworkConfig - Ethernet",
+            "FrameworkConfig - Diagnostics",
+            "FrameworkConfig - Fault Injection",
+            "FrameworkConfig - Time Sync",
+            "FrameworkConfig - Special Devices"
+          ],
+          "description": "Sub-domain for better organization"
+        },
+        "section": {
+          "type": "string",
+          "enum": [
+            "Overview",
+            "Introduction",
+            "Structure",
+            "Naming",
+            "Fields",
+            "Advanced",
+            "Configuration",
+            "Performance",
+            "Best Practices"
+          ],
+          "description": "Logical section within subcategory"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 100,
+          "maxLength": 5000,
+          "description": "Full detailed content (100-500 words typical)"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 300,
+          "description": "Brief 1-3 sentence summary for condensed reference"
+        },
+        "tags": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30
+          },
+          "description": "Search keywords (3-5 items)"
+        },
+        "importance": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "Priority level for ranking results"
+        },
+        "subcategory": {
+          "type": "string",
+          "description": "Sub-domain classification"
+        },
+        "relatedIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_0-9]+$"
+          },
+          "description": "IDs of related chunks (forward links)"
+        },
+        "keywords": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "description": "Alternative search terms and synonyms"
+        },
+        "examples": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "description": "Concrete real-world examples"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO 8601 date (YYYY-MM-DD)"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 100,
+          "description": "Reference source or documentation"
+        }
+      }
+    }
+  },
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/chunk"
+  }
+}

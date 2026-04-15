@@ -1,11 +1,15 @@
 import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
+import * as path from 'path';
 import { Configuration } from '../models';
 import { ChannelManager } from '../services/channelManager';
 import { MappingManager } from '../services/mappingManager';
 import { StorageService } from '../services/storageService';
 import { ConfigGenerator } from '../services/configGenerator';
 import { AIValidator } from '../ai/aiValidator';
+import { MtfAgent } from '../ai/MtfAgent';
+import { KnowledgeBase } from '../ai/mtf/KnowledgeBase';
+import { OllamaClient } from '../ai/mtf/OllamaClient';
 import { saveConfigurationToDb } from '../services/databaseService';
 import { ChannelType } from '../models/enums';
 import { logicalChannelFactories, hardwareChannelFactories } from './channelFactories';
@@ -76,6 +80,8 @@ export class MessageHandler {
       case 'importConfig':            return this._importConfig(webview);
       case 'applyYamlEdit':           return this._applyYamlEdit(message, webview);
       case 'openUrl':                 return this._openUrl(message);
+      case 'agentCheckOllama':        return this._agentCheckOllama(webview);
+      case 'agentAsk':                return this._agentAsk(message, webview);
     }
   }
 
@@ -561,6 +567,45 @@ export class MessageHandler {
   private _openUrl(message: any) {
     if (typeof message.url === 'string' && message.url.startsWith('https://')) {
       vscode.env.openExternal(vscode.Uri.parse(message.url));
+    }
+  }
+
+  // ── MTF Agent handlers ────────────────────────────────────────────────────
+
+  private async _agentCheckOllama(webview: vscode.Webview) {
+    const client = new OllamaClient();
+    const ok = await client.isAvailable();
+    webview.postMessage({ command: 'agentOllamaStatus', available: ok });
+  }
+
+  private async _agentAsk(message: any, webview: vscode.Webview) {
+    const question: string = (message.question ?? '').trim();
+    if (!question) { return; }
+
+    try {
+      // Load knowledge base
+      const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
+      const kb = KnowledgeBase.load(resourcesDir);
+      const ollama = new OllamaClient();
+      const agent  = new MtfAgent(kb, ollama);
+
+      const { sources } = await agent.ask(
+        question,
+        (token: string) => {
+          webview.postMessage({ command: 'agentChunk', token });
+        },
+      );
+
+      webview.postMessage({
+        command: 'agentDone',
+        sources: sources.map(r => ({
+          section:    r.chunk.metadata.section,
+          subsection: r.chunk.metadata.subsection,
+          score:      r.score,
+        })),
+      });
+    } catch (e: any) {
+      webview.postMessage({ command: 'agentError', message: e.message });
     }
   }
 }

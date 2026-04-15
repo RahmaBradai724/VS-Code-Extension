@@ -20,6 +20,7 @@ import TracerPanel from './panels/TracerPanel';
 import GeneratePanel from './panels/GeneratePanel';
 import DashboardPanel from './panels/DashboardPanel';
 import DiagramPanel from './panels/DiagramPanel';
+import AgentPanel from './panels/AgentPanel';
 
 export function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -36,7 +37,7 @@ export function App() {
   useMessageHandler({ state, dispatch, send, notify });
 
   const liveYaml = useYamlPreview(state);
-  const showPreview = !!state.currentConfigId && state.page !== 'dashboard' && state.page !== 'diagrams';
+  const showPreview = !!state.currentConfigId && state.page !== 'dashboard' && state.page !== 'diagrams' && state.page !== 'agent';
 
   const panels: Record<Page, React.ReactNode> = {
     configs: <ConfigsPanel />,
@@ -48,6 +49,7 @@ export function App() {
     generate: <GeneratePanel />,
     dashboard: <DashboardPanel />,
     diagrams: <DiagramPanel />,
+    agent: <AgentPanel />,
   };
 
   return (

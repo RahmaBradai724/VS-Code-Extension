@@ -1,4 +1,4 @@
-export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams';
+export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams' | 'agent';
 
 export interface Notification {
   type: 'success' | 'error' | 'warning' | 'info';
@@ -102,6 +102,19 @@ export interface AppState {
   authUser: { id: number; name: string; email: string } | null;
   authLoading: boolean;
   authError: string | null;
+  // MTF Agent
+  agentMessages: AgentMessage[];
+  agentLoading: boolean;
+  agentStreamingText: string;
+}
+
+export interface AgentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  /** Section sources (only on assistant messages) */
+  sources?: Array<{ section: string; subsection: string; score: number }>;
+  /** True while the message is still being streamed */
+  streaming?: boolean;
 }
 
 export type AppAction =
@@ -126,7 +139,12 @@ export type AppAction =
   | { type: 'AUTH_SUCCESS'; token: string; user: { id: number; name: string; email: string } }
   | { type: 'AUTH_LOGOUT' }
   | { type: 'AUTH_LOADING'; loading: boolean }
-  | { type: 'AUTH_ERROR'; error: string | null };
+  | { type: 'AUTH_ERROR'; error: string | null }
+  | { type: 'AGENT_USER_MSG'; content: string }
+  | { type: 'AGENT_CHUNK'; token: string }
+  | { type: 'AGENT_DONE'; sources: AgentMessage['sources'] }
+  | { type: 'AGENT_ERROR'; error: string }
+  | { type: 'AGENT_CLEAR' };
 
 export interface SelectOption {
   value: string;

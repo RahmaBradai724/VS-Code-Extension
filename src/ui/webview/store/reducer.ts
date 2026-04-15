@@ -98,6 +98,54 @@ export function reducer(state: AppState, action: AppAction): AppState {
     case 'AUTH_ERROR':
       return { ...state, authError: action.error, authLoading: false };
 
+    // ── MTF Agent ─────────────────────────────────────────────────────────
+    case 'AGENT_USER_MSG':
+      return {
+        ...state,
+        agentMessages: [...state.agentMessages, { role: 'user', content: action.content }],
+        agentLoading: true,
+        agentStreamingText: '',
+      };
+
+    case 'AGENT_CHUNK':
+      return {
+        ...state,
+        agentStreamingText: state.agentStreamingText + action.token,
+      };
+
+    case 'AGENT_DONE': {
+      const assistantMsg = {
+        role: 'assistant' as const,
+        content: state.agentStreamingText,
+        sources: action.sources,
+      };
+      return {
+        ...state,
+        agentMessages: [
+          ...state.agentMessages,
+          assistantMsg,
+        ],
+        agentLoading: false,
+        agentStreamingText: '',
+      };
+    }
+
+    case 'AGENT_ERROR': {
+      const errorMsg = {
+        role: 'assistant' as const,
+        content: `⚠ ${action.error}`,
+      };
+      return {
+        ...state,
+        agentMessages: [...state.agentMessages, errorMsg],
+        agentLoading: false,
+        agentStreamingText: '',
+      };
+    }
+
+    case 'AGENT_CLEAR':
+      return { ...state, agentMessages: [], agentLoading: false, agentStreamingText: '' };
+
     default:
       return state;
   }

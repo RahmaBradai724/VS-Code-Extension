@@ -92,6 +92,26 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
           notify('error', `YAML error: ${msg.message}`);
           window.dispatchEvent(new Event('ccm-yaml-apply-error'));
           break;
+
+        // ── MTF Agent ─────────────────────────────────────────────────────
+        case 'agentOllamaStatus':
+          // Handled directly in AgentPanel via a separate send; dispatch to keep state consistent
+          if (!msg.available) {
+            dispatch({ type: 'AGENT_ERROR', error: 'Ollama is not running. Start Ollama and try again.' });
+          }
+          break;
+
+        case 'agentChunk':
+          dispatch({ type: 'AGENT_CHUNK', token: msg.token ?? '' });
+          break;
+
+        case 'agentDone':
+          dispatch({ type: 'AGENT_DONE', sources: msg.sources ?? [] });
+          break;
+
+        case 'agentError':
+          dispatch({ type: 'AGENT_ERROR', error: msg.message ?? 'Unknown agent error' });
+          break;
       }
     };
 

@@ -36,10 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageHandler = void 0;
 const vscode = __importStar(require("vscode"));
 const yaml = __importStar(require("js-yaml"));
+const path = __importStar(require("path"));
 const models_1 = require("../models");
 const channelManager_1 = require("../services/channelManager");
 const mappingManager_1 = require("../services/mappingManager");
 const configGenerator_1 = require("../services/configGenerator");
+const MtfAgent_1 = require("../ai/MtfAgent");
+const KnowledgeBase_1 = require("../ai/mtf/KnowledgeBase");
+const OllamaClient_1 = require("../ai/mtf/OllamaClient");
 const databaseService_1 = require("../services/databaseService");
 const enums_1 = require("../models/enums");
 const channelFactories_1 = require("./channelFactories");
@@ -95,6 +99,8 @@ class MessageHandler {
             case 'importConfig': return this._importConfig(webview);
             case 'applyYamlEdit': return this._applyYamlEdit(message, webview);
             case 'openUrl': return this._openUrl(message);
+            case 'agentCheckOllama': return this._agentCheckOllama(webview);
+            case 'agentAsk': return this._agentAsk(message, webview);
         }
     }
     // ── Auth handlers ───────────────────────────────────────────────────────
@@ -571,6 +577,39 @@ class MessageHandler {
     _openUrl(message) {
         if (typeof message.url === 'string' && message.url.startsWith('https://')) {
             vscode.env.openExternal(vscode.Uri.parse(message.url));
+        }
+    }
+    // ── MTF Agent handlers ────────────────────────────────────────────────────
+    async _agentCheckOllama(webview) {
+        const client = new OllamaClient_1.OllamaClient();
+        const ok = await client.isAvailable();
+        webview.postMessage({ command: 'agentOllamaStatus', available: ok });
+    }
+    async _agentAsk(message, webview) {
+        const question = (message.question ?? '').trim();
+        if (!question) {
+            return;
+        }
+        try {
+            // Load knowledge base
+            const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
+            const kb = KnowledgeBase_1.KnowledgeBase.load(resourcesDir);
+            const ollama = new OllamaClient_1.OllamaClient();
+            const agent = new MtfAgent_1.MtfAgent(kb, ollama);
+            const { sources } = await agent.ask(question, (token) => {
+                webview.postMessage({ command: 'agentChunk', token });
+            });
+            webview.postMessage({
+                command: 'agentDone',
+                sources: sources.map(r => ({
+                    section: r.chunk.metadata.section,
+                    subsection: r.chunk.metadata.subsection,
+                    score: r.score,
+                })),
+            });
+        }
+        catch (e) {
+            webview.postMessage({ command: 'agentError', message: e.message });
         }
     }
 }

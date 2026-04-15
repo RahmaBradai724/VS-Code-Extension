@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'generate',  label: 'Generate',          Icon: Icons.generate },
   { id: 'dashboard', label: 'Dashboard',          Icon: Icons.dashboard },
   { id: 'diagrams',  label: 'Diagrams',           Icon: Icons.diagrams  },
+  { id: 'agent',     label: 'MTF Agent',           Icon: Icons.agent    },
 ];
 
 export function Nav() {

@@ -1,4 +1,4 @@
-export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams';
+export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams' | 'agent';
 export interface Notification {
     type: 'success' | 'error' | 'warning' | 'info';
     message: string;
@@ -91,6 +91,19 @@ export interface AppState {
     } | null;
     authLoading: boolean;
     authError: string | null;
+    agentMessages: AgentMessage[];
+    agentLoading: boolean;
+    agentStreamingText: string;
+}
+export interface AgentMessage {
+    role: 'user' | 'assistant';
+    content: string;
+    sources?: Array<{
+        section: string;
+        subsection: string;
+        score: number;
+    }>;
+    streaming?: boolean;
 }
 export type AppAction = {
     type: 'SET_PAGE';
@@ -162,6 +175,20 @@ export type AppAction = {
 } | {
     type: 'AUTH_ERROR';
     error: string | null;
+} | {
+    type: 'AGENT_USER_MSG';
+    content: string;
+} | {
+    type: 'AGENT_CHUNK';
+    token: string;
+} | {
+    type: 'AGENT_DONE';
+    sources: AgentMessage['sources'];
+} | {
+    type: 'AGENT_ERROR';
+    error: string;
+} | {
+    type: 'AGENT_CLEAR';
 };
 export interface SelectOption {
     value: string;
