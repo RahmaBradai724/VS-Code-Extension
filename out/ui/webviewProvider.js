@@ -68,11 +68,26 @@ class WebviewProvider {
     /** Open or reveal the singleton panel. */
     static open(extensionUri, context) {
         if (WebviewProvider._instance) {
-            // Panel already exists – just bring it to the front
             WebviewProvider._instance._panel.reveal(vscode.ViewColumn.One);
         }
         else {
             WebviewProvider._instance = new WebviewProvider(extensionUri, context);
+        }
+    }
+    /** Returns true if a panel is currently open. */
+    static hasInstance() {
+        return WebviewProvider._instance !== undefined;
+    }
+    /**
+     * If the panel is open and the user is authenticated, immediately apply
+     * the pending auto-load config (set by autoCreate when MTF.yaml is created).
+     * If the panel is not open, the pending config will be consumed naturally
+     * on the next checkAuth call when the panel is opened.
+     */
+    static applyPendingLoad() {
+        const inst = WebviewProvider._instance;
+        if (inst) {
+            inst.handler.applyAutoLoad(inst._panel.webview);
         }
     }
 }

@@ -542,6 +542,16 @@ class MessageHandler {
      * Sends both configurationsLoaded (so the list re-renders) and configurationLoaded
      * (so the config is set as active), all in one shot after successful auth.
      */
+    /** Public entry point used by WebviewProvider.applyPendingLoad(). */
+    applyAutoLoad(webview) {
+        if (this.loggedInUserId === null) {
+            // User not yet authenticated in this panel session.
+            // Leave the pending config in place — _checkAuth / _login will
+            // call _applyAutoLoad themselves after setting loggedInUserId.
+            return;
+        }
+        this._applyAutoLoad(webview);
+    }
     _applyAutoLoad(webview) {
         const pending = (0, autoLoadState_1.consumeAutoLoad)();
         if (!pending) {

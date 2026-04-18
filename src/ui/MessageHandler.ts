@@ -515,6 +515,17 @@ export class MessageHandler {
    * Sends both configurationsLoaded (so the list re-renders) and configurationLoaded
    * (so the config is set as active), all in one shot after successful auth.
    */
+  /** Public entry point used by WebviewProvider.applyPendingLoad(). */
+  public applyAutoLoad(webview: vscode.Webview): void {
+    if (this.loggedInUserId === null) {
+      // User not yet authenticated in this panel session.
+      // Leave the pending config in place — _checkAuth / _login will
+      // call _applyAutoLoad themselves after setting loggedInUserId.
+      return;
+    }
+    this._applyAutoLoad(webview);
+  }
+
   private _applyAutoLoad(webview: vscode.Webview): void {
     const pending = consumeAutoLoad();
     if (!pending) { return; }

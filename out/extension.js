@@ -64,37 +64,39 @@ async function activate(context) {
     /** Helper: open/reveal the main panel */
     const openPanel = () => webviewProvider_1.WebviewProvider.open(context.extensionUri, context);
     /**
-     * Called when MTF.yaml is detected (created or already exists).
-     * - workspaceState stores the config ID so the same session reuses the same config.
-     * - A new MTF.yaml always generates a fresh unique ID + name.
+     * Called on startup when MTF.yaml already existed.
+     * Tries to reuse the previously stored config for this workspace.
+     * If none found, falls through to createFreshConfig.
      */
     const WS_KEY = 'mtfConfigId';
-    const autoCreate = async (uri) => {
-        try {
-            const storedId = context.workspaceState.get(WS_KEY);
-            if (storedId) {
-                const existing = storageService.getConfigurationById(storedId);
-                if (existing) {
-                    // Config already exists for this workspace — queue it for auto-load
-                    (0, autoLoadState_1.setAutoLoad)(existing);
-                    return;
-                }
-                // Stored ID but no config (e.g. storage cleared) — fall through to recreate
+    const handleExistingFile = async (uri) => {
+        const storedId = context.workspaceState.get(WS_KEY);
+        if (storedId) {
+            const existing = storageService.getConfigurationById(storedId);
+            if (existing) {
+                (0, autoLoadState_1.setAutoLoad)(existing);
+                return;
             }
-            // Write default template to MTF.yaml if it is empty
+        }
+        // No stored config (first run or storage cleared) → create fresh
+        await createFreshConfig(uri);
+    };
+    /**
+     * Called whenever MTF.yaml is freshly created (onDidCreate watcher).
+     * Always produces a brand-new empty config — no ctime check needed
+     * because the watcher event already tells us the file is new.
+     */
+    const createFreshConfig = async (uri) => {
+        try {
             const rawBytes = await vscode.workspace.fs.readFile(uri);
             const text = Buffer.from(rawBytes).toString('utf8').trim();
             if (!text) {
                 await vscode.workspace.fs.writeFile(uri, Buffer.from(DEFAULT_MTF_YAML, 'utf8'));
             }
-            // Generate a unique ID and name for every new MTF.yaml
             const ts = Date.now();
             const newId = `mtf_${ts}`;
             const newName = `MTF_${new Date(ts).toISOString().slice(0, 10)}_${ts.toString().slice(-5)}`;
-            // Persist the workspace-scoped ID for future reloads
             await context.workspaceState.update(WS_KEY, newId);
-            // Queue metadata for auto-load — saving to DB/globalState happens after auth
-            // so the config is stored with the real logged-in userId (foreign key)
             (0, autoLoadState_1.setAutoLoad)({
                 id: newId,
                 name: newName,
@@ -108,20 +110,26 @@ async function activate(context) {
             });
         }
         catch (err) {
-            console.warn(`autoCreate MTF.yaml failed: ${err.message}`);
+            console.warn(`createFreshConfig failed: ${err.message}`);
         }
     };
     // Handle MTF.yaml already present when the workspace opens
     const existingMTF = await vscode.workspace.findFiles('**/MTF.yaml', null, 1);
     if (existingMTF.length > 0) {
-        await autoCreate(existingMTF[0]);
+        await handleExistingFile(existingMTF[0]);
         openPanel();
     }
-    // Watch for MTF.yaml being created
+    // Watch for MTF.yaml being created — always produce a fresh config
     const mtfWatcher = vscode.workspace.createFileSystemWatcher('**/MTF.yaml');
     mtfWatcher.onDidCreate(async (uri) => {
-        await autoCreate(uri);
-        openPanel();
+        await createFreshConfig(uri);
+        if (webviewProvider_1.WebviewProvider.hasInstance()) {
+            webviewProvider_1.WebviewProvider.applyPendingLoad();
+            webviewProvider_1.WebviewProvider.open(context.extensionUri, context); // reveal
+        }
+        else {
+            openPanel(); // new panel; pending config consumed on first checkAuth
+        }
         vscode.window.showInformationMessage('MTF.yaml detected — Channel Configuration Manager opened.');
     });
     context.subscriptions.push(mtfWatcher);
