@@ -33,6 +33,8 @@ let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareCh
         this.dataLoggerType = '';
         this.packetProcessingActive = false;
         this.packetIdentificationActive = false;
+        this.differentHandlerForTxAndRx = false;
+        this.tecmpPacketizationActive = false;
     }
     get snapShotLength() {
         return this.snapshotLength;
@@ -56,7 +58,9 @@ let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareCh
             removeDataLoggerMetaData: this.removeDataLoggerMetaData,
             dataLoggerType: this.dataLoggerType,
             packetProcessingActive: this.packetProcessingActive,
-            packetIdentificationActive: this.packetIdentificationActive
+            packetIdentificationActive: this.packetIdentificationActive,
+            differentHandlerForTxAndRx: this.differentHandlerForTxAndRx,
+            tecmpPacketizationActive: this.tecmpPacketizationActive,
         };
     }
     toJSON() {
@@ -132,6 +136,14 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Boolean)
 ], EthernetAdapter.prototype, "packetIdentificationActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Boolean)
+], EthernetAdapter.prototype, "differentHandlerForTxAndRx", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Boolean)
+], EthernetAdapter.prototype, "tecmpPacketizationActive", void 0);
 exports.EthernetAdapter = EthernetAdapter = __decorate([
     (0, typeorm_1.Entity)('hardware_ethernet_adapters'),
     __metadata("design:paramtypes", [String, String])

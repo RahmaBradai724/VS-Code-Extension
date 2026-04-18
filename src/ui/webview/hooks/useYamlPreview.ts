@@ -85,6 +85,8 @@ function buildMtfObject(state: AppState): Record<string, any> {
       if (hw.dataLoggerType)            { adapterObj.DataLoggerType            = hw.dataLoggerType; }
       if (hw.packetProcessingActive != null)    { adapterObj.PacketProcessingActive    = hw.packetProcessingActive; }
       if (hw.packetIdentificationActive != null){ adapterObj.PacketIdentificationActive= hw.packetIdentificationActive; }
+      if (hw.differentHandlerForTxAndRx != null){ adapterObj.DifferentHandlerForTxAndRx = hw.differentHandlerForTxAndRx; }
+      if (hw.tecmpPacketizationActive != null)  { adapterObj.TECMPPacketizationActive   = hw.tecmpPacketizationActive; }
       pcapSection[idx + 1] = { Adapter: adapterObj };
     });
     mappingsSection.PCAP = pcapSection;

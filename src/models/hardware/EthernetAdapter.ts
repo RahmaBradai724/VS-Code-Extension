@@ -55,6 +55,12 @@ export class EthernetAdapter extends HardwareChannel {
   @Column()
   packetIdentificationActive: boolean = false;
 
+  @Column()
+  differentHandlerForTxAndRx: boolean = false;
+
+  @Column()
+  tecmpPacketizationActive: boolean = false;
+
   constructor(id: string, name: string) {
     super(id, name, HardwareChannelCategory.ETHERNET_ADAPTER, HardwareChannelSubclass.ETHERNET_ADAPTER);
   }
@@ -84,7 +90,9 @@ export class EthernetAdapter extends HardwareChannel {
       removeDataLoggerMetaData: this.removeDataLoggerMetaData,
       dataLoggerType: this.dataLoggerType,
       packetProcessingActive: this.packetProcessingActive,
-      packetIdentificationActive: this.packetIdentificationActive
+      packetIdentificationActive: this.packetIdentificationActive,
+      differentHandlerForTxAndRx: this.differentHandlerForTxAndRx,
+      tecmpPacketizationActive: this.tecmpPacketizationActive,
     };
   }
 

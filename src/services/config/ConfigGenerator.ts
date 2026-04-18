@@ -13,7 +13,7 @@ const CM_SUBCLASSES: string[] = [
 ];
 
 /**
- * ConfigGenerator serializes a Configuration object into an MTF-compatible config.yaml.
+ * ConfigGenerator serializes a Configuration object into an MTPF-compatible config.yaml.
  * Channels â†’ logical channels only (Id, Type, Protocol, loggingName, TracerName, Alias)
  * Mappings â†’ CM devices and PCAP adapters grouped by hardware type
  * FrameworkConfig â†’ Tracing, Publisher, etc.
@@ -197,6 +197,8 @@ export class ConfigGenerator {
       if (a.dataLoggerType) { adapterObj.DataLoggerType = a.dataLoggerType; }
       if (a.packetProcessingActive != null) { adapterObj.PacketProcessingActive = a.packetProcessingActive; }
       if (a.packetIdentificationActive != null) { adapterObj.PacketIdentificationActive = a.packetIdentificationActive; }
+      if (a.differentHandlerForTxAndRx != null) { adapterObj.DifferentHandlerForTxAndRx = a.differentHandlerForTxAndRx; }
+      if (a.tecmpPacketizationActive != null) { adapterObj.TECMPPacketizationActive = a.tecmpPacketizationActive; }
       section[idx + 1] = { Adapter: adapterObj };
     });
     return section;

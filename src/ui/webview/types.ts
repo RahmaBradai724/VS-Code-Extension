@@ -203,7 +203,7 @@ export const LOGICAL_EXTRA_FIELDS: Record<string, FieldDef[]> = {
   LINChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. 2.1' }],
   FlexRayChannel: [],
   EthernetChannel: [
-    { key: 'applicationProtocol', label: 'Application Protocol', type: 'select', options: ['SOMEIP', 'DOIP', 'UDPNM', 'DLT', 'NPDU', 'RAW'] },
+    { key: 'applicationProtocol', label: 'Application Protocol', type: 'select', options: ['XCP', 'DIAG', 'VIS', 'Nothing'] },
   ],
   SerialChannel: [],
   IOInputChannel: [
@@ -282,6 +282,8 @@ export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
     { key: 'dataLoggerType', label: 'DataLogger Type', type: 'text', placeholder: 'e.g. MDF' },
     { key: 'packetProcessingActive', label: 'Packet Processing Active', type: 'checkbox' },
     { key: 'packetIdentificationActive', label: 'Packet Identification Active', type: 'checkbox' },
+    { key: 'differentHandlerForTxAndRx', label: 'Different Handler For Tx And Rx', type: 'checkbox' },
+    { key: 'tecmpPacketizationActive', label: 'TECMP Packetization Active', type: 'checkbox' },
   ],
   SerialPort: [
     { key: 'portName', label: 'Port Name', type: 'text', placeholder: 'e.g. COM1' },

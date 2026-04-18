@@ -268,6 +268,12 @@ class ConfigGenerator {
             if (a.packetIdentificationActive != null) {
                 adapterObj.PacketIdentificationActive = a.packetIdentificationActive;
             }
+            if (a.differentHandlerForTxAndRx != null) {
+                adapterObj.DifferentHandlerForTxAndRx = a.differentHandlerForTxAndRx;
+            }
+            if (a.tecmpPacketizationActive != null) {
+                adapterObj.TECMPPacketizationActive = a.tecmpPacketizationActive;
+            }
             section[idx + 1] = { Adapter: adapterObj };
         });
         return section;
