@@ -11,6 +11,21 @@ const CM_SUBCLASSES: string[] = [
   HardwareChannelSubclass.LIN_CARD,
 ];
 
+function mapPortEntry(port: any): any {
+  if (!port.portType) { return port; } // already in correct format (e.g. imported)
+  const out: any = {};
+  const v = String(port.value ?? '');
+  if (port.portType === 'SrcPort' || port.portType === 'DstPort') {
+    out[port.portType] = v !== '' && !isNaN(Number(v)) ? Number(v) : v;
+  } else {
+    // SrcPortRange or DstPortRange — expect "start-end" format
+    const m = v.match(/^(\d+)\s*-\s*(\d+)$/);
+    out[port.portType] = m ? [Number(m[1]), Number(m[2])] : v;
+  }
+  if (port.Priority !== undefined) { out.Priority = port.Priority; }
+  return out;
+}
+
 /** Puts the sequence indicator on its own line for InnerTags/OuterTags items.
  * e.g. "  - ID: 73" → "  -\n    ID: 73" */
 /** Converts ServerPorts and ClientPorts nested block sequences to inline flow pairs.
@@ -28,8 +43,11 @@ function convertPortRangesToFlow(yamlStr: string): string {
   function flushKey() {
     if (keyName && (pairs.length > 0 || currentFirst !== null)) {
       if (currentFirst !== null) { pairs.push([currentFirst, '']); currentFirst = null; }
-      const inline = pairs.map(([a, b]) => `[${stripQ(a)},${stripQ(b)}]`).join(', ');
-      result.push(`${' '.repeat(keyIndent)}${keyName}: [${inline}]`);
+      const validPairs = pairs.filter(([a, b]) => stripQ(a) !== '' && stripQ(b) !== '');
+      if (validPairs.length > 0) {
+        const inline = validPairs.map(([a, b]) => `[${stripQ(a)},${stripQ(b)}]`).join(', ');
+        result.push(`${' '.repeat(keyIndent)}${keyName}: [${inline}]`);
+      }
       pairs = []; keyName = '';
     }
   }
@@ -111,16 +129,22 @@ function convertAppLayerPortsToFlow(yamlStr: string): string {
   let currentKey = '';
   let currentItems: string[] = [];
   let currentIndent = -1;
+  let inSubArray = false;
+  let subArray: string[] = [];
+  let subArrayIndent = -1;
+
+  function flushSubArray() {
+    if (subArray.length > 0) {
+      currentItems.push(`[${subArray.join(', ')}]`);
+      subArray = []; inSubArray = false; subArrayIndent = -1;
+    }
+  }
 
   function flushItem() {
+    flushSubArray();
     if (currentKey && currentItems.length > 0) {
-      const inline = currentItems.map(item => {
-        const sub = item.match(/^\s*-\s+(.*)/);
-        return sub ? sub[1].trim() : item.trim();
-      });
-      result.push(`${' '.repeat(currentIndent)}${currentKey}: [${inline.join(', ')}]`);
-      currentKey = '';
-      currentItems = [];
+      result.push(`${' '.repeat(currentIndent)}${currentKey}: [${currentItems.join(', ')}]`);
+      currentKey = ''; currentItems = [];
     }
   }
 
@@ -128,42 +152,43 @@ function convertAppLayerPortsToFlow(yamlStr: string): string {
     if (!inAppLayerPorts) {
       result.push(line);
       const m = line.match(/^(\s*)AppLayerPorts:\s*$/);
-      if (m) {
-        inAppLayerPorts = true;
-        alpIndent = m[1].length;
-      }
+      if (m) { inAppLayerPorts = true; alpIndent = m[1].length; }
       continue;
     }
-
-    // Detect if we've left the AppLayerPorts block
     const stripped = line.trimStart();
     const lineIndent = line.length - stripped.length;
-    if (stripped === '' ) { currentItems.push(line); continue; }
-    if (lineIndent <= alpIndent && stripped !== '') {
-      flushItem();
-      inAppLayerPorts = false;
-      result.push(line);
+    if (stripped === '') { continue; }
+    if (lineIndent <= alpIndent) {
+      flushItem(); inAppLayerPorts = false; result.push(line);
       const m = line.match(/^(\s*)AppLayerPorts:\s*$/);
       if (m) { inAppLayerPorts = true; alpIndent = m[1].length; }
       continue;
     }
-
-    // Key line: e.g. "      NPdu:"
     const keyMatch = line.match(/^(\s+)(\w+):\s*$/);
     if (keyMatch && keyMatch[1].length === alpIndent + 2) {
-      flushItem();
-      currentKey = keyMatch[2];
-      currentIndent = keyMatch[1].length;
-      currentItems = [];
+      flushItem(); currentKey = keyMatch[2]; currentIndent = keyMatch[1].length; currentItems = [];
       continue;
     }
-
-    // Item line under a key
     if (currentKey) {
-      currentItems.push(line);
-    } else {
-      result.push(line);
+      // Nested sub-array start: "      - - value"
+      const nestedStart = line.match(/^(\s+)- - (.+)/);
+      if (nestedStart) {
+        flushSubArray();
+        inSubArray = true; subArrayIndent = nestedStart[1].length;
+        subArray = [nestedStart[2].trim()];
+        continue;
+      }
+      // Nested sub-array continuation: deeper indent, "- value"
+      if (inSubArray && lineIndent > subArrayIndent) {
+        const cont = line.match(/^\s+- (.+)/);
+        if (cont) { subArray.push(cont[1].trim()); continue; }
+      }
+      // Simple item: "      - value"
+      flushSubArray();
+      const simpleItem = line.match(/^\s+- (.+)/);
+      if (simpleItem) { currentItems.push(simpleItem[1].trim()); continue; }
     }
+    result.push(line);
   }
   flushItem();
   return result.join('\n');
@@ -755,7 +780,12 @@ export class ConfigGenerator {
       if (ec.ethernetTopology) {
         const topo = ec.ethernetTopology;
         const topoOut: Record<string, any> = {};
-        if (topo.EthProtoPrioConfig?.length) { topoOut.EthProtoPrioConfig = topo.EthProtoPrioConfig; }
+        if (topo.EthProtoPrioConfig?.length) {
+          topoOut.EthProtoPrioConfig = topo.EthProtoPrioConfig.map((entry: any) => {
+            if (!Array.isArray(entry.Ports) || entry.Ports.length === 0) { return entry; }
+            return { ...entry, Ports: entry.Ports.map(mapPortEntry) };
+          });
+        }
         if (topo.TopologyConfig?.length)     { topoOut.TopologyConfig     = topo.TopologyConfig; }
         if (Object.keys(topoOut).length) { ethOut.EthernetTopology = topoOut; }
       }
