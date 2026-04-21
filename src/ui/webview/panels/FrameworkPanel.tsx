@@ -137,12 +137,10 @@ export default function FrameworkPanel() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               <div><label style={T.label}>ID (mandatory)</label>
                 <input style={T.input} placeholder="e.g. 68" value={tag.ID ?? ''}
-                  onChange={e => setVlanTag(tagType, idx, 'ID', e.target.value)}
-                  onBlur={e => setVlanTag(tagType, idx, 'ID', e.target.value !== '' ? Number(e.target.value) : '')} /></div>
+                  onChange={e => { const v = e.target.value; setVlanTag(tagType, idx, 'ID', v === '' ? '' : !isNaN(Number(v)) ? Number(v) : v); }} /></div>
               <div><label style={T.label}>Priority (mandatory)</label>
                 <input style={T.input} placeholder="0-7" value={tag.Priority ?? ''}
-                  onChange={e => setVlanTag(tagType, idx, 'Priority', e.target.value)}
-                  onBlur={e => setVlanTag(tagType, idx, 'Priority', e.target.value !== '' ? Number(e.target.value) : '')} /></div>
+                  onChange={e => { const v = e.target.value; setVlanTag(tagType, idx, 'Priority', v === '' ? '' : !isNaN(Number(v)) ? Number(v) : v); }} /></div>
             </div>
             <label style={T.label}>IPList (mandatory, comma-separated)</label>
             <input style={T.input} placeholder="160.48.199.57, 160.48.199.100"
@@ -385,10 +383,10 @@ export default function FrameworkPanel() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                       <input style={T.input} placeholder="start e.g. 30501"
                         value={Array.isArray(serverPorts[idx]) ? (serverPorts[idx][0] ?? '') : ''}
-                        onChange={e => { const s = [...serverPorts]; s[idx] = [e.target.value, Array.isArray(s[idx]) ? s[idx][1] : '']; setSomeIPMapping(s, clientPorts); }} />
+                        onChange={e => { const v = e.target.value; const n = v === '' ? '' : !isNaN(Number(v)) ? Number(v) : v; const s = [...serverPorts]; s[idx] = [n, Array.isArray(s[idx]) ? s[idx][1] : '']; setSomeIPMapping(s, clientPorts); }} />
                       <input style={T.input} placeholder="end e.g. 30599"
                         value={Array.isArray(serverPorts[idx]) ? (serverPorts[idx][1] ?? '') : ''}
-                        onChange={e => { const s = [...serverPorts]; s[idx] = [Array.isArray(s[idx]) ? s[idx][0] : '', e.target.value]; setSomeIPMapping(s, clientPorts); }} />
+                        onChange={e => { const v = e.target.value; const n = v === '' ? '' : !isNaN(Number(v)) ? Number(v) : v; const s = [...serverPorts]; s[idx] = [Array.isArray(s[idx]) ? s[idx][0] : '', n]; setSomeIPMapping(s, clientPorts); }} />
                     </div>
                   </div>
                   <div>
@@ -396,10 +394,10 @@ export default function FrameworkPanel() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                       <input style={T.input} placeholder="start e.g. 30491"
                         value={Array.isArray(clientPorts[idx]) ? (clientPorts[idx][0] ?? '') : ''}
-                        onChange={e => { const c = [...clientPorts]; c[idx] = [e.target.value, Array.isArray(c[idx]) ? c[idx][1] : '']; setSomeIPMapping(serverPorts, c); }} />
+                        onChange={e => { const v = e.target.value; const n = v === '' ? '' : !isNaN(Number(v)) ? Number(v) : v; const c = [...clientPorts]; c[idx] = [n, Array.isArray(c[idx]) ? c[idx][1] : '']; setSomeIPMapping(serverPorts, c); }} />
                       <input style={T.input} placeholder="end e.g. 30499"
                         value={Array.isArray(clientPorts[idx]) ? (clientPorts[idx][1] ?? '') : ''}
-                        onChange={e => { const c = [...clientPorts]; c[idx] = [Array.isArray(c[idx]) ? c[idx][0] : '', e.target.value]; setSomeIPMapping(serverPorts, c); }} />
+                        onChange={e => { const v = e.target.value; const n = v === '' ? '' : !isNaN(Number(v)) ? Number(v) : v; const c = [...clientPorts]; c[idx] = [Array.isArray(c[idx]) ? c[idx][0] : '', n]; setSomeIPMapping(serverPorts, c); }} />
                     </div>
                   </div>
                 </div>

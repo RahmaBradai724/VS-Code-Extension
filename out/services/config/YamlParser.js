@@ -36,11 +36,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.YamlParser = void 0;
 const yaml = __importStar(require("js-yaml"));
 const enums_1 = require("../../models/enums");
-/**
- * YamlParser parses a YAML string into a Configuration-like plain object.
- * SRP: parsing only — no file I/O, no vscode dependency.
- * Extracted from ConfigImporter to allow reuse and independent testing.
- */
 class YamlParser {
     parse(yamlText, sourceName = 'imported') {
         const warnings = [];

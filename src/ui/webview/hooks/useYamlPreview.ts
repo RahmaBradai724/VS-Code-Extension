@@ -5,6 +5,98 @@ import { AppState } from '../types';
 const CM_SUBCLASSES = ['CANInterface', 'CIBInterface', 'CMInterface', 'LINCard'];
 
 /** Converts block-sequence AppLayerPorts entries to inline flow arrays in a YAML string. */
+/** Puts the sequence indicator on its own line for InnerTags/OuterTags items.
+ * e.g. "  - ID: 73" → "  -\n    ID: 73" */
+/** Converts ServerPorts and ClientPorts nested block sequences to inline flow pairs.
+ * e.g. "- - '30501'\n  - '30599'" → "ServerPorts: [[30501,30599], ...]" */
+function convertPortRangesToFlow(yamlStr: string): string {
+  const lines = yamlStr.split('\n');
+  const result: string[] = [];
+  let inKey = false;
+  let keyIndent = -1;
+  let keyName = '';
+  let pairs: [string, string][] = [];
+  let currentFirst: string | null = null;
+  const stripQ = (s: string) => s.replace(/^'(.*)'$/, '$1').replace(/^"(.*)"$/, '$1');
+
+  function flushKey() {
+    if (keyName && (pairs.length > 0 || currentFirst !== null)) {
+      if (currentFirst !== null) { pairs.push([currentFirst, '']); currentFirst = null; }
+      const inline = pairs.map(([a, b]) => `[${stripQ(a)},${stripQ(b)}]`).join(', ');
+      result.push(`${' '.repeat(keyIndent)}${keyName}: [${inline}]`);
+      pairs = []; keyName = '';
+    }
+  }
+
+  for (const line of lines) {
+    if (!inKey) {
+      const m = line.match(/^(\s*)(ServerPorts|ClientPorts):\s*$/);
+      if (m) { inKey = true; keyIndent = m[1].length; keyName = m[2]; }
+      else { result.push(line); }
+      continue;
+    }
+    const stripped = line.trimStart();
+    const lineIndent = line.length - stripped.length;
+    if (stripped === '') { continue; }
+    if (lineIndent <= keyIndent) {
+      flushKey(); inKey = false;
+      const m = line.match(/^(\s*)(ServerPorts|ClientPorts):\s*$/);
+      if (m) { inKey = true; keyIndent = m[1].length; keyName = m[2]; }
+      else { result.push(line); }
+      continue;
+    }
+    const newPair = line.match(/^(\s*)- - (.*)/);
+    if (newPair && newPair[1].length === keyIndent + 2) {
+      if (currentFirst !== null) { pairs.push([currentFirst, '']); }
+      currentFirst = newPair[2].trim();
+      continue;
+    }
+    if (currentFirst !== null) {
+      const cont = line.match(/^\s+- (.*)/);
+      if (cont) { pairs.push([currentFirst, cont[1].trim()]); currentFirst = null; continue; }
+      pairs.push([currentFirst, '']); currentFirst = null;
+    }
+    result.push(line);
+  }
+  flushKey();
+  return result.join('\n');
+}
+
+function convertVlanTagsToExplicitDash(yamlStr: string): string {
+  const lines = yamlStr.split('\n');
+  const result: string[] = [];
+  let inSection = false;
+  let sectionIndent = -1;
+
+  for (const line of lines) {
+    const stripped = line.trimStart();
+    const lineIndent = line.length - stripped.length;
+
+    if (!inSection) {
+      result.push(line);
+      const m = line.match(/^(\s*)(InnerTags|OuterTags):\s*$/);
+      if (m) { inSection = true; sectionIndent = m[1].length; }
+      continue;
+    }
+    if (stripped === '') { result.push(line); continue; }
+    if (lineIndent <= sectionIndent) {
+      inSection = false; result.push(line);
+      const m = line.match(/^(\s*)(InnerTags|OuterTags):\s*$/);
+      if (m) { inSection = true; sectionIndent = m[1].length; }
+      continue;
+    }
+    // Sequence item that has a mapping key inline: "    - KEY: VALUE"
+    const seqItem = line.match(/^(\s+)- (\w[\w]*: .*)$/);
+    if (seqItem) {
+      result.push(`${seqItem[1]}-`);
+      result.push(`${seqItem[1]}  ${seqItem[2]}`);
+      continue;
+    }
+    result.push(line);
+  }
+  return result.join('\n');
+}
+
 function convertAppLayerPortsToFlow(yamlStr: string): string {
   const lines = yamlStr.split('\n');
   const result: string[] = [];
@@ -497,7 +589,7 @@ export function useYamlPreview(state: AppState): string {
       const obj = buildMtfObject(previewState);
       const raw = yaml.dump(obj, { indent: 2, lineWidth: 120, noRefs: true });
       const fixedKeys = raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
-      return convertIPListToFlow(convertIPMacTableToFlow(convertChannelsGroupsToFlow(convertAppLayerPortsToFlow(fixedKeys))));
+      return convertVlanTagsToExplicitDash(convertIPListToFlow(convertIPMacTableToFlow(convertPortRangesToFlow(convertChannelsGroupsToFlow(convertAppLayerPortsToFlow(fixedKeys))))));
     } catch {
       return '';
     }
