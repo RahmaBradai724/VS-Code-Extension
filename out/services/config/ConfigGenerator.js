@@ -37,52 +37,290 @@ exports.ConfigGenerator = void 0;
 const yaml = __importStar(require("js-yaml"));
 const ConfigValidator_1 = require("./ConfigValidator");
 const enums_1 = require("../../models/enums");
-/** Subclasses that represent CM (Capture Module) devices */
 const CM_SUBCLASSES = [
     enums_1.HardwareChannelSubclass.CAN_INTERFACE,
     enums_1.HardwareChannelSubclass.CIB_INTERFACE,
     enums_1.HardwareChannelSubclass.CM_INTERFACE,
     enums_1.HardwareChannelSubclass.LIN_CARD,
 ];
-/**
- * ConfigGenerator serializes a Configuration object into an MTF-compatible config.yaml.
- * Channels â†’ logical channels only (Id, Type, Protocol, loggingName, TracerName, Alias)
- * Mappings â†’ CM devices and PCAP adapters grouped by hardware type
- * FrameworkConfig â†’ Tracing, Publisher, etc.
- */
+function convertAppLayerPortsToFlow(yamlStr) {
+    const lines = yamlStr.split('\n');
+    const result = [];
+    let inAppLayerPorts = false;
+    let alpIndent = -1;
+    let currentKey = '';
+    let currentItems = [];
+    let currentIndent = -1;
+    function flushItem() {
+        if (currentKey && currentItems.length > 0) {
+            const inline = currentItems.map(item => {
+                const sub = item.match(/^\s*-\s+(.*)/);
+                return sub ? sub[1].trim() : item.trim();
+            });
+            result.push(`${' '.repeat(currentIndent)}${currentKey}: [${inline.join(', ')}]`);
+            currentKey = '';
+            currentItems = [];
+        }
+    }
+    for (const line of lines) {
+        if (!inAppLayerPorts) {
+            result.push(line);
+            const m = line.match(/^(\s*)AppLayerPorts:\s*$/);
+            if (m) {
+                inAppLayerPorts = true;
+                alpIndent = m[1].length;
+            }
+            continue;
+        }
+        // Detect if we've left the AppLayerPorts block
+        const stripped = line.trimStart();
+        const lineIndent = line.length - stripped.length;
+        if (stripped === '') {
+            currentItems.push(line);
+            continue;
+        }
+        if (lineIndent <= alpIndent && stripped !== '') {
+            flushItem();
+            inAppLayerPorts = false;
+            result.push(line);
+            const m = line.match(/^(\s*)AppLayerPorts:\s*$/);
+            if (m) {
+                inAppLayerPorts = true;
+                alpIndent = m[1].length;
+            }
+            continue;
+        }
+        // Key line: e.g. "      NPdu:"
+        const keyMatch = line.match(/^(\s+)(\w+):\s*$/);
+        if (keyMatch && keyMatch[1].length === alpIndent + 2) {
+            flushItem();
+            currentKey = keyMatch[2];
+            currentIndent = keyMatch[1].length;
+            currentItems = [];
+            continue;
+        }
+        // Item line under a key
+        if (currentKey) {
+            currentItems.push(line);
+        }
+        else {
+            result.push(line);
+        }
+    }
+    flushItem();
+    return result.join('\n');
+}
+/** Converts IPMacTable nested block sequences to a single inline flow line. */
+/** Converts block sequences under IPList to inline flow with no spaces: [ip1,ip2,ip3] */
+function convertIPListToFlow(yamlStr) {
+    const lines = yamlStr.split('\n');
+    const result = [];
+    let inList = false;
+    let listIndent = -1;
+    let items = [];
+    function flushList() {
+        if (items.length > 0) {
+            result.push(`${' '.repeat(listIndent)}IPList: [${items.join(',')}]`);
+            items = [];
+        }
+    }
+    for (const line of lines) {
+        if (!inList) {
+            const m = line.match(/^(\s*)IPList:\s*$/);
+            if (m) {
+                inList = true;
+                listIndent = m[1].length;
+            }
+            else {
+                result.push(line);
+            }
+            continue;
+        }
+        const stripped = line.trimStart();
+        const lineIndent = line.length - stripped.length;
+        if (stripped === '') {
+            continue;
+        }
+        if (lineIndent <= listIndent) {
+            flushList();
+            inList = false;
+            const m = line.match(/^(\s*)IPList:\s*$/);
+            if (m) {
+                inList = true;
+                listIndent = m[1].length;
+            }
+            else {
+                result.push(line);
+            }
+            continue;
+        }
+        const itemMatch = line.match(/^\s+- (.*)/);
+        if (itemMatch) {
+            items.push(itemMatch[1].trim());
+            continue;
+        }
+        result.push(line);
+    }
+    flushList();
+    return result.join('\n');
+}
+function convertIPMacTableToFlow(yamlStr) {
+    const lines = yamlStr.split('\n');
+    const result = [];
+    let inIMT = false;
+    let imtIndent = -1;
+    let pairs = [];
+    let currentFirst = null;
+    const stripQ = (s) => s.replace(/^'(.*)'$/, '$1').replace(/^"(.*)"$/, '$1');
+    function flushIMT() {
+        if (pairs.length > 0 || currentFirst !== null) {
+            if (currentFirst !== null) {
+                pairs.push([currentFirst, '']);
+                currentFirst = null;
+            }
+            const inline = pairs.map(([a, b]) => `[${stripQ(a)}, ${stripQ(b)}]`).join(', ');
+            result.push(`${' '.repeat(imtIndent)}IPMacTable: [${inline}]`);
+            pairs = [];
+        }
+    }
+    for (const line of lines) {
+        if (!inIMT) {
+            const m = line.match(/^(\s*)IPMacTable:\s*$/);
+            if (m) {
+                inIMT = true;
+                imtIndent = m[1].length;
+            }
+            else {
+                result.push(line);
+            }
+            continue;
+        }
+        const stripped = line.trimStart();
+        const lineIndent = line.length - stripped.length;
+        if (stripped === '') {
+            continue;
+        }
+        if (lineIndent <= imtIndent) {
+            flushIMT();
+            inIMT = false;
+            const m = line.match(/^(\s*)IPMacTable:\s*$/);
+            if (m) {
+                inIMT = true;
+                imtIndent = m[1].length;
+            }
+            else {
+                result.push(line);
+            }
+            continue;
+        }
+        const newPair = line.match(/^(\s*)- - (.*)/);
+        if (newPair && newPair[1].length === imtIndent + 2) {
+            if (currentFirst !== null) {
+                pairs.push([currentFirst, '']);
+            }
+            currentFirst = newPair[2].trim();
+            continue;
+        }
+        if (currentFirst !== null) {
+            const cont = line.match(/^\s+- (.*)/);
+            if (cont) {
+                pairs.push([currentFirst, cont[1].trim()]);
+                currentFirst = null;
+                continue;
+            }
+            pairs.push([currentFirst, '']);
+            currentFirst = null;
+        }
+        result.push(line);
+    }
+    flushIMT();
+    return result.join('\n');
+}
+/** Converts block nested-sequences under ChannelsGroups to inline flow arrays.
+ * e.g. "- - Ch_CAN1\n    - Ch_CAN2" → "- [Ch_CAN1, Ch_CAN2]" */
+function convertChannelsGroupsToFlow(yamlStr) {
+    const lines = yamlStr.split('\n');
+    const result = [];
+    let inCG = false;
+    let cgIndent = -1;
+    let inGroup = false;
+    let groupItems = [];
+    let groupOutIndent = -1;
+    function flushGroup() {
+        if (inGroup && groupItems.length > 0) {
+            result.push(`${' '.repeat(groupOutIndent)}- [${groupItems.join(', ')}]`);
+            groupItems = [];
+            inGroup = false;
+        }
+    }
+    for (const line of lines) {
+        if (!inCG) {
+            result.push(line);
+            const m = line.match(/^(\s*)ChannelsGroups:\s*$/);
+            if (m) {
+                inCG = true;
+                cgIndent = m[1].length;
+            }
+            continue;
+        }
+        const stripped = line.trimStart();
+        const lineIndent = line.length - stripped.length;
+        if (stripped === '') {
+            continue;
+        }
+        if (lineIndent <= cgIndent) {
+            flushGroup();
+            inCG = false;
+            result.push(line);
+            const m = line.match(/^(\s*)ChannelsGroups:\s*$/);
+            if (m) {
+                inCG = true;
+                cgIndent = m[1].length;
+            }
+            continue;
+        }
+        const newGrp = line.match(/^(\s*)- - (.*)/);
+        if (newGrp && newGrp[1].length === cgIndent + 2) {
+            flushGroup();
+            inGroup = true;
+            groupOutIndent = newGrp[1].length;
+            groupItems = [newGrp[2].trim()];
+            continue;
+        }
+        if (inGroup) {
+            const cont = line.match(/^\s+- (.*)/);
+            if (cont) {
+                groupItems.push(cont[1].trim());
+                continue;
+            }
+            flushGroup();
+        }
+        result.push(line);
+    }
+    flushGroup();
+    return result.join('\n');
+}
 class ConfigGenerator {
     constructor(config, mappingManager, validator = new ConfigValidator_1.ConfigValidator()) {
         this.config = config;
         this.mappingManager = mappingManager;
         this.validator = validator;
     }
-    /**
-     * Validates that all required fields exist before generation.
-     * Returns array of error messages (empty means valid).
-     */
     preGenerationValidate() {
         return this.validator.validate(this.config, this.mappingManager);
     }
-    /**
-     * Generates the MTF-spec config.yaml string.
-     * Throws if pre-validation fails.
-     */
     generate() {
         const errors = this.preGenerationValidate();
         if (errors.length > 0) {
             throw new Error(`Cannot generate config.yaml:\n${errors.map(e => `  â€¢ ${e}`).join('\n')}`);
         }
         const raw = yaml.dump(this._buildMtfObject(), { indent: 2, lineWidth: 120, noRefs: true });
-        // MTF expects integer keys (1:) not quoted string keys ('1':)
-        return raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
+        const fixedKeys = raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
+        return convertIPListToFlow(convertIPMacTableToFlow(convertChannelsGroupsToFlow(convertAppLayerPortsToFlow(fixedKeys))));
     }
-    /**
-     * Returns the raw MTF object (useful for preview/display).
-     */
     generateAsObject() {
         return this._buildMtfObject();
     }
-    // â”€â”€â”€ Top-level builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildMtfObject() {
         const mappings = this.mappingManager.getMappingsByConfigId(this.config.id);
         // Index: hardwareChannelId â†’ mappings[]
@@ -102,7 +340,6 @@ class ConfigGenerator {
         }
         return result;
     }
-    // â”€â”€â”€ Channels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildChannelsSection() {
         const channelsSection = {};
         this.config.logicalChannels.forEach((ch, index) => {
@@ -138,7 +375,6 @@ class ConfigGenerator {
         });
         return channelsSection;
     }
-    // â”€â”€â”€ Mappings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildMappingsSection(mappingsByHwId) {
         const section = {};
         const cm = this._buildCmSection(mappingsByHwId);
@@ -526,7 +762,6 @@ class ConfigGenerator {
         });
         return { Channels: channels };
     }
-    // â”€â”€â”€ Framework â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _buildFrameworkSection() {
         const fc = this.config.frameworkConfig;
         const section = {};
@@ -662,22 +897,22 @@ class ConfigGenerator {
             if (ec.npduConfig) {
                 const n = ec.npduConfig;
                 const npduOut = {};
-                if (n.manageVlansInCom !== undefined) {
-                    npduOut.ManageVlansInCom = n.manageVlansInCom;
+                if (n.ManageVlansInCom !== undefined) {
+                    npduOut.ManageVlansInCom = n.ManageVlansInCom;
                 }
-                if (n.restrictedNPduChannelsInCom !== undefined) {
-                    npduOut.RestrictedNPduChannelsInCom = n.restrictedNPduChannelsInCom;
+                if (n.RestrictNPduChannelsInCom !== undefined) {
+                    npduOut.RestrictNPduChannelsInCom = n.RestrictNPduChannelsInCom;
                 }
-                if (n.ipMacTable?.length) {
-                    npduOut.IPMacTable = n.ipMacTable;
+                if (n.IPMacTable?.length) {
+                    npduOut.IPMacTable = n.IPMacTable;
                 }
-                if (n.vLans) {
+                if (n.VLans) {
                     const vlansOut = {};
-                    if (n.vLans.innerTags?.length) {
-                        vlansOut.InnerTags = n.vLans.innerTags;
+                    if (n.VLans.InnerTags?.length) {
+                        vlansOut.InnerTags = n.VLans.InnerTags;
                     }
-                    if (n.vLans.outerTags?.length) {
-                        vlansOut.OuterTags = n.vLans.outerTags;
+                    if (n.VLans.OuterTags?.length) {
+                        vlansOut.OuterTags = n.VLans.OuterTags;
                     }
                     if (Object.keys(vlansOut).length) {
                         npduOut.VLans = vlansOut;
@@ -690,24 +925,48 @@ class ConfigGenerator {
             if (ec.someIPConfig) {
                 const s = ec.someIPConfig;
                 const someipOut = {};
-                if (s.serverToClientPortRangeMapping) {
+                if (s.ServerToClientPortRangeMapping) {
                     someipOut.ServerToClientPortRangeMapping = {
-                        ServerPorts: s.serverToClientPortRangeMapping.serverPorts,
-                        ClientPorts: s.serverToClientPortRangeMapping.clientPorts,
+                        ServerPorts: s.ServerToClientPortRangeMapping.ServerPorts,
+                        ClientPorts: s.ServerToClientPortRangeMapping.ClientPorts,
                     };
                 }
-                if (s.endpointImplementation) {
-                    someipOut.EndpointImplementation = s.endpointImplementation;
+                if (s.EndpointImplementation) {
+                    someipOut.EndpointImplementation = s.EndpointImplementation;
                 }
-                if (s.adapterName) {
-                    someipOut.AdapterName = s.adapterName;
+                if (s.AdapterName) {
+                    someipOut.AdapterName = s.AdapterName;
                 }
                 if (Object.keys(someipOut).length) {
                     ethOut.SomeIPConfig = someipOut;
                 }
             }
             if (ec.appLayerPorts) {
-                ethOut.AppLayerPorts = ec.appLayerPorts;
+                const alpObj = {};
+                for (const [k, v] of Object.entries(ec.appLayerPorts)) {
+                    if (v !== undefined && v !== null) {
+                        alpObj[k] = v;
+                    }
+                }
+                if (Object.keys(alpObj).length) {
+                    ethOut.AppLayerPorts = alpObj;
+                }
+            }
+            if (ec.ethernetTopology) {
+                const topo = ec.ethernetTopology;
+                const topoOut = {};
+                if (topo.EthProtoPrioConfig?.length) {
+                    topoOut.EthProtoPrioConfig = topo.EthProtoPrioConfig;
+                }
+                if (topo.TopologyConfig?.length) {
+                    topoOut.TopologyConfig = topo.TopologyConfig;
+                }
+                if (Object.keys(topoOut).length) {
+                    ethOut.EthernetTopology = topoOut;
+                }
+            }
+            if (ec.channelToEcusMapping && Object.keys(ec.channelToEcusMapping).length) {
+                ethOut.ChannelToEcusMapping = ec.channelToEcusMapping;
             }
             if (Object.keys(ethOut).length) {
                 section.EthernetConfig = ethOut;

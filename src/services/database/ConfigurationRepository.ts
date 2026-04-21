@@ -25,7 +25,7 @@ import {
 } from '../../models/hardwareChannels';
 import { Configuration } from '../../models/configuration';
 import { Mapping } from '../../models/mapping';
-import { FrameworkConfig } from '../../models/framework';
+import { FrameworkConfig, EthernetConfig } from '../../models/framework';
 import { PCAPTracer } from '../../models/framework/PCAPTracer';
 import { ASCIITracer } from '../../models/framework/ASCIITracer';
 import { getDataSource, initializeDatabase } from './DataSourceProvider';
@@ -134,6 +134,17 @@ export class ConfigurationRepository {
       if (fw.servicePack !== undefined) { fwEntity.servicePack = fw.servicePack; }
       if (fw.publisherType)    { fwEntity.publisherConfig.publisherType    = fw.publisherType; }
       if (fw.channelsGroups)   { fwEntity.publisherConfig.channelsGroups   = fw.channelsGroups; }
+      if (fw.ethernetConfig) {
+        const ec = fw.ethernetConfig;
+        if (!fwEntity.ethernetConfig) { fwEntity.ethernetConfig = new EthernetConfig(); }
+        if (ec.considerOnlyEthernetTopologyEcus !== undefined)
+          fwEntity.ethernetConfig.considerOnlyEthernetTopologyEcus = ec.considerOnlyEthernetTopologyEcus;
+        if (ec.npduConfig !== undefined)      fwEntity.ethernetConfig.npduConfig      = ec.npduConfig;
+        if (ec.someIPConfig !== undefined)    fwEntity.ethernetConfig.someIPConfig    = ec.someIPConfig;
+        if (ec.appLayerPorts !== undefined)   fwEntity.ethernetConfig.appLayerPorts   = ec.appLayerPorts;
+        if (ec.ethernetTopology !== undefined) fwEntity.ethernetConfig.ethernetTopology = ec.ethernetTopology;
+        if (ec.channelToEcusMapping !== undefined) fwEntity.channelToEcusMapping = ec.channelToEcusMapping;
+      }
       const savedFw = await fwRepo.save(fwEntity);
       // Link the saved FrameworkConfig back to the Configuration row
       await repo.update(configId, { frameworkConfig: savedFw } as any);

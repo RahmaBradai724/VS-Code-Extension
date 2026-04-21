@@ -1,11 +1,6 @@
 import * as yaml from 'js-yaml';
 import { ChannelType } from '../../models/enums';
 
-/**
- * YamlParser parses a YAML string into a Configuration-like plain object.
- * SRP: parsing only — no file I/O, no vscode dependency.
- * Extracted from ConfigImporter to allow reuse and independent testing.
- */
 export class YamlParser {
   parse(yamlText: string, sourceName: string = 'imported'): { config: object; warnings: string[] } {
     const warnings: string[] = [];

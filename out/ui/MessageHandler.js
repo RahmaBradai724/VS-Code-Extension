@@ -62,6 +62,9 @@ class MessageHandler {
         this.extensionUri = extensionUri;
         /** userId of the currently authenticated user (null = not logged in) */
         this.loggedInUserId = null;
+        /** Cached agent resources — lazy-initialised on first agentAsk call */
+        this.ollama = new OllamaClient_1.OllamaClient();
+        this.kb = null;
         this.channelManager = new channelManager_1.ChannelManager();
         this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
         const jwtSecret = this.tokenStorage.getOrCreateJwtSecret();
@@ -601,20 +604,25 @@ class MessageHandler {
             return;
         }
         try {
-            // Load knowledge base
-            const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
-            const kb = KnowledgeBase_1.KnowledgeBase.load(resourcesDir);
-            const ollama = new OllamaClient_1.OllamaClient();
-            const agent = new MtfAgent_1.MtfAgent(kb, ollama);
+            // Load knowledge base once and reuse
+            if (!this.kb) {
+                const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
+                this.kb = KnowledgeBase_1.KnowledgeBase.load(resourcesDir);
+            }
+            const agent = new MtfAgent_1.MtfAgent(this.kb, this.ollama);
             const { sources } = await agent.ask(question, (token) => {
                 webview.postMessage({ command: 'agentChunk', token });
             });
             webview.postMessage({
                 command: 'agentDone',
                 sources: sources.map(r => ({
-                    section: r.chunk.metadata.section,
-                    subsection: r.chunk.metadata.subsection,
+                    section: r.chunk.section,
+                    subsection: r.chunk.subsection,
+                    title: r.chunk.title,
+                    source_url: r.chunk.source_url,
                     score: r.score,
+                    vectorScore: r.vectorScore,
+                    fromGraph: r.fromGraph,
                 })),
             });
         }

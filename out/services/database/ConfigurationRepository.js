@@ -103,6 +103,24 @@ class ConfigurationRepository {
             if (fw.channelsGroups) {
                 fwEntity.publisherConfig.channelsGroups = fw.channelsGroups;
             }
+            if (fw.ethernetConfig) {
+                const ec = fw.ethernetConfig;
+                if (!fwEntity.ethernetConfig) {
+                    fwEntity.ethernetConfig = new framework_1.EthernetConfig();
+                }
+                if (ec.considerOnlyEthernetTopologyEcus !== undefined)
+                    fwEntity.ethernetConfig.considerOnlyEthernetTopologyEcus = ec.considerOnlyEthernetTopologyEcus;
+                if (ec.npduConfig !== undefined)
+                    fwEntity.ethernetConfig.npduConfig = ec.npduConfig;
+                if (ec.someIPConfig !== undefined)
+                    fwEntity.ethernetConfig.someIPConfig = ec.someIPConfig;
+                if (ec.appLayerPorts !== undefined)
+                    fwEntity.ethernetConfig.appLayerPorts = ec.appLayerPorts;
+                if (ec.ethernetTopology !== undefined)
+                    fwEntity.ethernetConfig.ethernetTopology = ec.ethernetTopology;
+                if (ec.channelToEcusMapping !== undefined)
+                    fwEntity.channelToEcusMapping = ec.channelToEcusMapping;
+            }
             const savedFw = await fwRepo.save(fwEntity);
             // Link the saved FrameworkConfig back to the Configuration row
             await repo.update(configId, { frameworkConfig: savedFw });

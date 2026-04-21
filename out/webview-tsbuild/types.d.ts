@@ -1,4 +1,5 @@
 export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams' | 'agent';
+export type FrameworkSection = 'tracers' | 'connectedEcus' | 'servicePack' | 'publisher' | 'ethernet' | 'npduConfig' | 'someIPConfig' | 'appLayerPorts' | 'ethernetTopology' | 'channelToEcusMapping';
 export interface Notification {
     type: 'success' | 'error' | 'warning' | 'info';
     message: string;
@@ -34,6 +35,8 @@ export interface EthernetConfigData {
     npduConfig?: any;
     someIPConfig?: any;
     appLayerPorts?: any;
+    ethernetTopology?: any;
+    channelToEcusMapping?: Record<string, string[]>;
 }
 export interface FrameworkData {
     tracers: TracerConfig[];
@@ -94,15 +97,21 @@ export interface AppState {
     agentMessages: AgentMessage[];
     agentLoading: boolean;
     agentStreamingText: string;
+    frameworkSection: FrameworkSection | null;
+}
+export interface AgentSource {
+    section: string;
+    subsection: string;
+    title: string;
+    source_url: string;
+    score: number;
+    vectorScore: number;
+    fromGraph: boolean;
 }
 export interface AgentMessage {
     role: 'user' | 'assistant';
     content: string;
-    sources?: Array<{
-        section: string;
-        subsection: string;
-        score: number;
-    }>;
+    sources?: AgentSource[];
     streaming?: boolean;
 }
 export type AppAction = {
@@ -189,6 +198,9 @@ export type AppAction = {
     error: string;
 } | {
     type: 'AGENT_CLEAR';
+} | {
+    type: 'SET_FRAMEWORK_SECTION';
+    section: FrameworkSection | null;
 };
 export interface SelectOption {
     value: string;

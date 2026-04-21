@@ -1,0 +1,1360 @@
+#!/usr/bin/env python3
+"""
+create_chunks.py
+================
+Generates src/ai/chunks/chunks_final.json from the real MTF documentation.
+Run from the repo root:
+    python scripts/create_chunks.py
+Then rebuild the vector index:
+    python scripts/build_knowledge_base.py
+"""
+import json
+from pathlib import Path
+
+ROOT   = Path(__file__).parent.parent
+OUTPUT = ROOT / "src" / "ai" / "chunks" / "chunks_final.json"
+BASE_URL = "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html"
+
+chunks = [
+
+# ── Overview ──────────────────────────────────────────────────────────────────
+
+{
+  "chunk_id": "mtf_config_001",
+  "section": "MTF Configuration File",
+  "subsection": "Overview",
+  "title": "MTF Configuration File – Overview",
+  "content": (
+    "The MTF (Modular Test Framework) configuration file is a YAML-format file that is "
+    "essential for the MTF framework. MTF requires assigning logical channels to physical "
+    "channels to specify which hardware interface should be used for data reception and "
+    "transmission. The configuration file defines this assignment.\n\n"
+    "One key benefit: the same test cases can run on different hardware setups. To adapt to "
+    "a new setup, users only need to update the physical channel information, keeping the "
+    "logical channels and test cases unchanged. This supports the framework's main goal of "
+    "abstraction — instead of specifying the exact physical channel, test cases refer to a "
+    "logical channel name, and the MTF handles the rest."
+  ),
+  "keywords": ["MTF", "configuration file", "YAML", "overview", "abstraction", "logical channel", "physical channel"],
+  "source_url": BASE_URL + "#overview",
+  "relatedIds": ["mtf_config_002", "mtf_config_003", "mtf_config_007", "mtf_config_024"],
+  "summary": "YAML-based MTF Configuration File maps logical channels to physical hardware, enabling test reuse across different setups.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_002",
+  "section": "MTF Configuration File",
+  "subsection": "File Structure",
+  "title": "MTF Configuration File – File Structure",
+  "content": (
+    "The MTF Configuration File is composed of three main sections (plus one optional):\n\n"
+    "1. **Channels** (mandatory): Defines logical channels — the virtual representations of "
+    "physical communication buses and interfaces (CAN, LIN, Ethernet, FlexRay, I/O, Serial, etc.).\n\n"
+    "2. **Mappings** (mandatory): Maps each logical channel to a physical device. The order of "
+    "sections does not affect interpretation, but the order shown here is preferred for clarity.\n\n"
+    "3. **FrameworkConfig** (optional): Defines tracer configuration, internal module settings, "
+    "connected ECUs, service packs, Ethernet configuration, and diagnostics.\n\n"
+    "4. **ChannelsConfig** (optional): Provides additional per-channel configuration such as "
+    "FaultyChannels for fault injection testing.\n\n"
+    "Note: All field names are case-sensitive."
+  ),
+  "keywords": ["file structure", "Channels", "Mappings", "FrameworkConfig", "ChannelsConfig", "sections", "YAML"],
+  "source_url": BASE_URL + "#file-structure",
+  "relatedIds": ["mtf_config_001", "mtf_config_003", "mtf_config_007", "mtf_config_024", "mtf_config_037"],
+  "summary": "The MTF config file has Channels and Mappings (mandatory), plus FrameworkConfig and ChannelsConfig (optional). All field names are case-sensitive.",
+  "importance": "high",
+},
+
+# ── Section 1: Channels ───────────────────────────────────────────────────────
+
+{
+  "chunk_id": "mtf_config_003",
+  "section": "Section 1: Channels",
+  "subsection": "Overview",
+  "title": "Section 1: Channels – Overview",
+  "content": (
+    "The first step in creating the MTF configuration file is to define the Channels section. "
+    "This section describes logical channels, which will later be linked to real (physical) "
+    "channels in the Mappings section.\n\n"
+    "A logical channel is an abstraction — a virtual representation of a real hardware channel. "
+    "Physical channels can be of different types: bus interfaces (CAN, LIN, FlexRay, Ethernet), "
+    "I/O lines, or serial ports.\n\n"
+    "Before defining channels, you should be familiar with the available hardware in your test "
+    "bench. You don't need to include all hardware channels — only the ones required for the "
+    "current test case. Use clear and meaningful names, e.g., 'can_ch1' or 'eth_switch'."
+  ),
+  "keywords": ["channels section", "logical channel", "physical channel", "CAN", "Ethernet", "FlexRay", "LIN", "abstraction"],
+  "source_url": BASE_URL + "#id1",
+  "relatedIds": ["mtf_config_002", "mtf_config_004", "mtf_config_005", "mtf_config_006"],
+  "summary": "The Channels section defines logical channels as virtual representations of physical buses and interfaces.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_004",
+  "section": "Section 1: Channels",
+  "subsection": "Section Structure",
+  "title": "Section 1: Channels – YAML Section Structure",
+  "content": (
+    "The Channels section uses the key `Channels:` at the root level. Under it, each logical "
+    "channel is defined by a custom name (the YAML key). Under each channel name, properties "
+    "are listed as key-value pairs.\n\n"
+    "YAML uses indentation to show hierarchy — use spaces (not tabs).\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "Channels:\n"
+    " CAN_channel:\n"
+    "  Id: 1                        # Required\n"
+    "  Type: CAN                    # Required\n"
+    "  Protocol: CAN2.0             # Optional\n"
+    "  loggingName: CAN_channel     # Optional\n"
+    "  Alias: [Ch_CAN, Chan_CAN]    # Optional\n"
+    "  TracerName: ASCII_Tracer_CAN # Optional\n"
+    " CAN_FD_channel:\n"
+    "  Id: 2\n"
+    "  Type: CAN\n"
+    "  Protocol: CANFD\n"
+    "  Alias: [Ch_CAN_FD]\n"
+    "  TracerName: ASCII_Tracer_CAN\n"
+    " ETH_SOMEIP:\n"
+    "  Id: 3\n"
+    "  Type: ETHERNET\n"
+    "  TracerName: PCAP_Tracer_SOMEIP\n"
+    "```\n\n"
+    "The order of properties within a channel does not affect interpretation."
+  ),
+  "keywords": ["Channels", "YAML structure", "Id", "Type", "Protocol", "Alias", "TracerName", "loggingName", "indentation"],
+  "source_url": BASE_URL + "#section-structure",
+  "relatedIds": ["mtf_config_003", "mtf_config_005", "mtf_config_006"],
+  "summary": "Channels are declared under Channels: key. Each named channel entry has Id, Type, and optional Protocol, Alias, TracerName, loggingName.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_005",
+  "section": "Section 1: Channels",
+  "subsection": "Field Descriptions",
+  "title": "Section 1: Channels – Field Descriptions (Id, Type, Protocol, Alias, TracerName …)",
+  "content": (
+    "Detailed description of all fields in a logical channel definition:\n\n"
+    "**ChannelName** (mandatory): The YAML key — the logical channel name. Must be unique and "
+    "meaningful. Use numbers (not at the start) and underscores; no spaces. Examples: Eth_ch, "
+    "CAN_ch, CAN2_ch.\n\n"
+    "**Id** (mandatory): A unique user-defined integer ID for the logical channel. Each channel "
+    "in the file must have a different Id value.\n\n"
+    "**Type** (mandatory): Specifies the protocol used for communication. Available values:\n"
+    "- CAN, CAN-FD → for CAN channels\n"
+    "- LIN → for LIN channels\n"
+    "- FR, FLEXRAY → for FlexRay channels\n"
+    "- ETHERNET → for Ethernet channels\n"
+    "- IOOUTPUT, IOINPUT → for I/O channels\n"
+    "- IOSERIAL, SERIAL → for serial channels\n"
+    "- PS → for power supply channels\n"
+    "- BRIDGE → for bridge/TUN-TAP channels\n\n"
+    "**Protocol** (conditional): Mandatory when complex hardware architecture requires specifying "
+    "the protocol version. Examples by Type:\n"
+    "- CAN: CAN2.0, CAN-IB500, CANFD, CANFD-IDENTICAL-ArbPh-DataPh\n"
+    "- LIN: LIN1.2, LIN2.3\n\n"
+    "**Alias** (optional): One or multiple alternative names for the channel used in test cases. "
+    "Same naming rules as ChannelName. Example: Alias: [Ch_CAN, Chan_CAN].\n\n"
+    "**loggingName** (optional): A specific logging name used during ASCII or PCAPNG tracing.\n\n"
+    "**TracerName** (optional): Name of the tracer linked to this channel (defined in "
+    "FrameworkConfig). Used for logging traffic of this specific channel.\n\n"
+    "**LoggingBusIndex** (optional): Specific to IO ASCII Tracing. Configures the logging index "
+    "for the channel."
+  ),
+  "keywords": [
+    "Id", "Type", "Protocol", "Alias", "TracerName", "loggingName", "LoggingBusIndex",
+    "ChannelName", "CAN", "LIN", "ETHERNET", "FR", "FLEXRAY", "IOOUTPUT", "IOINPUT",
+    "IOSERIAL", "SERIAL", "PS", "BRIDGE", "field descriptions", "mandatory", "optional",
+    "unique ID", "channel id", "channel Id field"
+  ],
+  "source_url": BASE_URL + "#field-descriptions",
+  "relatedIds": ["mtf_config_003", "mtf_config_004", "mtf_config_006"],
+  "summary": (
+    "Logical channel fields: ChannelName (mandatory key), Id (mandatory unique integer), "
+    "Type (mandatory protocol: CAN/LIN/ETHERNET/FR/IOOUTPUT/IOINPUT/SERIAL/PS/BRIDGE), "
+    "Protocol (conditional), Alias (optional), loggingName (optional), TracerName (optional)."
+  ),
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_006",
+  "section": "Section 1: Channels",
+  "subsection": "Setup Example",
+  "title": "Section 1: Channels – Complete Setup Example",
+  "content": (
+    "Step-by-step example creating a Channels section for a setup with: "
+    "1 Ethernet switch, 2 CAN buses (4 channels: CAN-FD for bus1, CAN for bus2), "
+    "1 FlexRay bus (2 channels).\n\n"
+    "```yaml\n"
+    "Channels:\n"
+    " Ethernet_Switch:\n"
+    "   Id: 8\n"
+    "   Type: ETHERNET\n"
+    "   TracerName: ETH_PCAP_Tracer\n"
+    " CAN_FD1_ch1:\n"
+    "   Id: 9\n"
+    "   TracerName: ASCII_Tracer_CAN\n"
+    "   Type: CANFD\n"
+    "   Protocol: CANFD\n"
+    " CAN_FD2_ch1:\n"
+    "   Id: 10\n"
+    "   TracerName: ASCII_Tracer_CAN\n"
+    "   Type: CANFD\n"
+    "   Protocol: CANFD\n"
+    " CAN1_ch2:\n"
+    "   Id: 11\n"
+    "   TracerName: ASCII_Tracer_CAN\n"
+    "   Type: CAN\n"
+    "   Protocol: CAN2.0\n"
+    " CAN2_ch2:\n"
+    "   Id: 12\n"
+    "   TracerName: ASCII_Tracer_CAN\n"
+    "   Type: CAN\n"
+    "   Protocol: CAN2.0\n"
+    " FlexRay_ch1:\n"
+    "   Id: 13\n"
+    "   TracerName: ASCII_Tracer_FLEXRAY\n"
+    "   LoggingName: A_FlexRay\n"
+    "   Type: FR\n"
+    " FlexRay_ch2:\n"
+    "   Id: 14\n"
+    "   TracerName: ASCII_Tracer_FLEXRAY\n"
+    "   LoggingName: Ab_FlexRay\n"
+    "   Type: FR\n"
+    "```"
+  ),
+  "keywords": ["setup example", "CAN", "CANFD", "Ethernet", "FlexRay", "FR", "Channels", "Id", "Type", "Protocol", "TracerName"],
+  "source_url": BASE_URL + "#setup-example",
+  "relatedIds": ["mtf_config_003", "mtf_config_004", "mtf_config_005", "mtf_config_039"],
+  "summary": "Complete Channels section example with Ethernet, two CAN buses (CAN-FD + CAN2.0), and FlexRay channels.",
+  "importance": "medium",
+},
+
+# ── Section 2: Mappings ───────────────────────────────────────────────────────
+
+{
+  "chunk_id": "mtf_config_007",
+  "section": "Section 2: Mappings",
+  "subsection": "Overview",
+  "title": "Section 2: Mappings – Overview",
+  "content": (
+    "After defining logical channels in the Channels section, the next step is to map each one "
+    "to a physical channel/device in the Mappings section. This tells MTF which hardware resource "
+    "to use when a logical channel is referenced in a test case.\n\n"
+    "Supported device types in Mappings:\n"
+    "- **CM** (Capture Module): Technica device for CAN, LIN, FlexRay capture\n"
+    "- **BTS-Revo**: Body Electronics Test System for I/O simulation and fault injection\n"
+    "- **PCAP**: Network adapters for Ethernet traffic\n"
+    "- **Genesys_PowerSupply** / **Manson_PowerSupply**: Power supply devices\n"
+    "- **Serial**: Serial port communication\n"
+    "- **HH_Electrical_load**: H&H electrical load devices\n"
+    "- **Lf_Reader**: LF antenna reader (BTS-Revo extension)\n"
+    "- **RelayBoards**: Technica relay boards (SHS)\n"
+    "- **HIDRelayBoards**: DCTTECH relay boards\n"
+    "- **WinpkFilter**: Windows packet filter\n"
+    "- **TUNTAP_BRIDGE**: TUN/TAP bridge channels\n"
+    "- **EES**: Time synchronization source\n"
+    "- **TE-Analog**: Analog channels\n"
+    "- **Shelly relay**: Ethernet-controlled relay"
+  ),
+  "keywords": ["Mappings", "CM", "BTS-Revo", "PCAP", "Power Supply", "Serial", "logical channel", "physical device", "hardware"],
+  "source_url": BASE_URL + "#id2",
+  "relatedIds": ["mtf_config_002", "mtf_config_008", "mtf_config_009", "mtf_config_011", "mtf_config_013", "mtf_config_014"],
+  "summary": "The Mappings section links logical channels to physical devices: CM, BTS-Revo, PCAP adapters, power supplies, serial ports, relay boards, etc.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_008",
+  "section": "Section 2: Mappings",
+  "subsection": "Section Structure",
+  "title": "Section 2: Mappings – YAML Section Structure",
+  "content": (
+    "The Mappings section starts with `Mappings:`. Each top-level entry represents a hardware "
+    "category or device type, indented with two spaces.\n\n"
+    "```yaml\n"
+    "Mappings:\n"
+    "  CM:\n"
+    "    Devices:\n"
+    "      1:\n"
+    "        Id: 64\n"
+    "        Type: CAN_Combo\n"
+    "        Buses:\n"
+    "          CAN_channel:\n"
+    "            HWChannel: 619\n"
+    "            OperationMode: Normal\n"
+    "  BTS-Revo:\n"
+    "    Boards:\n"
+    "      1:\n"
+    "        Id: 160\n"
+    "        IOs:\n"
+    "          Ch1-BTS:\n"
+    "            HWChannel: 1\n"
+    "            MeasurementAttribute: Voltage\n"
+    "  PCAP:\n"
+    "    1:\n"
+    "      Adapter:\n"
+    "        Name: ETH_channel\n"
+    "        FriendlyName: \"Ethernet\"\n"
+    "  Genesys_PowerSupply:\n"
+    "    Channels:\n"
+    "      1:\n"
+    "        ChannelName: PS_Channel\n"
+    "  Manson_PowerSupply:\n"
+    "    Channels:\n"
+    "      1:\n"
+    "        ChannelName: PS_Channel\n"
+    "  Serial:\n"
+    "    Ports:\n"
+    "      Master-Serial:\n"
+    "        PortName: COM3\n"
+    "        BaudRate: 9600\n"
+    "  VirtualDevices:\n"
+    "    Buses:\n"
+    "      CAN_channel:\n"
+    "        Name: CAN_channel\n"
+    "```"
+  ),
+  "keywords": ["Mappings", "CM", "BTS-Revo", "PCAP", "Genesys_PowerSupply", "Manson_PowerSupply", "Serial", "VirtualDevices", "structure", "YAML"],
+  "source_url": BASE_URL + "#id3",
+  "relatedIds": ["mtf_config_007", "mtf_config_009", "mtf_config_011", "mtf_config_013", "mtf_config_014"],
+  "summary": "Mappings section structure: top-level device types (CM, BTS-Revo, PCAP, Power Supply, Serial, VirtualDevices) each containing device-specific sub-sections.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_009",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to Capture Module – Common Fields",
+  "title": "Section 2: Mapping to Capture Module – Fields (Id, Type, Buses, HWChannel, OperationMode)",
+  "content": (
+    "The Capture Module (CM) is a Technica device that records vehicle communication (CAN, LIN, FlexRay, Ethernet).\n\n"
+    "Under `CM: → Devices: → 1:` (or 2:, 3: for multiple devices), the fields are:\n\n"
+    "**Id** (mandatory): Last byte of the CM IP address. "
+    "Example: CM IP 10.104.3.64 → Id: 64.\n\n"
+    "**Type** (mandatory): CM type. Valid values: `CAN_Combo`, `LIN_Combo`.\n\n"
+    "**Buses** (mandatory): Dictionary of logical channel names mapped to this CM. "
+    "Under each channel name:\n"
+    "  - **HWChannel** (mandatory): Channel ID from the CM web interface.\n"
+    "  - **OperationMode** (optional): Normal (Rx+Tx), Spy (listen only, no ACK), TxOnly, RxOnly.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "Mappings:\n"
+    "  CM:\n"
+    "    Devices:\n"
+    "      1:\n"
+    "        Id: 64\n"
+    "        Type: CAN_Combo\n"
+    "        Buses:\n"
+    "          CAN_channel1:\n"
+    "            HWChannel: 619\n"
+    "            OperationMode: Normal\n"
+    "      2:\n"
+    "        Id: 48\n"
+    "        Type: LIN_Combo\n"
+    "        Buses:\n"
+    "          LIN_channel1:\n"
+    "            HWChannel: 536\n"
+    "            OperationMode: Normal\n"
+    "```"
+  ),
+  "keywords": ["Capture Module", "CM", "Id", "Type", "CAN_Combo", "LIN_Combo", "Buses", "HWChannel", "OperationMode", "Normal", "Spy", "TxOnly", "RxOnly", "mapping"],
+  "source_url": BASE_URL + "#common-fields",
+  "relatedIds": ["mtf_config_007", "mtf_config_008", "mtf_config_010", "mtf_config_039"],
+  "summary": "CM mapping: Id = last IP byte, Type = CAN_Combo or LIN_Combo, Buses = dict of channel→HWChannel + OperationMode (Normal/Spy/TxOnly/RxOnly).",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_010",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to Capture Module – FlexRay Fields",
+  "title": "Section 2: CM Mapping – FlexRay-Specific Fields (KeySlot, NodeType, WakeUpCluster)",
+  "content": (
+    "FlexRay channels mapped to a Capture Module require three additional fields:\n\n"
+    "**KeySlot**: A static slot used by the CM to transmit sync and startup frames. Required "
+    "when NodeType is ColdStartLeading or ColdStartFollowing.\n\n"
+    "**NodeType** (mandatory for FlexRay): FlexRay node type. Values:\n"
+    "- ColdStartLeading\n"
+    "- ColdStartFollowing\n"
+    "- NonColdStartNonSync\n"
+    "- NonColdStartSync\n\n"
+    "**WakeUpCluster**: Boolean. Whether to transmit a wake-up pattern on the cluster.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "Mappings:\n"
+    "  CM:\n"
+    "    Devices:\n"
+    "      1:\n"
+    "        Id: 65\n"
+    "        Type: CAN_Combo\n"
+    "        Busses:\n"
+    "          A_FlexRay:\n"
+    "            OperationMode: Normal\n"
+    "            HWChannel: 358\n"
+    "            KeySlot: 1\n"
+    "            NodeType: ColdStartFollowing\n"
+    "            WakeUpCluster: false\n"
+    "```"
+  ),
+  "keywords": ["FlexRay", "Capture Module", "CM", "KeySlot", "NodeType", "WakeUpCluster", "ColdStartLeading", "ColdStartFollowing", "NonColdStartNonSync", "NonColdStartSync"],
+  "source_url": BASE_URL + "#fields-related-to-flexray-channels",
+  "relatedIds": ["mtf_config_009", "mtf_config_039"],
+  "summary": "FlexRay CM mapping adds KeySlot, NodeType (ColdStartLeading/Following/NonColdStart*), and WakeUpCluster fields.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_011",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to Power Supply",
+  "title": "Section 2: Mapping to Power Supply (Genesys, Manson) – Fields",
+  "content": (
+    "MTF supports Genesys and Manson power supplies. Common fields under "
+    "`Genesys_PowerSupply: → Channels: → 1:`:\n\n"
+    "**ChannelName** (mandatory): Logical channel name from the Channels section.\n"
+    "**DefaultVoltage** (optional): Default output voltage.\n"
+    "**MaxVoltage** (mandatory): Maximum allowed voltage.\n"
+    "**DefaultMaxCurrent** (mandatory): Default current limit.\n"
+    "**SamplingInterval** (optional): Interval between power measurements in ms (default 100 ms).\n"
+    "**ContinuousMonitoringActive** (optional): Continuously read voltage/current.\n"
+    "**KeepStatus** (optional): Keep PS ON between test cases.\n\n"
+    "**Genesys-specific** (TCP/Serial communication):\n"
+    "- **CommunicationProtocol**: Serial or Tcp\n"
+    "- For Serial: **PortName** (e.g., COM2), **BitRate** (e.g., 19200)\n"
+    "- For Tcp: **IP**, **Port**, **Language** (SCPI or GEN)\n\n"
+    "**Manson-specific** (serial):\n"
+    "- **PortName** (mandatory), **BitRate** (mandatory)\n"
+    "- **MaxVoltage**, **MaxCurrent** (mandatory), **DefaultVoltage** (optional)\n\n"
+    "Example (Genesys via TCP):\n"
+    "```yaml\n"
+    "Genesys_PowerSupply:\n"
+    "  Channels:\n"
+    "    1:\n"
+    "      ChannelName: PS_Channel\n"
+    "      DefaultMaxCurrent: 35\n"
+    "      DefaultVoltage: 12\n"
+    "      MaxVoltage: 20\n"
+    "      CommunicationProtocol: Tcp\n"
+    "      Language: SCPI\n"
+    "      IP: 169.254.16.136\n"
+    "      Port: 8003\n"
+    "```"
+  ),
+  "keywords": ["Power Supply", "Genesys", "Manson", "ChannelName", "DefaultVoltage", "MaxVoltage", "DefaultMaxCurrent", "PortName", "BitRate", "CommunicationProtocol", "IP", "Port", "SCPI", "TCP", "serial"],
+  "source_url": BASE_URL + "#mapping-logical-channel-to-a-power-supply",
+  "relatedIds": ["mtf_config_007", "mtf_config_008"],
+  "summary": "Power supply mapping (Genesys/Manson): ChannelName, MaxVoltage, DefaultMaxCurrent mandatory; communication via TCP (IP/Port/Language) or Serial (PortName/BitRate).",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_012",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to Network Adapter (PCAP)",
+  "title": "Section 2: Mapping to Network Adapter (PCAP) – Fields",
+  "content": (
+    "Network adapters (Ethernet interfaces) are mapped under `PCAP: → 1: → Adapter:`.\n\n"
+    "Key fields:\n"
+    "**Name** (mandatory): The logical channel name from the Channels section.\n"
+    "**FriendlyName** (or AdapterFriendlyName): Windows adapter friendly name "
+    "(Control Panel → Network Connections).\n"
+    "**Interface**: Adapter system name if FriendlyName not used. "
+    "Windows: 'DeviceNPF_{GUID}'; Linux: 'enp0s4'.\n"
+    "**BufferSize**: Kernel buffer size in MB.\n"
+    "**BpfFilter**: Packet filter (e.g., 'ip src 192.168.0.1').\n"
+    "**Timeout**: Read timeout in ms.\n"
+    "**TimeStampPrecision**: Microsecond or Nanosecond (Linux only for Nanosecond).\n"
+    "**TimeStampSource**: TimeStampHost, TimeStampHostLowPrecision, TimeStampAdapter, etc.\n"
+    "**ImmediateMode**: true = deliver packets immediately without buffering.\n"
+    "**SnapshotLength**: Capture snapshot length.\n"
+    "**PcapDeviceMode**: Promiscuous mode captures all packets.\n"
+    "**PacketProcessingActive**: false = adapter used for logging only.\n"
+    "**PacketIdentificationActive**: false = forward all traffic without SOME/IP/DOIP identification.\n"
+    "**UseDataLoggerTimeStamp**: Replace software timestamp with hardware logger timestamp.\n"
+    "**DataLoggerType**: TECMP, CMP, or NotDefined.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "PCAP:\n"
+    "  1:\n"
+    "    Adapter:\n"
+    "      Name: ETH_SOMEIP\n"
+    "      FriendlyName: \"Ethernet-ch\"\n"
+    "      BufferSize: 8\n"
+    "      Timeout: 1\n"
+    "      ImmediateMode: true\n"
+    "      SnapshotLength: 65536\n"
+    "      PcapDeviceMode: promiscuous\n"
+    "      PacketProcessingActive: true\n"
+    "      PacketIdentificationActive: true\n"
+    "```"
+  ),
+  "keywords": ["PCAP", "Network Adapter", "Ethernet", "FriendlyName", "Name", "BufferSize", "BpfFilter", "Timeout", "ImmediateMode", "SnapshotLength", "PcapDeviceMode", "PacketProcessingActive", "PacketIdentificationActive", "TimeStampSource", "DataLoggerType", "TECMP"],
+  "source_url": BASE_URL + "#mapping-logical-channel-to-a-network-adapter",
+  "relatedIds": ["mtf_config_007", "mtf_config_008", "mtf_config_030"],
+  "summary": "PCAP network adapter mapping: Name (logical channel), FriendlyName (Windows adapter), BufferSize, Timeout, ImmediateMode, PcapDeviceMode, PacketProcessingActive.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_013",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to BTS-Revo",
+  "title": "Section 2: Mapping to BTS-Revo – Fields (Id, IOs, HWChannel, MeasurementAttribute)",
+  "content": (
+    "The BTS-REVO (Body Electronics Test System) simulates buttons, sensors, actuators, "
+    "and fault conditions (short to GND, short to VBAT, open load).\n\n"
+    "Structure: `BTS-Revo: → Boards: → 1:` (for each board).\n\n"
+    "**Id** (mandatory): Last byte of the BTS-Revo IP address. The full IP is on the device "
+    "back; set the last byte with the rotary switch. E.g., position 0 → Id = 160.\n\n"
+    "**IOs** (mandatory): Dictionary of logical channel names.\n"
+    "Under each channel name:\n"
+    "  - **HWChannel** (mandatory): Physical pin index (1–24, left to right).\n"
+    "  - **MeasurementAttribute** (mandatory): Voltage, Current, or PWM.\n"
+    "  - **Function** (mandatory): None, Relay, Potentiometer, ElectronicLoad, GNDSwitch, "
+    "VBATSwitch, VoltageGenerator, etc.\n"
+    "  - **LineContactState** (optional): Open Load state active by default.\n"
+    "  - **GndContactState** (optional): Short to GND active by default.\n"
+    "  - **VbatContactState** (optional): VBAT state active by default.\n"
+    "  - **InitValue** (optional): Default resistance, voltage, or other value.\n"
+    "  - **StaticChannel** (optional): State cannot be changed by test cases.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "BTS-Revo:\n"
+    "  Boards:\n"
+    "    1:\n"
+    "      Id: 160\n"
+    "      IOs:\n"
+    "        Ch1-BTS:\n"
+    "          HWChannel: 1\n"
+    "          MeasurementAttribute: Voltage\n"
+    "        Ch3-BTS:\n"
+    "          HWChannel: 3\n"
+    "          Function: VBATSwitch\n"
+    "          MeasurementAttribute: Voltage\n"
+    "```"
+  ),
+  "keywords": ["BTS-Revo", "BTS", "Id", "IOs", "HWChannel", "MeasurementAttribute", "Function", "VBATSwitch", "GNDSwitch", "Voltage", "Current", "PWM", "fault injection", "open load", "short to GND", "short to VBAT"],
+  "source_url": BASE_URL + "#mapping-logical-channel-to-a-bts-revo",
+  "relatedIds": ["mtf_config_007", "mtf_config_008", "mtf_config_022"],
+  "summary": "BTS-Revo mapping: Id = last IP byte, IOs = dict of channel→HWChannel (1-24) + MeasurementAttribute (Voltage/Current/PWM) + Function.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_014",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to Serial Port",
+  "title": "Section 2: Mapping to Serial Port – Fields (PortName, BaudRate, Parity, StopBits …)",
+  "content": (
+    "Serial channels are mapped under `Serial: → Ports: → <LogicalChannelName>:`.\n\n"
+    "**PortName** (mandatory): OS serial port identifier (e.g., COM13, /dev/ttyUSB0).\n"
+    "**BaudRate** (mandatory): Communication baud rate (e.g., 9600, 115200).\n"
+    "**Parity** (optional): None, Even, Odd.\n"
+    "**DataBits** (optional): Character size (e.g., 8).\n"
+    "**StopBits** (optional): Number of stop bits (e.g., One).\n"
+    "**FlowControl** (optional): None, Hardware, Software.\n"
+    "**MessageTerminator** (optional): End-of-line character (e.g., '\\r\\n', '\\r').\n"
+    "**MaxReceivedDataSize** (optional): Maximum message size in bytes.\n"
+    "**SeparationTimeMs** (optional): Time between consecutive characters in ms.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "Serial:\n"
+    "  Ports:\n"
+    "    Master-Serial:\n"
+    "      PortName: COM13\n"
+    "      BaudRate: 9600\n"
+    "      Parity: None\n"
+    "      DataBits: 8\n"
+    "      StopBits: One\n"
+    "      FlowControl: None\n"
+    "      MessageTerminator: \"\"\n"
+    "      MaxReceivedDataSize: 512\n"
+    "```"
+  ),
+  "keywords": ["Serial", "PortName", "BaudRate", "Parity", "DataBits", "StopBits", "FlowControl", "MessageTerminator", "MaxReceivedDataSize", "SeparationTimeMs", "COM", "UART"],
+  "source_url": BASE_URL + "#mapping-logical-channel-to-a-serial-port",
+  "relatedIds": ["mtf_config_007", "mtf_config_008"],
+  "summary": "Serial port mapping: PortName and BaudRate mandatory; optional Parity, DataBits, StopBits, FlowControl, MessageTerminator.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_015",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to HH Electrical Load",
+  "title": "Section 2: Mapping to HH Electrical Load – Fields",
+  "content": (
+    "H&H electrical loads (PLI / PMLI series) are mapped under `HH_Electrical_load: → Devices: → 1:`.\n\n"
+    "**Id** (mandatory): The device physical ID.\n"
+    "**PortName** (mandatory): COM port connected to the load.\n"
+    "**Type** (mandatory): PLI or PMLI (PMLI = multi-channel).\n"
+    "**BitRate** (mandatory): Serial baud rate (e.g., 115200).\n"
+    "**Channels**: Maps channel index to logical channel name.\n"
+    "  - **Id**: Channel index on the device.\n"
+    "  - **Name**: Logical channel name from the Channels section.\n"
+    "  - **ExternalTrigger** (optional): External I/O trigger (default false = remote).\n"
+    "  - **VoltageProtection** (optional): Voltage protection value.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "HH_Electrical_load:\n"
+    "  Devices:\n"
+    "    1:\n"
+    "      Id: 2\n"
+    "      PortName: COM19\n"
+    "      Type: PLI\n"
+    "      BitRate: 115200\n"
+    "      Channels:\n"
+    "        1:\n"
+    "          Id: 1\n"
+    "          Name: HH\n"
+    "```"
+  ),
+  "keywords": ["HH Electrical Load", "PLI", "PMLI", "PortName", "BitRate", "Type", "Channels", "Id", "Name", "ExternalTrigger"],
+  "source_url": BASE_URL + "#mapping-logical-channel-to-hh-electrical-load",
+  "relatedIds": ["mtf_config_007", "mtf_config_008"],
+  "summary": "HH Electrical Load mapping: Id, PortName, Type (PLI/PMLI), BitRate mandatory; Channels maps index to logical channel name.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_016",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to LF Reader",
+  "title": "Section 2: Mapping to LF Reader (BTS-Revo Extension)",
+  "content": (
+    "LF_Reader is an extension board for BTS-Revo with a maximum of 3 antennas per board.\n\n"
+    "Structure: `Lf_Reader: → 1:` (board index).\n\n"
+    "**BoardId** (mandatory): The board with LF_reader extension ID.\n"
+    "**Antennas**: Dictionary of antenna definitions:\n"
+    "  - **AntennaNumber**: The antenna number.\n"
+    "  - **HWChannel**: The channel of the LF_Reader.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "Lf_Reader:\n"
+    "  1:\n"
+    "    BoardId: 169\n"
+    "    Antennas:\n"
+    "      1:\n"
+    "        AntennaNumber: 1\n"
+    "        HWChannel: 1\n"
+    "      2:\n"
+    "        AntennaNumber: 2\n"
+    "        HWChannel: 2\n"
+    "```"
+  ),
+  "keywords": ["LF Reader", "Lf_Reader", "BTS-Revo", "BoardId", "Antennas", "AntennaNumber", "HWChannel"],
+  "source_url": BASE_URL + "#mapping-logical-channel-antenna-to-an-lf-reader",
+  "relatedIds": ["mtf_config_013", "mtf_config_007"],
+  "summary": "LF_Reader (BTS-Revo extension): BoardId mandatory, Antennas dict maps AntennaNumber to HWChannel (max 3 antennas).",
+  "importance": "low",
+},
+
+{
+  "chunk_id": "mtf_config_017",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to Relay Boards (SHS)",
+  "title": "Section 2: Mapping to Relay Boards (Technica SHS) – Fields",
+  "content": (
+    "Technica Relay Boards (SHS) are mapped under `RelayBoards:`.\n\n"
+    "**CANChannelName** (mandatory): Name of the CAN channel connected to the relay boards CAN bus.\n"
+    "**Boards**: List of connected relay boards.\n"
+    "  - **Id** (mandatory): Board ID.\n"
+    "  - **Relays**: List of relay channels.\n"
+    "    - **RELAY_NAME**:\n"
+    "      - **HWChannel** (mandatory): Channel ID on the relay (starting from 1).\n"
+    "      - **Function**: Must be `Relay`.\n"
+    "      - **InitValue** (optional): ON or OFF (default OFF).\n"
+    "      - **DefaultValue** (optional): ON or OFF (default OFF).\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "RelayBoards:\n"
+    "  CANChannelName: RELAY_BOARDS_CAN\n"
+    "  Boards:\n"
+    "    1:\n"
+    "      Id: 1\n"
+    "      Relays:\n"
+    "        RELAY_A:\n"
+    "          HWChannel: 1\n"
+    "          Function: Relay\n"
+    "    2:\n"
+    "      Id: 2\n"
+    "      Relays:\n"
+    "        RELAY_B:\n"
+    "          HWChannel: 1\n"
+    "          InitValue: ON\n"
+    "          DefaultValue: ON\n"
+    "          Function: Relay\n"
+    "```"
+  ),
+  "keywords": ["RelayBoards", "Relay", "CANChannelName", "Boards", "HWChannel", "InitValue", "DefaultValue", "SHS", "Technica"],
+  "source_url": BASE_URL + "#mapping-relayboards-channels-technica-relay-board-shs",
+  "relatedIds": ["mtf_config_018", "mtf_config_007"],
+  "summary": "Technica SHS relay boards: CANChannelName + Boards list each with Id and Relays (HWChannel, Function=Relay, InitValue, DefaultValue).",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_018",
+  "section": "Section 2: Mappings",
+  "subsection": "Mapping to HID Relay Boards",
+  "title": "Section 2: Mapping to HIDRelayBoards (DCTTECH) – Fields",
+  "content": (
+    "DCTTECH HID relay boards are mapped under `HIDRelayBoards:` as a map of global IDs to board definitions.\n\n"
+    "**ID** (mandatory): Board serial number (obtainable via TestApp 'Find device' button).\n"
+    "**Relays**: List of relay channels (define channels as IOOUTPUT type in Channels section).\n"
+    "  - **HWChannel** (mandatory): Channel ID on the relay.\n"
+    "  - **InitValue** (optional): ON or OFF.\n"
+    "  - **DefaultValue** (optional): ON or OFF.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "HIDRelayBoards:\n"
+    "  1:\n"
+    "    ID: Board1SerialId\n"
+    "    Relays:\n"
+    "      RELAY_C:\n"
+    "        HWChannel: 1\n"
+    "        InitValue: ON\n"
+    "        DefaultValue: OFF\n"
+    "  2:\n"
+    "    ID: Board2SerialId\n"
+    "    Relays:\n"
+    "      RELAY_E:\n"
+    "        HWChannel: 8\n"
+    "```"
+  ),
+  "keywords": ["HIDRelayBoards", "DCTTECH", "ID", "Relays", "HWChannel", "InitValue", "DefaultValue", "IOOUTPUT"],
+  "source_url": BASE_URL + "#mapping-hidrelayboards-channels-dcttech-manufacturer",
+  "relatedIds": ["mtf_config_017", "mtf_config_007"],
+  "summary": "DCTTECH HID relay boards: global ID (board serial), Relays map with HWChannel, InitValue, DefaultValue.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_019",
+  "section": "Section 2: Mappings",
+  "subsection": "WinpkFilter Channels",
+  "title": "Section 2: Mapping WinpkFilter Channels – Fields",
+  "content": (
+    "WinpkFilter enables packet filtering on Windows Ethernet adapters. Requires the Windows "
+    "Packet Filter driver (wiresock/ndisapi).\n\n"
+    "Structure: `WinpkFilter: → CHANNEL_NAME:`.\n\n"
+    "**AdpaterFriendlyName** (mandatory): Name of the corresponding Ethernet adapter.\n"
+    "**Type**: Filter or FilterFastIO.\n"
+    "**IPMacTable**: List of [IP, MAC] pairs.\n"
+    "**VLans**: VLAN configuration with InnerTags and/or OuterTags.\n"
+    "  - Each tag: ID (Vlan ID), Priority, IPList.\n"
+    "**IPV4Ttl**: TTL value for outgoing IPv4 packets.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "WinpkFilter:\n"
+    "  ETH_Sender:\n"
+    "    AdpaterFriendlyName: ETH_Sender\n"
+    "    Type: Filter\n"
+    "    IPMacTable:\n"
+    "      [[160.48.249.13, 00:50:c2:e4:30:0d]]\n"
+    "    VLans:\n"
+    "      InnerTags:\n"
+    "        - ID: 68\n"
+    "          Priority: 7\n"
+    "          IPList: [160.48.249.13]\n"
+    "```"
+  ),
+  "keywords": ["WinpkFilter", "packet filter", "AdpaterFriendlyName", "Type", "IPMacTable", "VLans", "InnerTags", "OuterTags", "VLAN", "Filter", "FilterFastIO"],
+  "source_url": BASE_URL + "#mapping-winpkfilter-channels",
+  "relatedIds": ["mtf_config_020", "mtf_config_007"],
+  "summary": "WinpkFilter maps Ethernet channels with AdpaterFriendlyName, Type (Filter/FilterFastIO), IPMacTable, and VLAN InnerTags/OuterTags.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_020",
+  "section": "Section 2: Mappings",
+  "subsection": "TUN/TAP Bridge",
+  "title": "Section 2: Mapping TUN/TAP Bridge Channels – Fields",
+  "content": (
+    "TUN/TAP enables bridging multiple virtual adapters with a physical adapter, with VLAN "
+    "tagging/stripping at the bridge level.\n\n"
+    "First, define an ETHERNET channel with type BRIDGE in Channels section:\n"
+    "```yaml\n"
+    "Channels:\n"
+    "  ETH_Bridge:\n"
+    "    Id: 90\n"
+    "    Type: BRIDGE\n"
+    "```\n\n"
+    "Then in Mappings under `TUNTAP_BRIDGE: → ETH_Bridge:`:\n"
+    "**Name**: Ethernet bridge channel name.\n"
+    "**PhysicalAdapter**: Friendly name of the physical adapter.\n"
+    "**TunTapAdapterList → TunTapAdapter**:\n"
+    "  - **Name**: Virtual adapter friendly name.\n"
+    "  - **InnerVlan** / **OuterVlan**: VLAN config (VlanId, VlanEthertype, VlanPriorityTag, VlanCfi).\n"
+    "  - **ManipulatePackets** (optional): Enable dynamic VLAN tagging from EthernetTopology."
+  ),
+  "keywords": ["TUNTAP_BRIDGE", "TUN/TAP", "bridge", "BRIDGE", "PhysicalAdapter", "TunTapAdapter", "InnerVlan", "OuterVlan", "VlanId", "VlanEthertype", "ManipulatePackets"],
+  "source_url": BASE_URL + "#mapping-tun-tap-bridge-channels",
+  "relatedIds": ["mtf_config_019", "mtf_config_030", "mtf_config_007"],
+  "summary": "TUN/TAP bridge: define BRIDGE-type channel, then TUNTAP_BRIDGE mapping with PhysicalAdapter and virtual TunTapAdapters with VLAN configs.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_021",
+  "section": "Section 2: Mappings",
+  "subsection": "EES Time Synchronization",
+  "title": "Section 2: EES Time Synchronization – GrandMaster Field",
+  "content": (
+    "The TE EES (Ethernet Edge Switch) provides nanosecond-level time synchronization to PTP "
+    "clients (CM, BTSEvo boards). This section specifies which EES acts as the GrandMaster.\n\n"
+    "**GrandMaster** (mandatory): ID of the EES responsible for time synchronization.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "EES:\n"
+    "  GrandMaster: 200\n"
+    "```"
+  ),
+  "keywords": ["EES", "time synchronization", "GrandMaster", "PTP", "nanosecond", "Ethernet Edge Switch"],
+  "source_url": BASE_URL + "#configuration-of-the-time-synchronization-source-time-server",
+  "relatedIds": ["mtf_config_007"],
+  "summary": "EES section: GrandMaster field sets the ID of the EES that acts as the PTP time synchronization source.",
+  "importance": "low",
+},
+
+{
+  "chunk_id": "mtf_config_022",
+  "section": "Section 2: Mappings",
+  "subsection": "TE-Analog Channels",
+  "title": "Section 2: Mapping TE-Analog Channels – Fields (HWChannel, DeviceId)",
+  "content": (
+    "TE-Analog covers all analog channels from different devices (LIN/CM-sense, etc.).\n\n"
+    "Structure: `TE-Analog: → ChannelName:`\n\n"
+    "Under each channel name:\n"
+    "**HWChannel** (mandatory): Physical channel ID on the device (can be hex, e.g., 0x500).\n"
+    "**DeviceId** (mandatory): ID of the device the channel is connected to.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "TE-Analog:\n"
+    "  Analog_48_C:\n"
+    "    HWChannel: 0x500\n"
+    "    DeviceId: 48\n"
+    "  Analog_48_A:\n"
+    "    HWChannel: 0x501\n"
+    "    DeviceId: 48\n"
+    "```"
+  ),
+  "keywords": ["TE-Analog", "analog", "HWChannel", "DeviceId", "LIN", "CM-sense"],
+  "source_url": BASE_URL + "#mapping-te-analog-channels",
+  "relatedIds": ["mtf_config_007"],
+  "summary": "TE-Analog mapping: each channel name maps to HWChannel (physical channel ID, can be hex) and DeviceId.",
+  "importance": "low",
+},
+
+{
+  "chunk_id": "mtf_config_023",
+  "section": "Section 2: Mappings",
+  "subsection": "Shelly Relay",
+  "title": "Section 2: Mapping Shelly Relay – Fields",
+  "content": (
+    "Shelly relays are Ethernet-controlled relays mapped under `Devices:`.\n\n"
+    "**CommunicationProtocol** (mandatory): HTTP or MQTT (currently only HTTP supported).\n"
+    "**IP** (mandatory): Device IP address.\n"
+    "**Port** (mandatory): Communication port.\n"
+    "**Channels**: Dict of logical channel names.\n"
+    "  - **ID** (mandatory): Channel ID on the Shelly device.\n"
+    "  - **DoRestart** (optional): Boolean, reset at MTF startup.\n"
+    "  - **RestartDuration** (optional): Duration of restart in ms (default 3000 ms).\n"
+    "  - **DurationAfterRestart** (optional): Wait time after restart in ms (default 3000 ms).\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "Devices:\n"
+    "  1:\n"
+    "    CommunicationProtocol: HTTP\n"
+    "    IP: 192.168.0.201\n"
+    "    Port: 80\n"
+    "    Channels:\n"
+    "      TEST_IO_5:\n"
+    "        ID: 1\n"
+    "        DoRestart: True\n"
+    "        RestartDuration: 3000\n"
+    "```"
+  ),
+  "keywords": ["Shelly", "relay", "HTTP", "MQTT", "IP", "Port", "CommunicationProtocol", "DoRestart", "RestartDuration", "Ethernet-controlled"],
+  "source_url": BASE_URL + "#map-logical-shelly-relay",
+  "relatedIds": ["mtf_config_007"],
+  "summary": "Shelly relay mapping: HTTP/MQTT protocol, IP, Port, and Channels with ID, DoRestart, RestartDuration.",
+  "importance": "low",
+},
+
+# ── Section 3: FrameworkConfig ────────────────────────────────────────────────
+
+{
+  "chunk_id": "mtf_config_024",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "Overview",
+  "title": "Section 3: FrameworkConfig – Overview",
+  "content": (
+    "The FrameworkConfig section configures various aspects of the framework:\n\n"
+    "- **Tracing**: Configure PCAP and ASCII tracers for logging traffic.\n"
+    "- **ConnectedEcus**: List the ECUs/DUTs connected to the test bench.\n"
+    "- **ServicePack**: Specify an OEM service pack instead of individual ECUs.\n"
+    "- **PublisherConfig**: Configure the Publish/Subscribe event dispatching model.\n"
+    "- **EthernetConfig**: Ethernet-specific settings (NPdu, SomeIP, VLAN, AppLayer ports).\n"
+    "- **EthernetTopology**: Define Ethernet ECUs and their MAC/IP/VLAN data.\n"
+    "- **ChannelToEcusMapping**: Link ECUs to their Ethernet transmission adapters.\n"
+    "- **Diagnostics**: DoIP/HSFZ diagnostics protocol configuration.\n\n"
+    "Example structure:\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  Tracing:\n"
+    "    PCAP_Tracer_1: ...\n"
+    "    ASCII_Tracer_1: ...\n"
+    "  ConnectedEcus:\n"
+    "    - ECU1\n"
+    "    - ECU2\n"
+    "  PublisherConfig:\n"
+    "    PublisherType: MultiThreaded\n"
+    "```"
+  ),
+  "keywords": ["FrameworkConfig", "Tracing", "ConnectedEcus", "ServicePack", "PublisherConfig", "EthernetConfig", "EthernetTopology", "Diagnostics"],
+  "source_url": BASE_URL + "#section-3-frameworkconfig-section",
+  "relatedIds": ["mtf_config_002", "mtf_config_025", "mtf_config_026", "mtf_config_027", "mtf_config_028", "mtf_config_029"],
+  "summary": "FrameworkConfig section configures tracers, connected ECUs, publisher model, Ethernet settings, and diagnostics.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_025",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "PCAP Tracer Configuration",
+  "title": "FrameworkConfig – PCAP Tracer Configuration",
+  "content": (
+    "PCAP tracers log Ethernet traffic. Defined under `FrameworkConfig: → Tracing: → TracerName:`.\n\n"
+    "Common fields:\n"
+    "**Type**: PCAP\n"
+    "**Timestamp**: Microsecond or Nanosecond\n"
+    "**LoggingType**: MultipleAdapterMode or PerformanceMode\n\n"
+    "**LoggerConfiguration → FileConfig**:\n"
+    "- **BaseFileName**: Base name for rotating log files (e.g., trace_eth_1).\n"
+    "- **Extension**: '.pcap', '.pcapng', or '.pcapng.zst' (Zstandard compression).\n"
+    "- **MaxFile**: Max number of rotating files.\n"
+    "- **MaxFileSize**: Max file size in MB before rotating.\n"
+    "- **CompressionLevel**: For .pcapng.zst only (MultipleAdapterMode only).\n\n"
+    "**LoggerConfiguration → BufferConfig**:\n"
+    "- **BufferSize**: Buffer size in MB.\n"
+    "- **BufferNumber**: (PerformanceMode only) Number of buffers.\n"
+    "- **WriteBurstSize**: (PerformanceMode only) Block write size.\n\n"
+    "Example (MultipleAdapterMode with compression):\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  Tracing:\n"
+    "    PCAP_Tracer_1:\n"
+    "      Type: PCAP\n"
+    "      LoggingType: MultipleAdapterMode\n"
+    "      Timestamp: Microsecond\n"
+    "      LoggerConfiguration:\n"
+    "        BufferConfig:\n"
+    "          BufferSize: 200\n"
+    "        FileConfig:\n"
+    "          BaseFileName: trace_1\n"
+    "          Extension: \".pcapng.zst\"\n"
+    "          CompressionLevel: 5\n"
+    "```"
+  ),
+  "keywords": ["PCAP tracer", "Tracing", "LoggingType", "MultipleAdapterMode", "PerformanceMode", "BaseFileName", "Extension", "MaxFile", "MaxFileSize", "BufferSize", "BufferNumber", "WriteBurstSize", "CompressionLevel", "pcapng", "zst"],
+  "source_url": BASE_URL + "#pcap-tracer-configuration",
+  "relatedIds": ["mtf_config_024", "mtf_config_026"],
+  "summary": "PCAP tracer: Type=PCAP, LoggingType (MultipleAdapterMode/PerformanceMode), FileConfig (BaseFileName, Extension, MaxFileSize) and BufferConfig.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_026",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "ASCII Tracer Configuration",
+  "title": "FrameworkConfig – ASCII Tracer Configuration",
+  "content": (
+    "ASCII tracers log CAN/LIN/FlexRay traffic in text format. Defined under "
+    "`FrameworkConfig: → Tracing: → TracerName:`.\n\n"
+    "**Type**: ASCII\n"
+    "**Base**: Hex or Decimal formatting.\n"
+    "**Timestamp**: Microsecond (ASCII supports only Microsecond).\n"
+    "**TimeStampSetting**: Absolute or Relative (to test case start).\n"
+    "**InternalEventLogged**: true/false — log internal events like LIN wake-up.\n\n"
+    "**LoggerConfiguration → FileConfig**:\n"
+    "- **BaseFileName**: Base name for rotating .asc files.\n"
+    "- **Extension**: e.g., '.asc'.\n"
+    "- **MaxFile**: Max number of rotating files.\n"
+    "- **MaxFileSize**: Max file size in MB.\n\n"
+    "Note: If testing ASCII Tracer locally (no hardware), add the channel to VirtualDevices.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  Tracing:\n"
+    "    default_ascii_tracer:\n"
+    "      Type: ASCII\n"
+    "      Base: Hex\n"
+    "      InternalEventLogged: 'true'\n"
+    "      TimeStamp: Microsecond\n"
+    "      TimeStampSetting: Absolute\n"
+    "      LoggerConfiguration:\n"
+    "        FileConfig:\n"
+    "          BaseFileName: lin_can_trace\n"
+    "          Extension: .asc\n"
+    "          MaxFile: '150'\n"
+    "          MaxFileSize: '200'\n"
+    "```"
+  ),
+  "keywords": ["ASCII tracer", "Tracing", "Base", "Hex", "Decimal", "Timestamp", "Microsecond", "TimeStampSetting", "Absolute", "Relative", "InternalEventLogged", "BaseFileName", "Extension", "asc", "MaxFile", "MaxFileSize"],
+  "source_url": BASE_URL + "#ascii-tracer-configuration",
+  "relatedIds": ["mtf_config_024", "mtf_config_025"],
+  "summary": "ASCII tracer: Type=ASCII, Base (Hex/Decimal), Timestamp=Microsecond, TimeStampSetting (Absolute/Relative), FileConfig for rotating .asc files.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_027",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "ConnectedEcus and ServicePack",
+  "title": "FrameworkConfig – ConnectedEcus and ServicePack",
+  "content": (
+    "**ConnectedEcus**: List of ECU (Device Under Test) names connected to the test bench. "
+    "Names must match ECU names defined in the database file (ARXML, DBC, LDF, FIBEX).\n\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  ConnectedEcus:\n"
+    "    - ECU1\n"
+    "    - ECU2\n"
+    "    - ECU3\n"
+    "```\n\n"
+    "**ServicePack**: Specifies an OEM service pack (group of ECUs) to start instead of listing "
+    "individual ECUs under ConnectedEcus.\n\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  ServicePack: ServicePack_name\n"
+    "```"
+  ),
+  "keywords": ["ConnectedEcus", "ServicePack", "DUT", "ECU", "ARXML", "DBC", "LDF", "FIBEX", "FrameworkConfig"],
+  "source_url": BASE_URL + "#connectedecus-dut-s",
+  "relatedIds": ["mtf_config_024"],
+  "summary": "ConnectedEcus lists DUT ECU names (matching database file); ServicePack specifies an OEM group of ECUs instead of individual listing.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_028",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "Publisher Configuration",
+  "title": "FrameworkConfig – Publisher Configuration (PublisherType, ChannelsGroups)",
+  "content": (
+    "MTF implements a Publish/Subscribe model for event dispatching (e.g., received CAN frames).\n\n"
+    "**PublisherType** (mandatory): SingleThreaded or MultiThreaded.\n"
+    "- **SingleThreaded**: One thread for all event types.\n"
+    "- **MultiThreaded**: Multiple threads for event dispatching.\n\n"
+    "**ChannelsGroups** (only for MultiThreaded): Defines thread/channel mapping. Each group "
+    "is a list of channel names that share a thread.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  PublisherConfig:\n"
+    "    PublisherType: MultiThreaded\n"
+    "    ChannelsGroups:\n"
+    "      - [Ch_CAN1, Ch_CAN2, Ch_CAN3]\n"
+    "      - [ETH_SPY]\n"
+    "```"
+  ),
+  "keywords": ["PublisherConfig", "PublisherType", "SingleThreaded", "MultiThreaded", "ChannelsGroups", "Publish/Subscribe", "event dispatching", "threads"],
+  "source_url": BASE_URL + "#publisher-configuration",
+  "relatedIds": ["mtf_config_024"],
+  "summary": "PublisherConfig: PublisherType SingleThreaded or MultiThreaded; ChannelsGroups maps channel groups to threads (MultiThreaded only).",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_029",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "Diagnostics Configuration",
+  "title": "FrameworkConfig – Diagnostics Configuration (DoIP, HSFZ)",
+  "content": (
+    "Optional Diagnostics section configures protocol and addresses for diagnostic sessions.\n\n"
+    "**EcuIpAddress**: IP of the ECU to connect to. Use 'AutoDetect' for automatic detection.\n"
+    "**TestersIpAddress**: Tester address. Use 'Auto' for automatic assignment.\n"
+    "**Protocol**: HSFZ or DOIP.\n"
+    "**NetID** (optional): Net address of the target ECU. If not specified, identification "
+    "requests are sent through all interfaces.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  Diagnostics:\n"
+    "    EcuIpAddress: AutoDetect\n"
+    "    TestersIpAddress: 172.172.22.22\n"
+    "    Protocol: DOIP\n"
+    "    NetID: 160.48\n"
+    "```"
+  ),
+  "keywords": ["Diagnostics", "DoIP", "HSFZ", "EcuIpAddress", "TestersIpAddress", "Protocol", "NetID", "AutoDetect"],
+  "source_url": BASE_URL + "#diagnostics",
+  "relatedIds": ["mtf_config_024"],
+  "summary": "Diagnostics section: EcuIpAddress, TestersIpAddress, Protocol (DOIP/HSFZ), and optional NetID for targeted identification.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_030",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "Ethernet Configuration",
+  "title": "FrameworkConfig – Ethernet Configuration (NPduConfig, SomeIPConfig, AppLayerPorts)",
+  "content": (
+    "EthernetConfig under FrameworkConfig provides optional Ethernet-specific settings.\n\n"
+    "**ConsiderOnlyEthernetTopologyEcus** (optional, default false): Only consider ECUs from "
+    "EthernetTopology section for COM Ethernet communication.\n\n"
+    "**NPduConfig** (optional):\n"
+    "- ManageVlansInCom: Add 802.1Q VLAN tags to NPDU packets.\n"
+    "- RestrictedNPduChannelsInCom: Only create COM NPDU packets for DuT ECU channels.\n"
+    "- IPMacTable: [[IP, MAC]] pairs.\n"
+    "- VLans: InnerTags and OuterTags (each with ID, Priority, IPList).\n\n"
+    "**SomeIPConfig** (optional):\n"
+    "- ServerToClientPortRangeMapping: Map server port ranges to client port ranges.\n"
+    "- EndpointImplementation: 'lwip' or 'boost' (default boost).\n\n"
+    "**AppLayerPorts** (optional): Ports for NPdu, SomeIp, UDPNM, DLT, SomeIpSD protocols.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "FrameworkConfig:\n"
+    "  EthernetConfig:\n"
+    "    ConsiderOnlyEthernetTopologyEcus: true\n"
+    "    AppLayerPorts:\n"
+    "      NPdu: [3000, [3100, 3200]]\n"
+    "      SomeIp: [[500, 503], 1000]\n"
+    "      UDPNM: [4100]\n"
+    "      DLT: [5000]\n"
+    "      SomeIpSD: [30490]\n"
+    "```"
+  ),
+  "keywords": ["EthernetConfig", "NPduConfig", "SomeIPConfig", "AppLayerPorts", "VLAN", "InnerTags", "OuterTags", "IPMacTable", "SomeIP", "NPdu", "UDPNM", "DLT", "SomeIpSD", "ConsiderOnlyEthernetTopologyEcus"],
+  "source_url": BASE_URL + "#ethernet-configuration",
+  "relatedIds": ["mtf_config_024", "mtf_config_031", "mtf_config_020"],
+  "summary": "EthernetConfig: NPduConfig (VLAN, IPMacTable), SomeIPConfig (port mapping), AppLayerPorts (NPdu/SomeIp/UDPNM/DLT/SomeIpSD), ConsiderOnlyEthernetTopologyEcus.",
+  "importance": "medium",
+},
+
+{
+  "chunk_id": "mtf_config_031",
+  "section": "Section 3: FrameworkConfig",
+  "subsection": "EthernetTopology",
+  "title": "FrameworkConfig – EthernetTopology Configuration",
+  "content": (
+    "EthernetTopology defines Ethernet ECUs and their network data for packet manipulation.\n\n"
+    "**EthProtoPrioConfig**: List to set VLAN priority per Ethernet protocol.\n"
+    "- Protocol: TCP, UDP, ICMPv6\n"
+    "- DefaultPriority: 0–7\n"
+    "- Ports: Override priority for specific port/range (SrcPort, DstPort, Priority).\n\n"
+    "**TopologyConfig**: Per-ECU configuration.\n"
+    "- EcuName (optional): ECU identifier.\n"
+    "- SrcIpList (mandatory): List of ECU IP addresses.\n"
+    "- SrcMacAdr (optional): Source MAC address.\n"
+    "- TunTapAdapterName (optional): Links to a TunTap adapter.\n"
+    "- Vlans (optional): VLAN config with DefaultVlan, OuterVlanTag, InnerVlanTag.\n"
+    "  - VlanId, Ethertype (0x8100 for InnerVlan, 0x88a8/0x9100 for OuterVlan).\n"
+    "  - VlanPriorityTag, VlanCfi.\n"
+    "- MulticastVlanForwarding (optional).\n"
+    "- DstIpVlanMapping (optional): Map destination IPs to VLAN configs."
+  ),
+  "keywords": ["EthernetTopology", "TopologyConfig", "SrcIpList", "SrcMacAdr", "VlanId", "VlanEthertype", "EthProtoPrioConfig", "InnerVlanTag", "OuterVlanTag", "MulticastVlanForwarding", "DstIpVlanMapping"],
+  "source_url": BASE_URL + "#ethernettopology",
+  "relatedIds": ["mtf_config_030", "mtf_config_020"],
+  "summary": "EthernetTopology: per-ECU SrcIpList, SrcMacAdr, VLAN configuration; EthProtoPrioConfig sets VLAN priority per protocol.",
+  "importance": "medium",
+},
+
+# ── Section 4: ChannelsConfig ─────────────────────────────────────────────────
+
+{
+  "chunk_id": "mtf_config_037",
+  "section": "Section 4: ChannelsConfig",
+  "subsection": "FaultyChannels",
+  "title": "Section 4: ChannelsConfig – FaultyChannels",
+  "content": (
+    "ChannelsConfig is an optional section used to define IO channels for fault injection "
+    "(e.g., short circuit in a CAN bus, open wire in a LIN bus).\n\n"
+    "**FaultyChannels**: A dict of {faultType: ioHWChannel} pairs.\n\n"
+    "Example:\n"
+    "```yaml\n"
+    "ChannelsConfig:\n"
+    "  Io_Channel_Ex1:\n"
+    "    FaultyChannels: {keyFaultyType, valueIoHwChannel}\n"
+    "  Io_Channel_Ex2:\n"
+    "    FaultyChannels: {keyFaultyType, valueIoHwChannel}\n"
+    "```"
+  ),
+  "keywords": ["ChannelsConfig", "FaultyChannels", "fault injection", "short circuit", "open wire", "CAN", "LIN"],
+  "source_url": BASE_URL + "#section-4-optional-channelsconfig-section",
+  "relatedIds": ["mtf_config_002"],
+  "summary": "ChannelsConfig (optional): FaultyChannels maps fault types to IO hardware channels for fault injection (short circuit, open wire).",
+  "importance": "low",
+},
+
+# ── Complete end-to-end example ───────────────────────────────────────────────
+
+{
+  "chunk_id": "mtf_config_039",
+  "section": "Complete Example",
+  "subsection": "Full Configuration – Channels + Mappings + FrameworkConfig",
+  "title": "Complete MTF Configuration File Example (CM + BTS + PCAP + Tracers)",
+  "content": (
+    "Complete example for a setup with CM, BTS-EVO, and PCAP adapter:\n\n"
+    "```yaml\n"
+    "Channels:\n"
+    " Ethernet_Switch:\n"
+    "   Id: 8\n"
+    "   Type: ETHERNET\n"
+    "   TracerName: PCAP_Tracer_ETH\n"
+    " CAN_FD_ch1:\n"
+    "   Id: 9\n"
+    "   TracerName: ASCII_Tracer_CAN\n"
+    "   Type: CANFD\n"
+    "   Protocol: CANFD\n"
+    " CAN_ch1:\n"
+    "   Id: 11\n"
+    "   TracerName: ASCII_Tracer_CAN\n"
+    "   Type: CAN\n"
+    "   Protocol: CAN2.0\n"
+    " FlexRay_ch1:\n"
+    "   Id: 13\n"
+    "   TracerName: ASCII_Tracer_FLEXRAY\n"
+    "   LoggingName: A_FlexRay\n"
+    "   Type: FR\n\n"
+    "Mappings:\n"
+    "  CM:\n"
+    "    Devices:\n"
+    "      1:\n"
+    "        Id: 64\n"
+    "        Type: CAN_Combo\n"
+    "        Buses:\n"
+    "          CAN_ch1:\n"
+    "            HWChannel: 10\n"
+    "          FlexRay_ch1:\n"
+    "            HWChannel: 12\n"
+    "            OperationMode: Normal\n"
+    "            KeySlot: 64\n"
+    "            NodeType: ColdStartLeading\n"
+    "            WakeUpCluster: false\n"
+    "  BTS:\n"
+    "    Boards:\n"
+    "      1:\n"
+    "        Id: 8\n"
+    "        Type: BaseBoard\n"
+    "        Version: EVO\n"
+    "        Buses:\n"
+    "          CAN_FD_ch1:\n"
+    "            OperationMode: Normal\n"
+    "            HWChannel: 2\n"
+    "  PCAP:\n"
+    "    1:\n"
+    "      Adapter:\n"
+    "        Name: Ethernet_Switch\n"
+    "        FriendlyName: \"Ethernet_Switch\"\n"
+    "        BufferSize: 1024\n"
+    "        PacketProcessingActive: true\n"
+    "        PacketIdentificationActive: true\n"
+    "        DataLoggerType: TECMP\n\n"
+    "FrameworkConfig:\n"
+    "  Tracing:\n"
+    "    PCAP_Tracer_ETH:\n"
+    "      Type: PCAP\n"
+    "      LoggingType: StandardMode\n"
+    "      LoggerConfiguration:\n"
+    "        FileConfig:\n"
+    "          BaseFileName: ETH_BTS_CM\n"
+    "          Extension: .pcap\n"
+    "    ASCII_Tracer_CAN:\n"
+    "      Type: ASCII\n"
+    "      Base: Decimal\n"
+    "      TimeStamp: Microsecond\n"
+    "      TimeStampSetting: Absolute\n"
+    "      InternalEventLogged: true\n"
+    "      LoggerConfiguration:\n"
+    "        FileConfig:\n"
+    "          BaseFileName: can\n"
+    "          Extension: .asc\n"
+    "```"
+  ),
+  "keywords": ["complete example", "CM", "BTS", "PCAP", "Channels", "Mappings", "FrameworkConfig", "Tracing", "CAN", "CANFD", "FlexRay", "Ethernet"],
+  "source_url": BASE_URL + "#setup-example-2",
+  "relatedIds": ["mtf_config_005", "mtf_config_006", "mtf_config_009", "mtf_config_025", "mtf_config_026"],
+  "summary": "Complete MTF configuration example covering Channels (CAN, CANFD, FlexRay, Ethernet) with CM, BTS, PCAP mappings and ASCII/PCAP tracers.",
+  "importance": "high",
+},
+
+{
+  "chunk_id": "mtf_config_040",
+  "section": "Complete Example",
+  "subsection": "Power Supply + BTS-Revo Full Example",
+  "title": "Complete Example – Power Supply + BTS-Revo Configuration",
+  "content": (
+    "Example for a setup with a Genesys power supply and BTS-Revo board:\n\n"
+    "```yaml\n"
+    "Channels:\n"
+    "  PS_bts_Ch:\n"
+    "    Id: 70\n"
+    "    TracerName: default_ascii_tracer\n"
+    "    LoggingName: PowerSupply\n"
+    "    Type: PS\n"
+    "  Ch1-BTS:\n"
+    "    Id: 72\n"
+    "    TracerName: default_ascii_tracer\n"
+    "    Type: IOOUTPUT\n"
+    "  Ch3-BTS:\n"
+    "    Id: 73\n"
+    "    TracerName: default_ascii_tracer\n"
+    "    Type: IOOUTPUT\n\n"
+    "Mappings:\n"
+    "  Genesys_PowerSupply:\n"
+    "    Channels:\n"
+    "      1:\n"
+    "        BitRate: 9600\n"
+    "        ChannelName: PS_bts_Ch\n"
+    "        DefaultMaxCurrent: 120\n"
+    "        DefaultVoltage: 12\n"
+    "        MaxVoltage: 20\n"
+    "        PortName: COM9\n"
+    "        KeepStatus: true\n"
+    "  BTS-Revo:\n"
+    "    Boards:\n"
+    "      1:\n"
+    "        Id: 160\n"
+    "        IOs:\n"
+    "          Ch1-BTS:\n"
+    "            HWChannel: 1\n"
+    "            MeasurementAttribute: Voltage\n"
+    "          Ch3-BTS:\n"
+    "            HWChannel: 3\n"
+    "            Function: VBATSwitch\n"
+    "            MeasurementAttribute: Voltage\n"
+    "```"
+  ),
+  "keywords": ["Genesys", "Power Supply", "BTS-Revo", "PS", "IOOUTPUT", "ChannelName", "PortName", "BitRate", "DefaultVoltage", "MaxVoltage", "HWChannel", "MeasurementAttribute", "Function", "VBATSwitch"],
+  "source_url": BASE_URL + "#setup-example-3",
+  "relatedIds": ["mtf_config_011", "mtf_config_013"],
+  "summary": "Full example with PS-type logical channels, Genesys power supply mapping, and BTS-Revo IO mapping with VBATSwitch function.",
+  "importance": "medium",
+},
+
+]
+
+
+def main():
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT.write_text(json.dumps(chunks, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Written {len(chunks)} chunks → {OUTPUT.relative_to(ROOT)}")
+    ids = [c["chunk_id"] for c in chunks]
+    dupes = [i for i in ids if ids.count(i) > 1]
+    if dupes:
+        print(f"WARNING: duplicate chunk_ids: {set(dupes)}")
+    else:
+        print("No duplicate IDs found.")
+
+
+if __name__ == "__main__":
+    main()

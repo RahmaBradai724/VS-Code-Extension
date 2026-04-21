@@ -19,7 +19,8 @@ class EthernetConfig {
             appLayerPorts: this.appLayerPorts,
             considerOnlyEthernetTopologyEcus: this.considerOnlyEthernetTopologyEcus,
             npduConfig: this.npduConfig,
-            someIPConfig: this.someIPConfig
+            someIPConfig: this.someIPConfig,
+            ethernetTopology: this.ethernetTopology,
         };
     }
     toJSON() {
@@ -63,4 +64,8 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)
 ], EthernetConfig.prototype, "someIPConfig", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], EthernetConfig.prototype, "ethernetTopology", void 0);
 //# sourceMappingURL=EthernetConfig.js.map

@@ -2,71 +2,70 @@
 """
 MTF Knowledge Base Builder
 ===========================
-Scrapes the MTF Configuration File documentation, chunks it, embeds each chunk
-via Ollama (nomic-embed-text), and saves the result to resources/knowledge_base.json.
+Reads the curated chunk file (src/ai/chunks/chunks_final.json), embeds each
+chunk via Ollama (nomic-embed-text), and saves the indexed result to
+resources/knowledge_base.json.
+
+Embedding strategy
+------------------
+Each chunk is embedded as:
+
+    {title}
+    {content}
+
+Prepending the title gives the embedding model richer semantic context and
+improves vector-search recall -- especially for short or dense chunks.
 
 Requirements:
-    pip install requests beautifulsoup4
+    pip install requests
 
 Usage:
-    # Make sure Ollama is running and has nomic-embed-text pulled:
-    #   ollama pull nomic-embed-text
-    python scripts/build_knowledge_base.py
+    # 1. Make sure Ollama is running and the model is pulled:
+    #       ollama pull nomic-embed-text
+    # 2. Run from the repo root:
+    #       python scripts/build_knowledge_base.py
 """
 
 import json
-import re
 import sys
 import time
 from pathlib import Path
-from typing import Generator
 
 try:
     import requests
-    from bs4 import BeautifulSoup, Tag
 except ImportError:
-    print("ERROR: Install dependencies first:  pip install requests beautifulsoup4")
+    print("ERROR: Install requests first:  pip install requests")
     sys.exit(1)
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+# -- Paths ----------------------------------------------------------------------
+ROOT         = Path(__file__).parent.parent
+CHUNKS_PATH  = ROOT / "src" / "ai" / "chunks" / "chunks_final.json"
+OUTPUT_PATH  = ROOT / "resources" / "knowledge_base.json"
 
-DOC_URL = (
-    "https://files.technica-engineering.de/MTF/Documentation/"
-    "MTF_1.38.0_documentation/source/common_files_for_documentation/"
-    "rst%20files/MTF_Configuration_File.html"
-)
-OLLAMA_BASE = "http://localhost:11434"
-EMBED_MODEL = "nomic-embed-text"
-CHUNK_SIZE  = 500   # approximate tokens (chars / 4)
-CHUNK_OVERLAP = 80  # token overlap between consecutive chunks
+# -- Ollama --------------------------------------------------------------------
+OLLAMA_BASE  = "http://localhost:11434"
+EMBED_MODEL  = "nomic-embed-text"
 
-OUTPUT_PATH = Path(__file__).parent.parent / "resources" / "knowledge_base.json"
+# -- Helpers -------------------------------------------------------------------
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def approx_tokens(text: str) -> int:
-    return len(text) // 4
-
-
-def chunk_text(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
-    """Split text into overlapping chunks preserving word boundaries."""
-    words = text.split()
-    chunks: list[str] = []
-    step = max(1, size - overlap)
-    i = 0
-    while i < len(words):
-        chunk_words = words[i : i + size]
-        chunk = " ".join(chunk_words).strip()
-        if chunk:
-            chunks.append(chunk)
-        if i + size >= len(words):
-            break
-        i += step
-    return chunks
+def check_ollama() -> None:
+    """Verify Ollama is reachable and the embed model is available."""
+    try:
+        resp = requests.get(f"{OLLAMA_BASE}/api/tags", timeout=5)
+        resp.raise_for_status()
+        models = [m["name"] for m in resp.json().get("models", [])]
+        print(f"  Ollama running -- available models: {models}")
+        if not any(EMBED_MODEL in m for m in models):
+            print(f"  WARNING: '{EMBED_MODEL}' not found.")
+            print(f"           Run:  ollama pull {EMBED_MODEL}")
+            sys.exit(1)
+    except requests.RequestException as exc:
+        print(f"  ERROR: Ollama not reachable at {OLLAMA_BASE} -- {exc}")
+        sys.exit(1)
 
 
 def embed(text: str) -> list[float]:
-    """Call Ollama /api/embeddings and return the embedding vector."""
+    """Call Ollama /api/embeddings and return the float vector."""
     resp = requests.post(
         f"{OLLAMA_BASE}/api/embeddings",
         json={"model": EMBED_MODEL, "prompt": text},
@@ -76,164 +75,104 @@ def embed(text: str) -> list[float]:
     return resp.json()["embedding"]
 
 
-# ── Scraping ──────────────────────────────────────────────────────────────────
-
-def fetch_html(url: str) -> BeautifulSoup:
-    print(f"Fetching documentation from: {url}")
-    headers = {"User-Agent": "MTF-KB-Builder/1.0"}
-    resp = requests.get(url, headers=headers, timeout=30)
-    resp.raise_for_status()
-    print(f"  Response: {resp.status_code}, {len(resp.content)} bytes")
-    return BeautifulSoup(resp.text, "html.parser")
-
-
-def iter_sections(soup: BeautifulSoup) -> Generator[dict, None, None]:
+def embed_text_for_chunk(chunk: dict) -> str:
     """
-    Walk the document and yield dicts:
-      {section, subsection, content}
+    Build the text to embed for a single chunk.
 
-    Strategy: find all heading elements (h1-h4) and collect text until
-    the next heading of the same or higher level.
+    Strategy: title + newline + content
+    - The title anchors semantic meaning (especially for short or dense chunks).
+    - The content provides the full detail for similarity matching.
+    - The summary is stored as metadata only (not embedded) to avoid redundancy.
     """
-    body = soup.find("body") or soup
-    headings = body.find_all(re.compile(r"^h[1-4]$"))
-
-    def heading_level(tag: Tag) -> int:
-        return int(tag.name[1])
-
-    current: dict = {"section": "MTF Configuration File", "subsection": "", "lines": []}
-
-    for idx, heading in enumerate(headings):
-        level = heading_level(heading)
-        title = heading.get_text(" ", strip=True)
-
-        # Collect all sibling elements until the next heading
-        sibling_texts: list[str] = []
-        for sib in heading.next_siblings:
-            if hasattr(sib, "name") and sib.name and re.match(r"^h[1-4]$", sib.name):
-                break
-            t = sib.get_text(" ", strip=True) if hasattr(sib, "get_text") else str(sib).strip()
-            if t:
-                sibling_texts.append(t)
-
-        block_text = " ".join(sibling_texts).strip()
-
-        if level == 1:
-            if current["lines"]:
-                yield current
-            current = {"section": title, "subsection": "", "lines": [block_text]}
-        elif level == 2:
-            if current["lines"]:
-                yield current
-            current = {"section": current["section"] or title, "subsection": title, "lines": [block_text]}
-        else:
-            # h3/h4 — append to current subsection
-            current["lines"].append(f"[{title}] {block_text}")
-
-    if current["lines"]:
-        yield current
+    title   = chunk.get("title", "").strip()
+    content = chunk.get("content", "").strip()
+    return f"{title}\n{content}" if title else content
 
 
-def build_records(soup: BeautifulSoup) -> list[dict]:
-    """Return flat list of {section, subsection, text} ready for chunking."""
-    records: list[dict] = []
-    for sec in iter_sections(soup):
-        combined = "\n".join(line for line in sec["lines"] if line)
-        if len(combined.strip()) < 30:
-            continue
-        records.append({
-            "section": sec["section"],
-            "subsection": sec["subsection"],
-            "text": combined,
-        })
-    return records
+# -- Main pipeline -------------------------------------------------------------
 
-
-# ── Main pipeline ─────────────────────────────────────────────────────────────
-
-def check_ollama():
-    try:
-        resp = requests.get(f"{OLLAMA_BASE}/api/tags", timeout=5)
-        models = [m["name"] for m in resp.json().get("models", [])]
-        print(f"  Ollama running — models: {models}")
-        # Check if nomic-embed-text is available (allow version suffixes)
-        if not any(EMBED_MODEL in m for m in models):
-            print(f"  WARNING: '{EMBED_MODEL}' not found. Run:  ollama pull {EMBED_MODEL}")
-    except Exception as exc:
-        print(f"  ERROR: Ollama not reachable at {OLLAMA_BASE} — {exc}")
-        sys.exit(1)
-
-
-def main():
+def main() -> None:
     print("=" * 60)
     print("MTF Knowledge Base Builder")
     print("=" * 60)
 
-    # 1. Check Ollama
+    # Step 1: Check Ollama
     print("\n[1/4] Checking Ollama...")
     check_ollama()
 
-    # 2. Fetch and parse documentation
-    print("\n[2/4] Fetching MTF documentation...")
-    soup = fetch_html(DOC_URL)
-    records = build_records(soup)
-    print(f"  Found {len(records)} sections/subsections")
+    # Step 2: Load chunks
+    print(f"\n[2/4] Loading chunks from {CHUNKS_PATH.relative_to(ROOT)}...")
+    if not CHUNKS_PATH.exists():
+        print(f"  ERROR: {CHUNKS_PATH} not found.")
+        sys.exit(1)
 
-    # 3. Chunk
-    print("\n[3/4] Chunking...")
-    chunks: list[dict] = []
-    chunk_id = 0
-    for rec in records:
-        text_chunks = chunk_text(rec["text"])
-        for chunk_text_content in text_chunks:
-            if approx_tokens(chunk_text_content) < 10:
-                continue
-            chunks.append({
-                "id": chunk_id,
-                "text": chunk_text_content,
-                "metadata": {
-                    "section":    rec["section"],
-                    "subsection": rec["subsection"],
-                    "source":     "MTF_Configuration_File.html",
-                },
-                "embedding": [],  # filled in step 4
-            })
-            chunk_id += 1
+    chunks: list[dict] = json.loads(CHUNKS_PATH.read_text(encoding="utf-8"))
+    print(f"  Loaded {len(chunks)} chunks")
+    print(f"  Fields per chunk: {list(chunks[0].keys())}")
 
-    print(f"  Created {len(chunks)} chunks")
+    # Step 3: Embed
+    print(f"\n[3/4] Embedding {len(chunks)} chunks with '{EMBED_MODEL}'...")
+    print("  (embedding text = title + content)")
 
-    # 4. Embed
-    print(f"\n[4/4] Embedding {len(chunks)} chunks with '{EMBED_MODEL}'...")
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    failed  = 0
+    indexed = []
 
-    failed = 0
     for i, chunk in enumerate(chunks):
+        embed_input = embed_text_for_chunk(chunk)
         try:
-            emb = embed(chunk["text"])
-            chunk["embedding"] = emb
-            if (i + 1) % 10 == 0 or i == len(chunks) - 1:
-                print(f"  [{i+1}/{len(chunks)}] embedded ✓  (dim={len(emb)})")
+            vector = embed(embed_input)
         except Exception as exc:
-            print(f"  [{i+1}/{len(chunks)}] FAILED — {exc}")
+            print(f"  [{i+1}/{len(chunks)}] FAILED -- {exc}")
+            vector = []
             failed += 1
+
+        # Build the indexed record: all original metadata + the embedding vector
+        indexed.append({
+            "chunk_id":   chunk["chunk_id"],
+            "section":    chunk["section"],
+            "subsection": chunk["subsection"],
+            "title":      chunk["title"],
+            "content":    chunk["content"],
+            "summary":    chunk.get("summary", ""),
+            "importance": chunk.get("importance", "medium"),
+            "keywords":   chunk.get("keywords", []),
+            "source_url": chunk.get("source_url", ""),
+            "relatedIds": chunk.get("relatedIds", []),
+            "embedding":  vector,
+        })
+
+        if (i + 1) % 5 == 0 or i == len(chunks) - 1:
+            dim = len(vector) if vector else 0
+            print(f"  [{i+1}/{len(chunks)}] OK  dim={dim}")
+
         # Small delay to avoid hammering Ollama
         time.sleep(0.05)
 
     if failed:
-        print(f"\n  WARNING: {failed} chunks failed to embed — they are saved with empty embeddings")
+        print(f"\n  WARNING: {failed} chunk(s) failed to embed -- saved with empty vectors")
 
-    # 5. Save
+    # Step 4: Save
+    print(f"\n[4/4] Saving knowledge base...")
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    embed_dim = len(indexed[0]["embedding"]) if indexed and indexed[0]["embedding"] else 0
+
     kb = {
         "model":       EMBED_MODEL,
-        "embed_dim":   len(chunks[0]["embedding"]) if chunks else 0,
+        "embed_dim":   embed_dim,
         "created_at":  time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "chunk_count": len(chunks),
-        "chunks":      chunks,
+        "chunk_count": len(indexed),
+        "chunks":      indexed,
     }
 
     OUTPUT_PATH.write_text(json.dumps(kb, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n✓ Saved {len(chunks)} chunks → {OUTPUT_PATH}")
-    print("  Run the VS Code extension and open the MTF Agent panel to use it.")
+
+    print(f"\nSaved {len(indexed)} indexed chunks -> {OUTPUT_PATH.relative_to(ROOT)}")
+    print(f"  embed_dim  : {embed_dim}")
+    print(f"  model      : {EMBED_MODEL}")
+    if failed:
+        print(f"  failed     : {failed}")
+    print("\nNext step: implement hybrid retrieval (vector + keyword search) on this index.")
 
 
 if __name__ == "__main__":

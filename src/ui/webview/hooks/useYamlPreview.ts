@@ -4,6 +4,200 @@ import { AppState } from '../types';
 
 const CM_SUBCLASSES = ['CANInterface', 'CIBInterface', 'CMInterface', 'LINCard'];
 
+/** Converts block-sequence AppLayerPorts entries to inline flow arrays in a YAML string. */
+function convertAppLayerPortsToFlow(yamlStr: string): string {
+  const lines = yamlStr.split('\n');
+  const result: string[] = [];
+  let inAppLayerPorts = false;
+  let alpIndent = -1;
+  let currentKey = '';
+  let currentItems: string[] = [];
+  let currentIndent = -1;
+
+  function flushItem() {
+    if (currentKey && currentItems.length > 0) {
+      const inline = currentItems.map((item: string) => {
+        const sub = item.match(/^\s*-\s+(.*)/);
+        return sub ? sub[1].trim() : item.trim();
+      });
+      result.push(`${' '.repeat(currentIndent)}${currentKey}: [${inline.join(', ')}]`);
+      currentKey = ''; currentItems = [];
+    }
+  }
+
+  for (const line of lines) {
+    if (!inAppLayerPorts) {
+      result.push(line);
+      const m = line.match(/^(\s*)AppLayerPorts:\s*$/);
+      if (m) { inAppLayerPorts = true; alpIndent = m[1].length; }
+      continue;
+    }
+    const stripped = line.trimStart();
+    const lineIndent = line.length - stripped.length;
+    if (stripped === '') { currentItems.push(line); continue; }
+    if (lineIndent <= alpIndent && stripped !== '') {
+      flushItem(); inAppLayerPorts = false; result.push(line);
+      const m = line.match(/^(\s*)AppLayerPorts:\s*$/);
+      if (m) { inAppLayerPorts = true; alpIndent = m[1].length; }
+      continue;
+    }
+    const keyMatch = line.match(/^(\s+)(\w+):\s*$/);
+    if (keyMatch && keyMatch[1].length === alpIndent + 2) {
+      flushItem(); currentKey = keyMatch[2]; currentIndent = keyMatch[1].length; currentItems = [];
+      continue;
+    }
+    if (currentKey) { currentItems.push(line); } else { result.push(line); }
+  }
+  flushItem();
+  return result.join('\n');
+}
+
+/** Converts block sequences under IPList to inline flow with no spaces: [ip1,ip2,ip3] */
+function convertIPListToFlow(yamlStr: string): string {
+  const lines = yamlStr.split('\n');
+  const result: string[] = [];
+  let inList = false;
+  let listIndent = -1;
+  let items: string[] = [];
+
+  function flushList() {
+    if (items.length > 0) {
+      result.push(`${' '.repeat(listIndent)}IPList: [${items.join(',')}]`);
+      items = [];
+    }
+  }
+
+  for (const line of lines) {
+    if (!inList) {
+      const m = line.match(/^(\s*)IPList:\s*$/);
+      if (m) { inList = true; listIndent = m[1].length; }
+      else { result.push(line); }
+      continue;
+    }
+    const stripped = line.trimStart();
+    const lineIndent = line.length - stripped.length;
+    if (stripped === '') { continue; }
+    if (lineIndent <= listIndent) {
+      flushList(); inList = false;
+      const m = line.match(/^(\s*)IPList:\s*$/);
+      if (m) { inList = true; listIndent = m[1].length; }
+      else { result.push(line); }
+      continue;
+    }
+    const itemMatch = line.match(/^\s+- (.*)/);
+    if (itemMatch) { items.push(itemMatch[1].trim()); continue; }
+    result.push(line);
+  }
+  flushList();
+  return result.join('\n');
+}
+
+function convertIPMacTableToFlow(yamlStr: string): string {
+  const lines = yamlStr.split('\n');
+  const result: string[] = [];
+  let inIMT = false;
+  let imtIndent = -1;
+  let pairs: [string, string][] = [];
+  let currentFirst: string | null = null;
+  const stripQ = (s: string) => s.replace(/^'(.*)'$/, '$1').replace(/^"(.*)"$/, '$1');
+
+  function flushIMT() {
+    if (pairs.length > 0 || currentFirst !== null) {
+      if (currentFirst !== null) { pairs.push([currentFirst, '']); currentFirst = null; }
+      const inline = pairs.map(([a, b]) => `[${stripQ(a)}, ${stripQ(b)}]`).join(', ');
+      result.push(`${' '.repeat(imtIndent)}IPMacTable: [${inline}]`);
+      pairs = [];
+    }
+  }
+
+  for (const line of lines) {
+    if (!inIMT) {
+      const m = line.match(/^(\s*)IPMacTable:\s*$/);
+      if (m) { inIMT = true; imtIndent = m[1].length; }
+      else { result.push(line); }
+      continue;
+    }
+    const stripped = line.trimStart();
+    const lineIndent = line.length - stripped.length;
+    if (stripped === '') { continue; }
+    if (lineIndent <= imtIndent) {
+      flushIMT(); inIMT = false;
+      const m = line.match(/^(\s*)IPMacTable:\s*$/);
+      if (m) { inIMT = true; imtIndent = m[1].length; }
+      else { result.push(line); }
+      continue;
+    }
+    const newPair = line.match(/^(\s*)- - (.*)/);
+    if (newPair && newPair[1].length === imtIndent + 2) {
+      if (currentFirst !== null) { pairs.push([currentFirst, '']); }
+      currentFirst = newPair[2].trim();
+      continue;
+    }
+    if (currentFirst !== null) {
+      const cont = line.match(/^\s+- (.*)/);
+      if (cont) { pairs.push([currentFirst, cont[1].trim()]); currentFirst = null; continue; }
+      pairs.push([currentFirst, '']); currentFirst = null;
+    }
+    result.push(line);
+  }
+  flushIMT();
+  return result.join('\n');
+}
+
+/** Converts block nested-sequences under ChannelsGroups to inline flow arrays.
+ * e.g.  "- - Ch_CAN1\n    - Ch_CAN2" → "- [Ch_CAN1, Ch_CAN2]" */
+function convertChannelsGroupsToFlow(yamlStr: string): string {
+  const lines = yamlStr.split('\n');
+  const result: string[] = [];
+  let inCG = false;
+  let cgIndent = -1;
+  let inGroup = false;
+  let groupItems: string[] = [];
+  let groupOutIndent = -1;
+
+  function flushGroup() {
+    if (inGroup && groupItems.length > 0) {
+      result.push(`${' '.repeat(groupOutIndent)}- [${groupItems.join(', ')}]`);
+      groupItems = []; inGroup = false;
+    }
+  }
+
+  for (const line of lines) {
+    if (!inCG) {
+      result.push(line);
+      const m = line.match(/^(\s*)ChannelsGroups:\s*$/);
+      if (m) { inCG = true; cgIndent = m[1].length; }
+      continue;
+    }
+    const stripped = line.trimStart();
+    const lineIndent = line.length - stripped.length;
+    if (stripped === '') { continue; }
+    if (lineIndent <= cgIndent) {
+      flushGroup(); inCG = false; result.push(line);
+      const m = line.match(/^(\s*)ChannelsGroups:\s*$/);
+      if (m) { inCG = true; cgIndent = m[1].length; }
+      continue;
+    }
+    // Start of a new group: "  - - Item"
+    const newGrp = line.match(/^(\s*)- - (.*)/);
+    if (newGrp && newGrp[1].length === cgIndent + 2) {
+      flushGroup();
+      inGroup = true; groupOutIndent = newGrp[1].length;
+      groupItems = [newGrp[2].trim()];
+      continue;
+    }
+    // Continuation: "    - Item"
+    if (inGroup) {
+      const cont = line.match(/^\s+- (.*)/);
+      if (cont) { groupItems.push(cont[1].trim()); continue; }
+      flushGroup();
+    }
+    result.push(line);
+  }
+  flushGroup();
+  return result.join('\n');
+}
+
 function buildMtfObject(state: AppState): Record<string, any> {
   const { logicalChannels, hardwareChannels, mappings, frameworkData } = state;
 
@@ -244,13 +438,13 @@ function buildMtfObject(state: AppState): Record<string, any> {
     if (ec.npduConfig) {
       const n = ec.npduConfig;
       const npduOut: Record<string, any> = {};
-      if (n.manageVlansInCom            !== undefined) { npduOut.ManageVlansInCom            = n.manageVlansInCom; }
-      if (n.restrictedNPduChannelsInCom !== undefined) { npduOut.RestrictedNPduChannelsInCom = n.restrictedNPduChannelsInCom; }
-      if (n.ipMacTable?.length)  { npduOut.IPMacTable = n.ipMacTable; }
-      if (n.vLans) {
+      if (n.ManageVlansInCom          !== undefined) { npduOut.ManageVlansInCom          = n.ManageVlansInCom; }
+      if (n.RestrictNPduChannelsInCom !== undefined) { npduOut.RestrictNPduChannelsInCom = n.RestrictNPduChannelsInCom; }
+      if (n.IPMacTable?.length)  { npduOut.IPMacTable = n.IPMacTable; }
+      if (n.VLans) {
         const vlansOut: Record<string, any> = {};
-        if (n.vLans.innerTags?.length) { vlansOut.InnerTags = n.vLans.innerTags; }
-        if (n.vLans.outerTags?.length) { vlansOut.OuterTags = n.vLans.outerTags; }
+        if (n.VLans.InnerTags?.length) { vlansOut.InnerTags = n.VLans.InnerTags; }
+        if (n.VLans.OuterTags?.length) { vlansOut.OuterTags = n.VLans.OuterTags; }
         if (Object.keys(vlansOut).length) { npduOut.VLans = vlansOut; }
       }
       if (Object.keys(npduOut).length) { ethOut.NPduConfig = npduOut; }
@@ -258,17 +452,27 @@ function buildMtfObject(state: AppState): Record<string, any> {
     if (ec.someIPConfig) {
       const s = ec.someIPConfig;
       const someipOut: Record<string, any> = {};
-      if (s.serverToClientPortRangeMapping) {
+      if (s.ServerToClientPortRangeMapping) {
         someipOut.ServerToClientPortRangeMapping = {
-          ServerPorts: s.serverToClientPortRangeMapping.serverPorts,
-          ClientPorts: s.serverToClientPortRangeMapping.clientPorts,
+          ServerPorts: s.ServerToClientPortRangeMapping.ServerPorts,
+          ClientPorts: s.ServerToClientPortRangeMapping.ClientPorts,
         };
       }
-      if (s.endpointImplementation) { someipOut.EndpointImplementation = s.endpointImplementation; }
-      if (s.adapterName)            { someipOut.AdapterName            = s.adapterName; }
+      if (s.EndpointImplementation) { someipOut.EndpointImplementation = s.EndpointImplementation; }
+      if (s.AdapterName)            { someipOut.AdapterName            = s.AdapterName; }
       if (Object.keys(someipOut).length) { ethOut.SomeIPConfig = someipOut; }
     }
     if (ec.appLayerPorts) { ethOut.AppLayerPorts = ec.appLayerPorts; }
+    if (ec.ethernetTopology) {
+      const topo = ec.ethernetTopology;
+      const topoOut: Record<string, any> = {};
+      if (topo.EthProtoPrioConfig?.length) { topoOut.EthProtoPrioConfig = topo.EthProtoPrioConfig; }
+      if (topo.TopologyConfig?.length)     { topoOut.TopologyConfig     = topo.TopologyConfig; }
+      if (Object.keys(topoOut).length) { ethOut.EthernetTopology = topoOut; }
+    }
+    if (ec.channelToEcusMapping && Object.keys(ec.channelToEcusMapping).length) {
+      ethOut.ChannelToEcusMapping = ec.channelToEcusMapping;
+    }
     if (Object.keys(ethOut).length) { frameworkSection.EthernetConfig = ethOut; }
   }
 
@@ -292,8 +496,8 @@ export function useYamlPreview(state: AppState): string {
         : state;
       const obj = buildMtfObject(previewState);
       const raw = yaml.dump(obj, { indent: 2, lineWidth: 120, noRefs: true });
-      // MTF expects integer keys (1:) not quoted ('1':)
-      return raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
+      const fixedKeys = raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
+      return convertIPListToFlow(convertIPMacTableToFlow(convertChannelsGroupsToFlow(convertAppLayerPortsToFlow(fixedKeys))));
     } catch {
       return '';
     }

@@ -5,15 +5,16 @@
  *
  * Pipeline:
  *   1. Embed the user question via Ollama nomic-embed-text
- *   2. Retrieve the most relevant chunks from KnowledgeBase (cosine search)
- *   3. Build a strict system prompt that grounds the LLM on the retrieved chunks
+ *   2. Hybrid retrieval: vector cosine + keyword overlap + importance bonus
+ *      + graph expansion via relatedIds  (all inside KnowledgeBase.search)
+ *   3. Build a grounded system prompt from the retrieved chunks
  *   4. Stream the answer token-by-token via OllamaClient
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MtfAgent = void 0;
 const TOP_K = 5;
 /** Maximum approximate characters for context (keep it under model context window). */
-const MAX_CONTEXT_CHARS = 6000;
+const MAX_CONTEXT_CHARS = 3000;
 class MtfAgent {
     constructor(kb, ollama) {
         this.kb = kb;
@@ -29,8 +30,8 @@ class MtfAgent {
     async ask(question, onChunk, signal) {
         // 1. Embed the question
         const qEmbedding = await this.ollama.embed(question);
-        // 2. Retrieve relevant chunks
-        const results = this.kb.search(qEmbedding, TOP_K);
+        // 2. Hybrid retrieval (vector + keyword + graph expansion)
+        const results = this.kb.search(qEmbedding, question, TOP_K);
         // 3. Build context string (truncate so we stay within token budget)
         const context = buildContext(results);
         // 4. Build messages
@@ -48,11 +49,14 @@ exports.MtfAgent = MtfAgent;
 function buildContext(results) {
     const parts = [];
     let totalChars = 0;
-    for (const { chunk, score } of results) {
-        const header = `[${chunk.metadata.section}${chunk.metadata.subsection ? ' › ' + chunk.metadata.subsection : ''}]`;
-        const block = `${header}\n${chunk.text}`;
+    for (const { chunk, fromGraph } of results) {
+        const sectionLabel = chunk.subsection
+            ? `${chunk.section} › ${chunk.subsection}`
+            : chunk.section;
+        const graphTag = fromGraph ? ' [related]' : '';
+        const header = `[${sectionLabel}${graphTag}]`;
+        const block = `${header}\n**${chunk.title}**\n${chunk.content}`;
         if (totalChars + block.length > MAX_CONTEXT_CHARS) {
-            // Include first N chars of this chunk if there's room
             const remaining = MAX_CONTEXT_CHARS - totalChars;
             if (remaining > 200) {
                 parts.push(block.slice(0, remaining) + ' …');
@@ -65,15 +69,13 @@ function buildContext(results) {
     return parts.join('\n\n---\n\n');
 }
 function buildSystemPrompt(context) {
-    return `You are an expert technical assistant specialising in the MTF (Modular Test Framework) Configuration File.
+    return `You are an expert technical assistant for the MTF (Modular Test Framework) Configuration File.
 
-INSTRUCTIONS:
-- Answer questions ONLY using the documentation context provided below.
-- If the answer is not in the context, respond with: "I couldn't find that in the MTF documentation. Please consult the official MTF docs."
-- Be concise and precise. Use bullet points for lists of fields or options.
-- When mentioning a YAML field, write it in backticks (e.g., \`Id\`, \`Type\`).
-- Always cite the documentation section in your answer (e.g., "According to the Channels section…").
-- Do NOT invent field names, values, or behaviour that is not in the context.
+STRICT RULES:
+- Answer ONLY using the documentation context provided below. Do NOT use any prior knowledge.
+- Quote field names exactly as they appear (e.g. \`Id\`, \`Type\`, \`HWChannel\`).
+- If the answer is not in the context, say: "I couldn't find that in the MTF documentation."
+- Be concise. Use bullet points for lists of fields or values.
 
 DOCUMENTATION CONTEXT:
 ${context}`;

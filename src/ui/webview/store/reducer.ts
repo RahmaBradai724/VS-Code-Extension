@@ -145,7 +145,8 @@ export function reducer(state: AppState, action: AppAction): AppState {
 
     case 'AGENT_CLEAR':
       return { ...state, agentMessages: [], agentLoading: false, agentStreamingText: '' };
-
+    case 'SET_FRAMEWORK_SECTION':
+      return { ...state, frameworkSection: action.section };
     default:
       return state;
   }

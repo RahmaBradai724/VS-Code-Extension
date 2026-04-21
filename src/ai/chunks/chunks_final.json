@@ -4,359 +4,936 @@
     "section": "MTF Configuration File",
     "subsection": "Overview",
     "title": "MTF Configuration File – Overview",
-    "content": "The MTF Configuration File is a YAML-based file used to configure the MTF (Modular Test Framework) toolchain. It defines the hardware setup, logical channels, mappings between logical and physical interfaces, and framework-level settings required for test execution. The configuration file is central to how MTF interacts with connected devices such as Capture Modules, Power Supplies, Network Adapters, and ECUs (DUTs). It must be provided when running MTF test cases.",
-    "keywords": ["MTF", "configuration file", "YAML", "overview", "test framework", "setup"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#overview"
+    "content": "The MTF (Modular Test Framework) configuration file is a YAML-format file that is essential for the MTF framework. MTF requires assigning logical channels to physical channels to specify which hardware interface should be used for data reception and transmission. The configuration file defines this assignment.\n\nOne key benefit: the same test cases can run on different hardware setups. To adapt to a new setup, users only need to update the physical channel information, keeping the logical channels and test cases unchanged. This supports the framework's main goal of abstraction — instead of specifying the exact physical channel, test cases refer to a logical channel name, and the MTF handles the rest.",
+    "keywords": [
+      "MTF",
+      "configuration file",
+      "YAML",
+      "overview",
+      "abstraction",
+      "logical channel",
+      "physical channel"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#overview",
+    "relatedIds": [
+      "mtf_config_002",
+      "mtf_config_003",
+      "mtf_config_007",
+      "mtf_config_024"
+    ],
+    "summary": "YAML-based MTF Configuration File maps logical channels to physical hardware, enabling test reuse across different setups.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_002",
     "section": "MTF Configuration File",
     "subsection": "File Structure",
     "title": "MTF Configuration File – File Structure",
-    "content": "The MTF Configuration File is structured into up to four main sections:\n1. **Channels** (mandatory): Defines logical channels representing the communication buses and interfaces in the test setup.\n2. **Mappings** (mandatory): Maps the logical channels defined in Section 1 to physical devices (e.g., Capture Modules, Power Supplies, Network Adapters).\n3. **FrameworkConfig** (mandatory): Contains framework-level settings such as tracers, connected ECUs, service packs, Ethernet configuration, and diagnostics.\n4. **ChannelsConfig** (optional): Provides additional configuration for channels, such as marking faulty channels.\n\nAll sections are defined inside a single YAML file. The order of sections must be respected.",
-    "keywords": ["file structure", "sections", "Channels", "Mappings", "FrameworkConfig", "ChannelsConfig", "YAML"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#file-structure"
+    "content": "The MTF Configuration File is composed of three main sections (plus one optional):\n\n1. **Channels** (mandatory): Defines logical channels — the virtual representations of physical communication buses and interfaces (CAN, LIN, Ethernet, FlexRay, I/O, Serial, etc.).\n\n2. **Mappings** (mandatory): Maps each logical channel to a physical device. The order of sections does not affect interpretation, but the order shown here is preferred for clarity.\n\n3. **FrameworkConfig** (optional): Defines tracer configuration, internal module settings, connected ECUs, service packs, Ethernet configuration, and diagnostics.\n\n4. **ChannelsConfig** (optional): Provides additional per-channel configuration such as FaultyChannels for fault injection testing.\n\nNote: All field names are case-sensitive.",
+    "keywords": [
+      "file structure",
+      "Channels",
+      "Mappings",
+      "FrameworkConfig",
+      "ChannelsConfig",
+      "sections",
+      "YAML"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#file-structure",
+    "relatedIds": [
+      "mtf_config_001",
+      "mtf_config_003",
+      "mtf_config_007",
+      "mtf_config_024",
+      "mtf_config_037"
+    ],
+    "summary": "The MTF config file has Channels and Mappings (mandatory), plus FrameworkConfig and ChannelsConfig (optional). All field names are case-sensitive.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_003",
-    "section": "MTF Configuration File > Section 1",
-    "subsection": "Channels Section – Overview",
-    "title": "Section 1: Channels Section – Overview",
-    "content": "The Channels section is the first mandatory section of the MTF Configuration File. It defines all the logical channels used in the test setup. A logical channel is an abstract representation of a physical communication interface (e.g., a CAN bus, an Ethernet port, a FlexRay bus). Each logical channel is identified by a unique name and a protocol type. Logical channels are referenced by name in the Mappings section and throughout the rest of the configuration.",
-    "keywords": ["channels section", "logical channel", "CAN", "Ethernet", "FlexRay", "protocol", "physical interface"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id1"
+    "section": "Section 1: Channels",
+    "subsection": "Overview",
+    "title": "Section 1: Channels – Overview",
+    "content": "The first step in creating the MTF configuration file is to define the Channels section. This section describes logical channels, which will later be linked to real (physical) channels in the Mappings section.\n\nA logical channel is an abstraction — a virtual representation of a real hardware channel. Physical channels can be of different types: bus interfaces (CAN, LIN, FlexRay, Ethernet), I/O lines, or serial ports.\n\nBefore defining channels, you should be familiar with the available hardware in your test bench. You don't need to include all hardware channels — only the ones required for the current test case. Use clear and meaningful names, e.g., 'can_ch1' or 'eth_switch'.",
+    "keywords": [
+      "channels section",
+      "logical channel",
+      "physical channel",
+      "CAN",
+      "Ethernet",
+      "FlexRay",
+      "LIN",
+      "abstraction"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id1",
+    "relatedIds": [
+      "mtf_config_002",
+      "mtf_config_004",
+      "mtf_config_005",
+      "mtf_config_006"
+    ],
+    "summary": "The Channels section defines logical channels as virtual representations of physical buses and interfaces.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_004",
-    "section": "MTF Configuration File > Section 1",
-    "subsection": "Channels Section – Section Structure",
-    "title": "Section 1: Channels Section – Section Structure",
-    "content": "The Channels section is declared using the key `Channels` at the root level of the YAML file. Under it, each logical channel is defined as a named entry with the following fields:\n- `name`: A unique string identifier for the logical channel.\n- `type`: The protocol type of the channel (e.g., `CAN`, `ETHERNET`, `FLEXRAY`, `LIN`).\n- Additional protocol-specific fields may be required depending on the type (e.g., baud rate for CAN, speed for Ethernet).\n\nExample structure:\n```yaml\nChannels:\n  - name: MY_CAN_CHANNEL\n    type: CAN\n    baudrate: 500000\n  - name: MY_ETH_CHANNEL\n    type: ETHERNET\n```",
-    "keywords": ["channels section", "YAML structure", "name", "type", "CAN", "ETHERNET", "FLEXRAY", "baudrate"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#section-structure"
+    "section": "Section 1: Channels",
+    "subsection": "Section Structure",
+    "title": "Section 1: Channels – YAML Section Structure",
+    "content": "The Channels section uses the key `Channels:` at the root level. Under it, each logical channel is defined by a custom name (the YAML key). Under each channel name, properties are listed as key-value pairs.\n\nYAML uses indentation to show hierarchy — use spaces (not tabs).\n\nExample:\n```yaml\nChannels:\n CAN_channel:\n  Id: 1                        # Required\n  Type: CAN                    # Required\n  Protocol: CAN2.0             # Optional\n  loggingName: CAN_channel     # Optional\n  Alias: [Ch_CAN, Chan_CAN]    # Optional\n  TracerName: ASCII_Tracer_CAN # Optional\n CAN_FD_channel:\n  Id: 2\n  Type: CAN\n  Protocol: CANFD\n  Alias: [Ch_CAN_FD]\n  TracerName: ASCII_Tracer_CAN\n ETH_SOMEIP:\n  Id: 3\n  Type: ETHERNET\n  TracerName: PCAP_Tracer_SOMEIP\n```\n\nThe order of properties within a channel does not affect interpretation.",
+    "keywords": [
+      "Channels",
+      "YAML structure",
+      "Id",
+      "Type",
+      "Protocol",
+      "Alias",
+      "TracerName",
+      "loggingName",
+      "indentation"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#section-structure",
+    "relatedIds": [
+      "mtf_config_003",
+      "mtf_config_005",
+      "mtf_config_006"
+    ],
+    "summary": "Channels are declared under Channels: key. Each named channel entry has Id, Type, and optional Protocol, Alias, TracerName, loggingName.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_005",
-    "section": "MTF Configuration File > Section 1",
-    "subsection": "Channels Section – Field Descriptions",
-    "title": "Section 1: Channels Section – Field Descriptions",
-    "content": "Field descriptions for logical channels in the Channels section:\n- **name** (string, required): Unique identifier for the logical channel. Used to reference the channel in Mappings and FrameworkConfig sections.\n- **type** (string, required): The communication protocol. Supported values include `CAN`, `ETHERNET`, `FLEXRAY`, `LIN`, `SERIAL`, and others depending on MTF version.\n- **baudrate** (integer, optional for CAN): The baud rate of the CAN bus in bits per second (e.g., 500000 for 500 kbit/s).\n- **fd_baudrate** (integer, optional for CAN-FD): The data-phase baud rate for CAN-FD channels.\n- Protocol-specific fields for FlexRay include cluster configuration parameters.",
-    "keywords": ["field descriptions", "name", "type", "baudrate", "fd_baudrate", "CAN", "CAN-FD", "FlexRay", "logical channel"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#field-descriptions"
+    "section": "Section 1: Channels",
+    "subsection": "Field Descriptions",
+    "title": "Section 1: Channels – Field Descriptions (Id, Type, Protocol, Alias, TracerName …)",
+    "content": "Detailed description of all fields in a logical channel definition:\n\n**ChannelName** (mandatory): The YAML key — the logical channel name. Must be unique and meaningful. Use numbers (not at the start) and underscores; no spaces. Examples: Eth_ch, CAN_ch, CAN2_ch.\n\n**Id** (mandatory): A unique user-defined integer ID for the logical channel. Each channel in the file must have a different Id value.\n\n**Type** (mandatory): Specifies the protocol used for communication. Available values:\n- CAN, CAN-FD → for CAN channels\n- LIN → for LIN channels\n- FR, FLEXRAY → for FlexRay channels\n- ETHERNET → for Ethernet channels\n- IOOUTPUT, IOINPUT → for I/O channels\n- IOSERIAL, SERIAL → for serial channels\n- PS → for power supply channels\n- BRIDGE → for bridge/TUN-TAP channels\n\n**Protocol** (conditional): Mandatory when complex hardware architecture requires specifying the protocol version. Examples by Type:\n- CAN: CAN2.0, CAN-IB500, CANFD, CANFD-IDENTICAL-ArbPh-DataPh\n- LIN: LIN1.2, LIN2.3\n\n**Alias** (optional): One or multiple alternative names for the channel used in test cases. Same naming rules as ChannelName. Example: Alias: [Ch_CAN, Chan_CAN].\n\n**loggingName** (optional): A specific logging name used during ASCII or PCAPNG tracing.\n\n**TracerName** (optional): Name of the tracer linked to this channel (defined in FrameworkConfig). Used for logging traffic of this specific channel.\n\n**LoggingBusIndex** (optional): Specific to IO ASCII Tracing. Configures the logging index for the channel.",
+    "keywords": [
+      "Id",
+      "Type",
+      "Protocol",
+      "Alias",
+      "TracerName",
+      "loggingName",
+      "LoggingBusIndex",
+      "ChannelName",
+      "CAN",
+      "LIN",
+      "ETHERNET",
+      "FR",
+      "FLEXRAY",
+      "IOOUTPUT",
+      "IOINPUT",
+      "IOSERIAL",
+      "SERIAL",
+      "PS",
+      "BRIDGE",
+      "field descriptions",
+      "mandatory",
+      "optional",
+      "unique ID",
+      "channel id",
+      "channel Id field"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#field-descriptions",
+    "relatedIds": [
+      "mtf_config_003",
+      "mtf_config_004",
+      "mtf_config_006"
+    ],
+    "summary": "Logical channel fields: ChannelName (mandatory key), Id (mandatory unique integer), Type (mandatory protocol: CAN/LIN/ETHERNET/FR/IOOUTPUT/IOINPUT/SERIAL/PS/BRIDGE), Protocol (conditional), Alias (optional), loggingName (optional), TracerName (optional).",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_006",
-    "section": "MTF Configuration File > Section 1",
-    "subsection": "Channels Section – Setup Example",
-    "title": "Section 1: Channels Section – Setup Example",
-    "content": "This example walks through creating the Channels section for a setup with one Ethernet port, two CAN buses (each with two channels), and one FlexRay bus.\n\n**Step 1 – Understand physical connections**: Identify all the physical buses connected to the test bench hardware.\n\n**Step 2 – Define logical channels**: For each physical bus, decide on a logical name and protocol type. Example:\n- ETH_CHANNEL → ETHERNET\n- CAN1_TX, CAN1_RX → CAN (bus 1)\n- CAN2_TX, CAN2_RX → CAN (bus 2)\n- FLEXRAY_A, FLEXRAY_B → FLEXRAY\n\n**Step 3 – Start the Channels section**: Begin the YAML with the `Channels:` key.\n\n**Step 4 – Add entries**:\n- A. Ethernet logical channel entry with type ETHERNET.\n- B. CAN logical channels for bus 1 with appropriate baudrate.\n- C. CAN logical channels for bus 2.\n- D. FlexRay logical channels with required FlexRay cluster parameters.",
-    "keywords": ["setup example", "CAN bus", "Ethernet", "FlexRay", "logical channel", "step by step", "YAML"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#setup-example"
+    "section": "Section 1: Channels",
+    "subsection": "Setup Example",
+    "title": "Section 1: Channels – Complete Setup Example",
+    "content": "Step-by-step example creating a Channels section for a setup with: 1 Ethernet switch, 2 CAN buses (4 channels: CAN-FD for bus1, CAN for bus2), 1 FlexRay bus (2 channels).\n\n```yaml\nChannels:\n Ethernet_Switch:\n   Id: 8\n   Type: ETHERNET\n   TracerName: ETH_PCAP_Tracer\n CAN_FD1_ch1:\n   Id: 9\n   TracerName: ASCII_Tracer_CAN\n   Type: CANFD\n   Protocol: CANFD\n CAN_FD2_ch1:\n   Id: 10\n   TracerName: ASCII_Tracer_CAN\n   Type: CANFD\n   Protocol: CANFD\n CAN1_ch2:\n   Id: 11\n   TracerName: ASCII_Tracer_CAN\n   Type: CAN\n   Protocol: CAN2.0\n CAN2_ch2:\n   Id: 12\n   TracerName: ASCII_Tracer_CAN\n   Type: CAN\n   Protocol: CAN2.0\n FlexRay_ch1:\n   Id: 13\n   TracerName: ASCII_Tracer_FLEXRAY\n   LoggingName: A_FlexRay\n   Type: FR\n FlexRay_ch2:\n   Id: 14\n   TracerName: ASCII_Tracer_FLEXRAY\n   LoggingName: Ab_FlexRay\n   Type: FR\n```",
+    "keywords": [
+      "setup example",
+      "CAN",
+      "CANFD",
+      "Ethernet",
+      "FlexRay",
+      "FR",
+      "Channels",
+      "Id",
+      "Type",
+      "Protocol",
+      "TracerName"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#setup-example",
+    "relatedIds": [
+      "mtf_config_003",
+      "mtf_config_004",
+      "mtf_config_005",
+      "mtf_config_039"
+    ],
+    "summary": "Complete Channels section example with Ethernet, two CAN buses (CAN-FD + CAN2.0), and FlexRay channels.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_007",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mappings Section – Overview",
-    "title": "Section 2: Mappings Section – Overview",
-    "content": "The Mappings section is the second mandatory section of the MTF Configuration File. It maps each logical channel defined in the Channels section to a physical device or interface. The mapping tells MTF how to communicate with the actual hardware. Each mapping entry links a logical channel name to the device type and its physical address or port. Multiple device types are supported: Capture Modules, Power Supplies, Network Adapters, BTS-REVO fault injection devices, Serial Ports, HH Electrical Loads, LF Readers, Relay Boards, WinpkFilter, TUN/TAP Bridges, Time Servers, TE-Analog, and Shelly Relays.",
-    "keywords": ["mappings section", "logical channel", "physical device", "Capture Module", "Power Supply", "Network Adapter", "BTS-REVO", "Serial Port"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id2"
+    "section": "Section 2: Mappings",
+    "subsection": "Overview",
+    "title": "Section 2: Mappings – Overview",
+    "content": "After defining logical channels in the Channels section, the next step is to map each one to a physical channel/device in the Mappings section. This tells MTF which hardware resource to use when a logical channel is referenced in a test case.\n\nSupported device types in Mappings:\n- **CM** (Capture Module): Technica device for CAN, LIN, FlexRay capture\n- **BTS-Revo**: Body Electronics Test System for I/O simulation and fault injection\n- **PCAP**: Network adapters for Ethernet traffic\n- **Genesys_PowerSupply** / **Manson_PowerSupply**: Power supply devices\n- **Serial**: Serial port communication\n- **HH_Electrical_load**: H&H electrical load devices\n- **Lf_Reader**: LF antenna reader (BTS-Revo extension)\n- **RelayBoards**: Technica relay boards (SHS)\n- **HIDRelayBoards**: DCTTECH relay boards\n- **WinpkFilter**: Windows packet filter\n- **TUNTAP_BRIDGE**: TUN/TAP bridge channels\n- **EES**: Time synchronization source\n- **TE-Analog**: Analog channels\n- **Shelly relay**: Ethernet-controlled relay",
+    "keywords": [
+      "Mappings",
+      "CM",
+      "BTS-Revo",
+      "PCAP",
+      "Power Supply",
+      "Serial",
+      "logical channel",
+      "physical device",
+      "hardware"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id2",
+    "relatedIds": [
+      "mtf_config_002",
+      "mtf_config_008",
+      "mtf_config_009",
+      "mtf_config_011",
+      "mtf_config_013",
+      "mtf_config_014"
+    ],
+    "summary": "The Mappings section links logical channels to physical devices: CM, BTS-Revo, PCAP adapters, power supplies, serial ports, relay boards, etc.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_008",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mappings Section – Section Structure",
-    "title": "Section 2: Mappings Section – Section Structure",
-    "content": "The Mappings section is declared with the `Mappings:` key in the YAML file. Each entry under it specifies:\n- `logical_channel`: The name of the logical channel (must match an entry in the Channels section).\n- `device_type`: The type of physical device (e.g., `CaptureModule`, `PowerSupply`, `NetworkAdapter`).\n- Device-specific fields such as IP address, port number, serial number, or physical channel identifier.\n\nExample:\n```yaml\nMappings:\n  - logical_channel: MY_CAN_CHANNEL\n    device_type: CaptureModule\n    ip: 192.168.1.10\n    port: 1\n```",
-    "keywords": ["mappings section", "section structure", "logical_channel", "device_type", "ip", "port", "CaptureModule"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id3"
+    "section": "Section 2: Mappings",
+    "subsection": "Section Structure",
+    "title": "Section 2: Mappings – YAML Section Structure",
+    "content": "The Mappings section starts with `Mappings:`. Each top-level entry represents a hardware category or device type, indented with two spaces.\n\n```yaml\nMappings:\n  CM:\n    Devices:\n      1:\n        Id: 64\n        Type: CAN_Combo\n        Buses:\n          CAN_channel:\n            HWChannel: 619\n            OperationMode: Normal\n  BTS-Revo:\n    Boards:\n      1:\n        Id: 160\n        IOs:\n          Ch1-BTS:\n            HWChannel: 1\n            MeasurementAttribute: Voltage\n  PCAP:\n    1:\n      Adapter:\n        Name: ETH_channel\n        FriendlyName: \"Ethernet\"\n  Genesys_PowerSupply:\n    Channels:\n      1:\n        ChannelName: PS_Channel\n  Manson_PowerSupply:\n    Channels:\n      1:\n        ChannelName: PS_Channel\n  Serial:\n    Ports:\n      Master-Serial:\n        PortName: COM3\n        BaudRate: 9600\n  VirtualDevices:\n    Buses:\n      CAN_channel:\n        Name: CAN_channel\n```",
+    "keywords": [
+      "Mappings",
+      "CM",
+      "BTS-Revo",
+      "PCAP",
+      "Genesys_PowerSupply",
+      "Manson_PowerSupply",
+      "Serial",
+      "VirtualDevices",
+      "structure",
+      "YAML"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id3",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_009",
+      "mtf_config_011",
+      "mtf_config_013",
+      "mtf_config_014"
+    ],
+    "summary": "Mappings section structure: top-level device types (CM, BTS-Revo, PCAP, Power Supply, Serial, VirtualDevices) each containing device-specific sub-sections.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_009",
-    "section": "MTF Configuration File > Section 2",
+    "section": "Section 2: Mappings",
     "subsection": "Mapping to Capture Module – Common Fields",
-    "title": "Section 2: Mapping Logical Channel to a Capture Module – Common Fields",
-    "content": "When mapping a logical channel to a Capture Module (Technica hardware for CAN, FlexRay, LIN capture), the following common fields are required:\n- `logical_channel` (string): Name of the logical channel.\n- `device_type` (string): Must be set to `CaptureModule`.\n- `ip` (string): IP address of the Capture Module.\n- `port` (integer): The physical port number on the Capture Module.\n- `channel_type` (string): Protocol type (e.g., `CAN`, `FLEXRAY`).\n\nOptional fields may include timeout settings and protocol-specific parameters.",
-    "keywords": ["Capture Module", "mapping", "ip", "port", "channel_type", "CAN", "FlexRay", "LIN"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#common-fields"
+    "title": "Section 2: Mapping to Capture Module – Fields (Id, Type, Buses, HWChannel, OperationMode)",
+    "content": "The Capture Module (CM) is a Technica device that records vehicle communication (CAN, LIN, FlexRay, Ethernet).\n\nUnder `CM: → Devices: → 1:` (or 2:, 3: for multiple devices), the fields are:\n\n**Id** (mandatory): Last byte of the CM IP address. Example: CM IP 10.104.3.64 → Id: 64.\n\n**Type** (mandatory): CM type. Valid values: `CAN_Combo`, `LIN_Combo`.\n\n**Buses** (mandatory): Dictionary of logical channel names mapped to this CM. Under each channel name:\n  - **HWChannel** (mandatory): Channel ID from the CM web interface.\n  - **OperationMode** (optional): Normal (Rx+Tx), Spy (listen only, no ACK), TxOnly, RxOnly.\n\nExample:\n```yaml\nMappings:\n  CM:\n    Devices:\n      1:\n        Id: 64\n        Type: CAN_Combo\n        Buses:\n          CAN_channel1:\n            HWChannel: 619\n            OperationMode: Normal\n      2:\n        Id: 48\n        Type: LIN_Combo\n        Buses:\n          LIN_channel1:\n            HWChannel: 536\n            OperationMode: Normal\n```",
+    "keywords": [
+      "Capture Module",
+      "CM",
+      "Id",
+      "Type",
+      "CAN_Combo",
+      "LIN_Combo",
+      "Buses",
+      "HWChannel",
+      "OperationMode",
+      "Normal",
+      "Spy",
+      "TxOnly",
+      "RxOnly",
+      "mapping"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#common-fields",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_008",
+      "mtf_config_010",
+      "mtf_config_039"
+    ],
+    "summary": "CM mapping: Id = last IP byte, Type = CAN_Combo or LIN_Combo, Buses = dict of channel→HWChannel + OperationMode (Normal/Spy/TxOnly/RxOnly).",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_010",
-    "section": "MTF Configuration File > Section 2",
+    "section": "Section 2: Mappings",
     "subsection": "Mapping to Capture Module – FlexRay Fields",
-    "title": "Section 2: Mapping to Capture Module – FlexRay-Specific Fields",
-    "content": "For FlexRay channels mapped to a Capture Module, additional fields are required beyond the common fields:\n- `flexray_channel` (string): Specifies the FlexRay channel, either `A` or `B`.\n- `cluster_config` (object): Contains FlexRay cluster configuration parameters such as cycle time, slot configuration, and synchronization settings. These parameters must match the actual FlexRay network configuration of the device under test.",
-    "keywords": ["FlexRay", "Capture Module", "flexray_channel", "cluster_config", "channel A", "channel B"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#fields-related-to-flexray-channels"
+    "title": "Section 2: CM Mapping – FlexRay-Specific Fields (KeySlot, NodeType, WakeUpCluster)",
+    "content": "FlexRay channels mapped to a Capture Module require three additional fields:\n\n**KeySlot**: A static slot used by the CM to transmit sync and startup frames. Required when NodeType is ColdStartLeading or ColdStartFollowing.\n\n**NodeType** (mandatory for FlexRay): FlexRay node type. Values:\n- ColdStartLeading\n- ColdStartFollowing\n- NonColdStartNonSync\n- NonColdStartSync\n\n**WakeUpCluster**: Boolean. Whether to transmit a wake-up pattern on the cluster.\n\nExample:\n```yaml\nMappings:\n  CM:\n    Devices:\n      1:\n        Id: 65\n        Type: CAN_Combo\n        Busses:\n          A_FlexRay:\n            OperationMode: Normal\n            HWChannel: 358\n            KeySlot: 1\n            NodeType: ColdStartFollowing\n            WakeUpCluster: false\n```",
+    "keywords": [
+      "FlexRay",
+      "Capture Module",
+      "CM",
+      "KeySlot",
+      "NodeType",
+      "WakeUpCluster",
+      "ColdStartLeading",
+      "ColdStartFollowing",
+      "NonColdStartNonSync",
+      "NonColdStartSync"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#fields-related-to-flexray-channels",
+    "relatedIds": [
+      "mtf_config_009",
+      "mtf_config_039"
+    ],
+    "summary": "FlexRay CM mapping adds KeySlot, NodeType (ColdStartLeading/Following/NonColdStart*), and WakeUpCluster fields.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_011",
-    "section": "MTF Configuration File > Section 2",
+    "section": "Section 2: Mappings",
     "subsection": "Mapping to Power Supply",
-    "title": "Section 2: Mapping Logical Channel to a Power Supply",
-    "content": "MTF supports controlling Power Supplies (e.g., Manson, Genesys) through logical channel mappings. Fields for Power Supply mapping:\n- `logical_channel`: Name of the logical channel.\n- `device_type`: Set to `PowerSupply`.\n- `supplier` (string): Brand/model of the power supply (e.g., `MANSON`, `GENESYS`).\n- `connection_type` (string): How the power supply is connected, e.g., `SERIAL` or `LAN`.\n- `ip` (string, for LAN): IP address of the power supply.\n- `port` (integer, for LAN): Port number.\n- `serial_port` (string, for serial): Serial port identifier (e.g., `COM3` on Windows, `/dev/ttyUSB0` on Linux).\n- `channel` (integer): Physical output channel on the power supply.\n\nThis allows test cases to programmatically control voltage and current.",
-    "keywords": ["Power Supply", "mapping", "Manson", "Genesys", "LAN", "serial", "voltage", "current", "ip", "serial_port"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-power-supply"
+    "title": "Section 2: Mapping to Power Supply (Genesys, Manson) – Fields",
+    "content": "MTF supports Genesys and Manson power supplies. Common fields under `Genesys_PowerSupply: → Channels: → 1:`:\n\n**ChannelName** (mandatory): Logical channel name from the Channels section.\n**DefaultVoltage** (optional): Default output voltage.\n**MaxVoltage** (mandatory): Maximum allowed voltage.\n**DefaultMaxCurrent** (mandatory): Default current limit.\n**SamplingInterval** (optional): Interval between power measurements in ms (default 100 ms).\n**ContinuousMonitoringActive** (optional): Continuously read voltage/current.\n**KeepStatus** (optional): Keep PS ON between test cases.\n\n**Genesys-specific** (TCP/Serial communication):\n- **CommunicationProtocol**: Serial or Tcp\n- For Serial: **PortName** (e.g., COM2), **BitRate** (e.g., 19200)\n- For Tcp: **IP**, **Port**, **Language** (SCPI or GEN)\n\n**Manson-specific** (serial):\n- **PortName** (mandatory), **BitRate** (mandatory)\n- **MaxVoltage**, **MaxCurrent** (mandatory), **DefaultVoltage** (optional)\n\nExample (Genesys via TCP):\n```yaml\nGenesys_PowerSupply:\n  Channels:\n    1:\n      ChannelName: PS_Channel\n      DefaultMaxCurrent: 35\n      DefaultVoltage: 12\n      MaxVoltage: 20\n      CommunicationProtocol: Tcp\n      Language: SCPI\n      IP: 169.254.16.136\n      Port: 8003\n```",
+    "keywords": [
+      "Power Supply",
+      "Genesys",
+      "Manson",
+      "ChannelName",
+      "DefaultVoltage",
+      "MaxVoltage",
+      "DefaultMaxCurrent",
+      "PortName",
+      "BitRate",
+      "CommunicationProtocol",
+      "IP",
+      "Port",
+      "SCPI",
+      "TCP",
+      "serial"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-power-supply",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_008"
+    ],
+    "summary": "Power supply mapping (Genesys/Manson): ChannelName, MaxVoltage, DefaultMaxCurrent mandatory; communication via TCP (IP/Port/Language) or Serial (PortName/BitRate).",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_012",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping to Network Adapter",
-    "title": "Section 2: Mapping Logical Channel to a Network Adapter",
-    "content": "Ethernet logical channels can be mapped to a Network Adapter (standard PC Ethernet interface). Fields:\n- `logical_channel`: Name of the Ethernet logical channel.\n- `device_type`: Set to `NetworkAdapter`.\n- `adapter_name` (string): The name of the network adapter as seen by the OS (e.g., `Ethernet 2` on Windows or `eth0` on Linux).\n- `ip` (string, optional): IP address to be assigned or used for filtering.\n- `mac` (string, optional): MAC address filter.\n\nThis mapping allows MTF to send and receive Ethernet frames through the host PC's network interface, useful for Ethernet-based protocol testing (e.g., DoIP, SOME/IP).",
-    "keywords": ["Network Adapter", "Ethernet", "adapter_name", "ip", "mac", "DoIP", "SOME/IP", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-network-adapter"
+    "section": "Section 2: Mappings",
+    "subsection": "Mapping to Network Adapter (PCAP)",
+    "title": "Section 2: Mapping to Network Adapter (PCAP) – Fields",
+    "content": "Network adapters (Ethernet interfaces) are mapped under `PCAP: → 1: → Adapter:`.\n\nKey fields:\n**Name** (mandatory): The logical channel name from the Channels section.\n**FriendlyName** (or AdapterFriendlyName): Windows adapter friendly name (Control Panel → Network Connections).\n**Interface**: Adapter system name if FriendlyName not used. Windows: 'DeviceNPF_{GUID}'; Linux: 'enp0s4'.\n**BufferSize**: Kernel buffer size in MB.\n**BpfFilter**: Packet filter (e.g., 'ip src 192.168.0.1').\n**Timeout**: Read timeout in ms.\n**TimeStampPrecision**: Microsecond or Nanosecond (Linux only for Nanosecond).\n**TimeStampSource**: TimeStampHost, TimeStampHostLowPrecision, TimeStampAdapter, etc.\n**ImmediateMode**: true = deliver packets immediately without buffering.\n**SnapshotLength**: Capture snapshot length.\n**PcapDeviceMode**: Promiscuous mode captures all packets.\n**PacketProcessingActive**: false = adapter used for logging only.\n**PacketIdentificationActive**: false = forward all traffic without SOME/IP/DOIP identification.\n**UseDataLoggerTimeStamp**: Replace software timestamp with hardware logger timestamp.\n**DataLoggerType**: TECMP, CMP, or NotDefined.\n\nExample:\n```yaml\nPCAP:\n  1:\n    Adapter:\n      Name: ETH_SOMEIP\n      FriendlyName: \"Ethernet-ch\"\n      BufferSize: 8\n      Timeout: 1\n      ImmediateMode: true\n      SnapshotLength: 65536\n      PcapDeviceMode: promiscuous\n      PacketProcessingActive: true\n      PacketIdentificationActive: true\n```",
+    "keywords": [
+      "PCAP",
+      "Network Adapter",
+      "Ethernet",
+      "FriendlyName",
+      "Name",
+      "BufferSize",
+      "BpfFilter",
+      "Timeout",
+      "ImmediateMode",
+      "SnapshotLength",
+      "PcapDeviceMode",
+      "PacketProcessingActive",
+      "PacketIdentificationActive",
+      "TimeStampSource",
+      "DataLoggerType",
+      "TECMP"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-network-adapter",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_008",
+      "mtf_config_030"
+    ],
+    "summary": "PCAP network adapter mapping: Name (logical channel), FriendlyName (Windows adapter), BufferSize, Timeout, ImmediateMode, PcapDeviceMode, PacketProcessingActive.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_013",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping to BTS-REVO",
-    "title": "Section 2: Mapping Logical Channel to a BTS-REVO",
-    "content": "The BTS-REVO is a Technica fault injection device used to simulate electrical faults (short to VBat, short to GND, cable break) on wire harnesses. Fields for BTS-REVO mapping:\n- `logical_channel`: Name of the logical channel.\n- `device_type`: Set to `BTS_REVO`.\n- `ip` (string): IP address of the BTS-REVO device.\n- `port` (integer): The physical port/channel on the BTS-REVO.\n\nTest cases can then use the MTF API to activate fault modes on the mapped channel.",
-    "keywords": ["BTS-REVO", "fault injection", "short to VBat", "short to ground", "cable break", "ip", "port"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-bts-revo"
+    "section": "Section 2: Mappings",
+    "subsection": "Mapping to BTS-Revo",
+    "title": "Section 2: Mapping to BTS-Revo – Fields (Id, IOs, HWChannel, MeasurementAttribute)",
+    "content": "The BTS-REVO (Body Electronics Test System) simulates buttons, sensors, actuators, and fault conditions (short to GND, short to VBAT, open load).\n\nStructure: `BTS-Revo: → Boards: → 1:` (for each board).\n\n**Id** (mandatory): Last byte of the BTS-Revo IP address. The full IP is on the device back; set the last byte with the rotary switch. E.g., position 0 → Id = 160.\n\n**IOs** (mandatory): Dictionary of logical channel names.\nUnder each channel name:\n  - **HWChannel** (mandatory): Physical pin index (1–24, left to right).\n  - **MeasurementAttribute** (mandatory): Voltage, Current, or PWM.\n  - **Function** (mandatory): None, Relay, Potentiometer, ElectronicLoad, GNDSwitch, VBATSwitch, VoltageGenerator, etc.\n  - **LineContactState** (optional): Open Load state active by default.\n  - **GndContactState** (optional): Short to GND active by default.\n  - **VbatContactState** (optional): VBAT state active by default.\n  - **InitValue** (optional): Default resistance, voltage, or other value.\n  - **StaticChannel** (optional): State cannot be changed by test cases.\n\nExample:\n```yaml\nBTS-Revo:\n  Boards:\n    1:\n      Id: 160\n      IOs:\n        Ch1-BTS:\n          HWChannel: 1\n          MeasurementAttribute: Voltage\n        Ch3-BTS:\n          HWChannel: 3\n          Function: VBATSwitch\n          MeasurementAttribute: Voltage\n```",
+    "keywords": [
+      "BTS-Revo",
+      "BTS",
+      "Id",
+      "IOs",
+      "HWChannel",
+      "MeasurementAttribute",
+      "Function",
+      "VBATSwitch",
+      "GNDSwitch",
+      "Voltage",
+      "Current",
+      "PWM",
+      "fault injection",
+      "open load",
+      "short to GND",
+      "short to VBAT"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-bts-revo",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_008",
+      "mtf_config_022"
+    ],
+    "summary": "BTS-Revo mapping: Id = last IP byte, IOs = dict of channel→HWChannel (1-24) + MeasurementAttribute (Voltage/Current/PWM) + Function.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_014",
-    "section": "MTF Configuration File > Section 2",
+    "section": "Section 2: Mappings",
     "subsection": "Mapping to Serial Port",
-    "title": "Section 2: Mapping Logical Channel to a Serial Port",
-    "content": "Serial communication channels can be mapped to a physical serial port (COM or TTY device). Fields:\n- `logical_channel`: Name of the logical channel.\n- `device_type`: Set to `SerialPort`.\n- `serial_port` (string): OS identifier for the port (e.g., `COM1`, `/dev/ttyS0`).\n- `baudrate` (integer): Communication baud rate (e.g., `9600`, `115200`).\n- `parity` (string, optional): Parity setting (`NONE`, `EVEN`, `ODD`).\n- `stopbits` (float, optional): Number of stop bits (e.g., `1`, `1.5`, `2`).\n- `bytesize` (integer, optional): Number of data bits (e.g., `8`).\n\nUseful for testing ECUs that communicate over UART/RS-232.",
-    "keywords": ["Serial Port", "COM", "TTY", "baudrate", "parity", "stopbits", "UART", "RS-232", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-serial-port"
+    "title": "Section 2: Mapping to Serial Port – Fields (PortName, BaudRate, Parity, StopBits …)",
+    "content": "Serial channels are mapped under `Serial: → Ports: → <LogicalChannelName>:`.\n\n**PortName** (mandatory): OS serial port identifier (e.g., COM13, /dev/ttyUSB0).\n**BaudRate** (mandatory): Communication baud rate (e.g., 9600, 115200).\n**Parity** (optional): None, Even, Odd.\n**DataBits** (optional): Character size (e.g., 8).\n**StopBits** (optional): Number of stop bits (e.g., One).\n**FlowControl** (optional): None, Hardware, Software.\n**MessageTerminator** (optional): End-of-line character (e.g., '\\r\\n', '\\r').\n**MaxReceivedDataSize** (optional): Maximum message size in bytes.\n**SeparationTimeMs** (optional): Time between consecutive characters in ms.\n\nExample:\n```yaml\nSerial:\n  Ports:\n    Master-Serial:\n      PortName: COM13\n      BaudRate: 9600\n      Parity: None\n      DataBits: 8\n      StopBits: One\n      FlowControl: None\n      MessageTerminator: \"\"\n      MaxReceivedDataSize: 512\n```",
+    "keywords": [
+      "Serial",
+      "PortName",
+      "BaudRate",
+      "Parity",
+      "DataBits",
+      "StopBits",
+      "FlowControl",
+      "MessageTerminator",
+      "MaxReceivedDataSize",
+      "SeparationTimeMs",
+      "COM",
+      "UART"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-a-serial-port",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_008"
+    ],
+    "summary": "Serial port mapping: PortName and BaudRate mandatory; optional Parity, DataBits, StopBits, FlowControl, MessageTerminator.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_015",
-    "section": "MTF Configuration File > Section 2",
+    "section": "Section 2: Mappings",
     "subsection": "Mapping to HH Electrical Load",
-    "title": "Section 2: Mapping Logical Channel to HH Electrical Load",
-    "content": "The HH Electrical Load device can be controlled through MTF by mapping a logical channel to it. Fields:\n- `logical_channel`: Name of the logical channel.\n- `device_type`: Set to `HHElectricalLoad`.\n- Device-specific address and channel fields as required by the HH device model.\n\nThis allows test cases to apply configurable electrical loads on DUT pins, simulating real-world load conditions during testing.",
-    "keywords": ["HH Electrical Load", "mapping", "electrical load", "DUT", "device_type"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-hh-electrical-load"
+    "title": "Section 2: Mapping to HH Electrical Load – Fields",
+    "content": "H&H electrical loads (PLI / PMLI series) are mapped under `HH_Electrical_load: → Devices: → 1:`.\n\n**Id** (mandatory): The device physical ID.\n**PortName** (mandatory): COM port connected to the load.\n**Type** (mandatory): PLI or PMLI (PMLI = multi-channel).\n**BitRate** (mandatory): Serial baud rate (e.g., 115200).\n**Channels**: Maps channel index to logical channel name.\n  - **Id**: Channel index on the device.\n  - **Name**: Logical channel name from the Channels section.\n  - **ExternalTrigger** (optional): External I/O trigger (default false = remote).\n  - **VoltageProtection** (optional): Voltage protection value.\n\nExample:\n```yaml\nHH_Electrical_load:\n  Devices:\n    1:\n      Id: 2\n      PortName: COM19\n      Type: PLI\n      BitRate: 115200\n      Channels:\n        1:\n          Id: 1\n          Name: HH\n```",
+    "keywords": [
+      "HH Electrical Load",
+      "PLI",
+      "PMLI",
+      "PortName",
+      "BitRate",
+      "Type",
+      "Channels",
+      "Id",
+      "Name",
+      "ExternalTrigger"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-to-hh-electrical-load",
+    "relatedIds": [
+      "mtf_config_007",
+      "mtf_config_008"
+    ],
+    "summary": "HH Electrical Load mapping: Id, PortName, Type (PLI/PMLI), BitRate mandatory; Channels maps index to logical channel name.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_016",
-    "section": "MTF Configuration File > Section 2",
+    "section": "Section 2: Mappings",
     "subsection": "Mapping to LF Reader",
-    "title": "Section 2: Mapping Logical Channel (Antenna) to an LF Reader",
-    "content": "LF (Low Frequency) Reader devices used for NFC/RFID antenna testing can be mapped as logical channels. The logical channel represents an antenna. The mapping links this antenna channel to the physical LF Reader device and its configuration. This is used in access control and keyless entry system testing scenarios where LF signal simulation or measurement is needed.",
-    "keywords": ["LF Reader", "antenna", "NFC", "RFID", "low frequency", "keyless entry", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-antenna-to-an-lf-reader"
+    "title": "Section 2: Mapping to LF Reader (BTS-Revo Extension)",
+    "content": "LF_Reader is an extension board for BTS-Revo with a maximum of 3 antennas per board.\n\nStructure: `Lf_Reader: → 1:` (board index).\n\n**BoardId** (mandatory): The board with LF_reader extension ID.\n**Antennas**: Dictionary of antenna definitions:\n  - **AntennaNumber**: The antenna number.\n  - **HWChannel**: The channel of the LF_Reader.\n\nExample:\n```yaml\nLf_Reader:\n  1:\n    BoardId: 169\n    Antennas:\n      1:\n        AntennaNumber: 1\n        HWChannel: 1\n      2:\n        AntennaNumber: 2\n        HWChannel: 2\n```",
+    "keywords": [
+      "LF Reader",
+      "Lf_Reader",
+      "BTS-Revo",
+      "BoardId",
+      "Antennas",
+      "AntennaNumber",
+      "HWChannel"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-logical-channel-antenna-to-an-lf-reader",
+    "relatedIds": [
+      "mtf_config_013",
+      "mtf_config_007"
+    ],
+    "summary": "LF_Reader (BTS-Revo extension): BoardId mandatory, Antennas dict maps AntennaNumber to HWChannel (max 3 antennas).",
+    "importance": "low"
   },
   {
     "chunk_id": "mtf_config_017",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping RelayBoards Channels",
-    "title": "Section 2: Mapping RelayBoards Channels (Technica Relay Board 'SHS')",
-    "content": "The Technica Relay Board (SHS) can be mapped to control relay channels for switching electrical circuits during tests. The mapping specifies:\n- `logical_channel`: Name of the relay channel.\n- `device_type`: Set to `RelayBoard`.\n- `ip` or `serial_port`: Address of the relay board device.\n- `relay_number` (integer): The relay index on the board.\n\nThis is commonly used to switch power, simulate connector disconnections, or toggle signals.",
-    "keywords": ["Relay Board", "SHS", "relay", "ip", "serial_port", "relay_number", "switch", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-relayboards-channels-technica-relay-board-shs"
+    "section": "Section 2: Mappings",
+    "subsection": "Mapping to Relay Boards (SHS)",
+    "title": "Section 2: Mapping to Relay Boards (Technica SHS) – Fields",
+    "content": "Technica Relay Boards (SHS) are mapped under `RelayBoards:`.\n\n**CANChannelName** (mandatory): Name of the CAN channel connected to the relay boards CAN bus.\n**Boards**: List of connected relay boards.\n  - **Id** (mandatory): Board ID.\n  - **Relays**: List of relay channels.\n    - **RELAY_NAME**:\n      - **HWChannel** (mandatory): Channel ID on the relay (starting from 1).\n      - **Function**: Must be `Relay`.\n      - **InitValue** (optional): ON or OFF (default OFF).\n      - **DefaultValue** (optional): ON or OFF (default OFF).\n\nExample:\n```yaml\nRelayBoards:\n  CANChannelName: RELAY_BOARDS_CAN\n  Boards:\n    1:\n      Id: 1\n      Relays:\n        RELAY_A:\n          HWChannel: 1\n          Function: Relay\n    2:\n      Id: 2\n      Relays:\n        RELAY_B:\n          HWChannel: 1\n          InitValue: ON\n          DefaultValue: ON\n          Function: Relay\n```",
+    "keywords": [
+      "RelayBoards",
+      "Relay",
+      "CANChannelName",
+      "Boards",
+      "HWChannel",
+      "InitValue",
+      "DefaultValue",
+      "SHS",
+      "Technica"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-relayboards-channels-technica-relay-board-shs",
+    "relatedIds": [
+      "mtf_config_018",
+      "mtf_config_007"
+    ],
+    "summary": "Technica SHS relay boards: CANChannelName + Boards list each with Id and Relays (HWChannel, Function=Relay, InitValue, DefaultValue).",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_018",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping HIDRelayBoards Channels",
-    "title": "Section 2: Mapping HIDRelayBoards Channels (DCTTECH Manufacturer)",
-    "content": "HID-based relay boards from the DCTTECH manufacturer can also be mapped for relay control. These boards connect via USB HID protocol and do not require an IP address. The mapping for HIDRelayBoards specifies:\n- `device_type`: Set to `HIDRelayBoard`.\n- `vendor_id` and `product_id` (integers): USB HID identifiers for the relay board.\n- `relay_number` (integer): The relay index on the board.",
-    "keywords": ["HIDRelayBoard", "DCTTECH", "USB", "HID", "vendor_id", "product_id", "relay_number", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-hidrelayboards-channels-dcttech-manufacturer"
+    "section": "Section 2: Mappings",
+    "subsection": "Mapping to HID Relay Boards",
+    "title": "Section 2: Mapping to HIDRelayBoards (DCTTECH) – Fields",
+    "content": "DCTTECH HID relay boards are mapped under `HIDRelayBoards:` as a map of global IDs to board definitions.\n\n**ID** (mandatory): Board serial number (obtainable via TestApp 'Find device' button).\n**Relays**: List of relay channels (define channels as IOOUTPUT type in Channels section).\n  - **HWChannel** (mandatory): Channel ID on the relay.\n  - **InitValue** (optional): ON or OFF.\n  - **DefaultValue** (optional): ON or OFF.\n\nExample:\n```yaml\nHIDRelayBoards:\n  1:\n    ID: Board1SerialId\n    Relays:\n      RELAY_C:\n        HWChannel: 1\n        InitValue: ON\n        DefaultValue: OFF\n  2:\n    ID: Board2SerialId\n    Relays:\n      RELAY_E:\n        HWChannel: 8\n```",
+    "keywords": [
+      "HIDRelayBoards",
+      "DCTTECH",
+      "ID",
+      "Relays",
+      "HWChannel",
+      "InitValue",
+      "DefaultValue",
+      "IOOUTPUT"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-hidrelayboards-channels-dcttech-manufacturer",
+    "relatedIds": [
+      "mtf_config_017",
+      "mtf_config_007"
+    ],
+    "summary": "DCTTECH HID relay boards: global ID (board serial), Relays map with HWChannel, InitValue, DefaultValue.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_019",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping WinpkFilter Channels",
-    "title": "Section 2: Mapping WinpkFilter Channels",
-    "content": "WinpkFilter is a Windows packet filtering driver that allows raw Ethernet frame capture and injection at the driver level (similar to WinPcap). Mapping fields:\n- `device_type`: Set to `WinpkFilter`.\n- `adapter_name` (string): The name of the network adapter to filter.\n- `filter_expression` (string, optional): BPF-style filter expression to apply.\n\nThis mapping is particularly useful for Ethernet testing on Windows where standard sockets are insufficient for raw frame handling.",
-    "keywords": ["WinpkFilter", "Ethernet", "Windows", "packet filter", "adapter_name", "BPF", "raw frames", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-winpkfilter-channels"
+    "section": "Section 2: Mappings",
+    "subsection": "WinpkFilter Channels",
+    "title": "Section 2: Mapping WinpkFilter Channels – Fields",
+    "content": "WinpkFilter enables packet filtering on Windows Ethernet adapters. Requires the Windows Packet Filter driver (wiresock/ndisapi).\n\nStructure: `WinpkFilter: → CHANNEL_NAME:`.\n\n**AdpaterFriendlyName** (mandatory): Name of the corresponding Ethernet adapter.\n**Type**: Filter or FilterFastIO.\n**IPMacTable**: List of [IP, MAC] pairs.\n**VLans**: VLAN configuration with InnerTags and/or OuterTags.\n  - Each tag: ID (Vlan ID), Priority, IPList.\n**IPV4Ttl**: TTL value for outgoing IPv4 packets.\n\nExample:\n```yaml\nWinpkFilter:\n  ETH_Sender:\n    AdpaterFriendlyName: ETH_Sender\n    Type: Filter\n    IPMacTable:\n      [[160.48.249.13, 00:50:c2:e4:30:0d]]\n    VLans:\n      InnerTags:\n        - ID: 68\n          Priority: 7\n          IPList: [160.48.249.13]\n```",
+    "keywords": [
+      "WinpkFilter",
+      "packet filter",
+      "AdpaterFriendlyName",
+      "Type",
+      "IPMacTable",
+      "VLans",
+      "InnerTags",
+      "OuterTags",
+      "VLAN",
+      "Filter",
+      "FilterFastIO"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-winpkfilter-channels",
+    "relatedIds": [
+      "mtf_config_020",
+      "mtf_config_007"
+    ],
+    "summary": "WinpkFilter maps Ethernet channels with AdpaterFriendlyName, Type (Filter/FilterFastIO), IPMacTable, and VLAN InnerTags/OuterTags.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_020",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping TUN/TAP Bridge Channels",
-    "title": "Section 2: Mapping TUN/TAP Bridge Channels",
-    "content": "TUN/TAP virtual network interfaces (primarily used on Linux) can be mapped as logical Ethernet channels. This is useful for software-in-the-loop scenarios where MTF communicates with simulated ECUs through virtual network interfaces rather than physical hardware.\n- `device_type`: Set to `TUNTAPBridge`.\n- `interface_name` (string): The TUN or TAP interface name (e.g., `tun0`, `tap0`).\n\nThis mapping enables bridging between MTF and virtual network environments such as Docker containers or simulation tools.",
-    "keywords": ["TUN", "TAP", "bridge", "Linux", "virtual network", "interface_name", "simulation", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-tun-tap-bridge-channels"
+    "section": "Section 2: Mappings",
+    "subsection": "TUN/TAP Bridge",
+    "title": "Section 2: Mapping TUN/TAP Bridge Channels – Fields",
+    "content": "TUN/TAP enables bridging multiple virtual adapters with a physical adapter, with VLAN tagging/stripping at the bridge level.\n\nFirst, define an ETHERNET channel with type BRIDGE in Channels section:\n```yaml\nChannels:\n  ETH_Bridge:\n    Id: 90\n    Type: BRIDGE\n```\n\nThen in Mappings under `TUNTAP_BRIDGE: → ETH_Bridge:`:\n**Name**: Ethernet bridge channel name.\n**PhysicalAdapter**: Friendly name of the physical adapter.\n**TunTapAdapterList → TunTapAdapter**:\n  - **Name**: Virtual adapter friendly name.\n  - **InnerVlan** / **OuterVlan**: VLAN config (VlanId, VlanEthertype, VlanPriorityTag, VlanCfi).\n  - **ManipulatePackets** (optional): Enable dynamic VLAN tagging from EthernetTopology.",
+    "keywords": [
+      "TUNTAP_BRIDGE",
+      "TUN/TAP",
+      "bridge",
+      "BRIDGE",
+      "PhysicalAdapter",
+      "TunTapAdapter",
+      "InnerVlan",
+      "OuterVlan",
+      "VlanId",
+      "VlanEthertype",
+      "ManipulatePackets"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-tun-tap-bridge-channels",
+    "relatedIds": [
+      "mtf_config_019",
+      "mtf_config_030",
+      "mtf_config_007"
+    ],
+    "summary": "TUN/TAP bridge: define BRIDGE-type channel, then TUNTAP_BRIDGE mapping with PhysicalAdapter and virtual TunTapAdapters with VLAN configs.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_021",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Time Synchronization Source (Time Server)",
-    "title": "Section 2: Configuration of the Time Synchronization Source (Time Server)",
-    "content": "MTF supports time synchronization for timestamping captured frames and events. A Time Server can be configured in the Mappings section:\n- `device_type`: Set to `TimeServer`.\n- `ip` (string): IP address of the time server (e.g., a PTP or NTP server).\n- `protocol` (string): Time sync protocol used (e.g., `PTP`, `NTP`).\n\nAccurate time synchronization is critical for correlating events across multiple channels and devices during testing.",
-    "keywords": ["Time Server", "time synchronization", "PTP", "NTP", "ip", "timestamping", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#configuration-of-the-time-synchronization-source-time-server"
+    "section": "Section 2: Mappings",
+    "subsection": "EES Time Synchronization",
+    "title": "Section 2: EES Time Synchronization – GrandMaster Field",
+    "content": "The TE EES (Ethernet Edge Switch) provides nanosecond-level time synchronization to PTP clients (CM, BTSEvo boards). This section specifies which EES acts as the GrandMaster.\n\n**GrandMaster** (mandatory): ID of the EES responsible for time synchronization.\n\nExample:\n```yaml\nEES:\n  GrandMaster: 200\n```",
+    "keywords": [
+      "EES",
+      "time synchronization",
+      "GrandMaster",
+      "PTP",
+      "nanosecond",
+      "Ethernet Edge Switch"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#configuration-of-the-time-synchronization-source-time-server",
+    "relatedIds": [
+      "mtf_config_007"
+    ],
+    "summary": "EES section: GrandMaster field sets the ID of the EES that acts as the PTP time synchronization source.",
+    "importance": "low"
   },
   {
     "chunk_id": "mtf_config_022",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping TE-Analog Channels",
-    "title": "Section 2: Mapping TE-Analog Channels",
-    "content": "TE-Analog devices provide analog signal measurement and generation capabilities. Mapping fields:\n- `logical_channel`: Name of the analog logical channel.\n- `device_type`: Set to `TEAnalog`.\n- `ip` (string): IP address of the TE-Analog device.\n- `channel` (integer): Physical channel index on the device.\n\nUsed for measuring voltages, currents, or generating analog stimuli during ECU testing.",
-    "keywords": ["TE-Analog", "analog", "voltage", "current", "ip", "channel", "measurement", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-te-analog-channels"
+    "section": "Section 2: Mappings",
+    "subsection": "TE-Analog Channels",
+    "title": "Section 2: Mapping TE-Analog Channels – Fields (HWChannel, DeviceId)",
+    "content": "TE-Analog covers all analog channels from different devices (LIN/CM-sense, etc.).\n\nStructure: `TE-Analog: → ChannelName:`\n\nUnder each channel name:\n**HWChannel** (mandatory): Physical channel ID on the device (can be hex, e.g., 0x500).\n**DeviceId** (mandatory): ID of the device the channel is connected to.\n\nExample:\n```yaml\nTE-Analog:\n  Analog_48_C:\n    HWChannel: 0x500\n    DeviceId: 48\n  Analog_48_A:\n    HWChannel: 0x501\n    DeviceId: 48\n```",
+    "keywords": [
+      "TE-Analog",
+      "analog",
+      "HWChannel",
+      "DeviceId",
+      "LIN",
+      "CM-sense"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#mapping-te-analog-channels",
+    "relatedIds": [
+      "mtf_config_007"
+    ],
+    "summary": "TE-Analog mapping: each channel name maps to HWChannel (physical channel ID, can be hex) and DeviceId.",
+    "importance": "low"
   },
   {
     "chunk_id": "mtf_config_023",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping Shelly Relay",
-    "title": "Section 2: Map Logical Shelly Relay",
-    "content": "The Shelly smart relay (a Wi-Fi-controlled relay device) can be mapped in the MTF configuration to switch electrical circuits remotely. Fields:\n- `logical_channel`: Name of the relay channel.\n- `device_type`: Set to `ShellyRelay`.\n- `ip` (string): IP address of the Shelly device on the local network.\n- `relay_index` (integer, optional): The relay index (for multi-channel Shelly devices).\n\nUseful for remotely toggling power to ECUs or external devices during automated tests.",
-    "keywords": ["Shelly", "relay", "Wi-Fi", "ip", "relay_index", "smart relay", "power", "mapping"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#map-logical-shelly-relay"
+    "section": "Section 2: Mappings",
+    "subsection": "Shelly Relay",
+    "title": "Section 2: Mapping Shelly Relay – Fields",
+    "content": "Shelly relays are Ethernet-controlled relays mapped under `Devices:`.\n\n**CommunicationProtocol** (mandatory): HTTP or MQTT (currently only HTTP supported).\n**IP** (mandatory): Device IP address.\n**Port** (mandatory): Communication port.\n**Channels**: Dict of logical channel names.\n  - **ID** (mandatory): Channel ID on the Shelly device.\n  - **DoRestart** (optional): Boolean, reset at MTF startup.\n  - **RestartDuration** (optional): Duration of restart in ms (default 3000 ms).\n  - **DurationAfterRestart** (optional): Wait time after restart in ms (default 3000 ms).\n\nExample:\n```yaml\nDevices:\n  1:\n    CommunicationProtocol: HTTP\n    IP: 192.168.0.201\n    Port: 80\n    Channels:\n      TEST_IO_5:\n        ID: 1\n        DoRestart: True\n        RestartDuration: 3000\n```",
+    "keywords": [
+      "Shelly",
+      "relay",
+      "HTTP",
+      "MQTT",
+      "IP",
+      "Port",
+      "CommunicationProtocol",
+      "DoRestart",
+      "RestartDuration",
+      "Ethernet-controlled"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#map-logical-shelly-relay",
+    "relatedIds": [
+      "mtf_config_007"
+    ],
+    "summary": "Shelly relay mapping: HTTP/MQTT protocol, IP, Port, and Channels with ID, DoRestart, RestartDuration.",
+    "importance": "low"
   },
   {
     "chunk_id": "mtf_config_024",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig Section – Tracers Overview",
-    "title": "Section 3: FrameworkConfig – Tracers Overview",
-    "content": "The FrameworkConfig section's Tracers sub-section configures how MTF records communication traffic during test execution. MTF supports two tracer types:\n1. **PCAP Tracer**: Records traffic in standard PCAP format, readable by Wireshark and other tools.\n2. **ASCII Tracer**: Records traffic in human-readable ASCII text format.\n\nMultiple tracers can be defined for different channels or purposes. Tracers are essential for post-analysis, debugging, and evidence collection in test reports.",
-    "keywords": ["tracers", "PCAP", "ASCII", "Wireshark", "recording", "traffic", "FrameworkConfig"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#tracers"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "Overview",
+    "title": "Section 3: FrameworkConfig – Overview",
+    "content": "The FrameworkConfig section configures various aspects of the framework:\n\n- **Tracing**: Configure PCAP and ASCII tracers for logging traffic.\n- **ConnectedEcus**: List the ECUs/DUTs connected to the test bench.\n- **ServicePack**: Specify an OEM service pack instead of individual ECUs.\n- **PublisherConfig**: Configure the Publish/Subscribe event dispatching model.\n- **EthernetConfig**: Ethernet-specific settings (NPdu, SomeIP, VLAN, AppLayer ports).\n- **EthernetTopology**: Define Ethernet ECUs and their MAC/IP/VLAN data.\n- **ChannelToEcusMapping**: Link ECUs to their Ethernet transmission adapters.\n- **Diagnostics**: DoIP/HSFZ diagnostics protocol configuration.\n\nExample structure:\n```yaml\nFrameworkConfig:\n  Tracing:\n    PCAP_Tracer_1: ...\n    ASCII_Tracer_1: ...\n  ConnectedEcus:\n    - ECU1\n    - ECU2\n  PublisherConfig:\n    PublisherType: MultiThreaded\n```",
+    "keywords": [
+      "FrameworkConfig",
+      "Tracing",
+      "ConnectedEcus",
+      "ServicePack",
+      "PublisherConfig",
+      "EthernetConfig",
+      "EthernetTopology",
+      "Diagnostics"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#section-3-frameworkconfig-section",
+    "relatedIds": [
+      "mtf_config_002",
+      "mtf_config_025",
+      "mtf_config_026",
+      "mtf_config_027",
+      "mtf_config_028",
+      "mtf_config_029"
+    ],
+    "summary": "FrameworkConfig section configures tracers, connected ECUs, publisher model, Ethernet settings, and diagnostics.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_025",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – PCAP Tracer Configuration",
-    "title": "Section 3: FrameworkConfig – PCAP Tracer Configuration",
-    "content": "PCAP Tracer configuration fields in the FrameworkConfig section:\n- `type` (string): Must be set to `PCAP`.\n- `channels` (list): List of logical channel names whose traffic should be captured.\n- `output_dir` (string, optional): Directory path where PCAP files are saved.\n- `file_prefix` (string, optional): Prefix for generated PCAP file names.\n- `max_file_size` (integer, optional): Maximum file size in MB before rotating to a new file.\n\nPCAP files capture raw frames including timestamps, making them suitable for detailed protocol analysis.",
-    "keywords": ["PCAP", "tracer", "channels", "output_dir", "file_prefix", "max_file_size", "Wireshark", "raw frames"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#pcap-tracer-configuration"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "PCAP Tracer Configuration",
+    "title": "FrameworkConfig – PCAP Tracer Configuration",
+    "content": "PCAP tracers log Ethernet traffic. Defined under `FrameworkConfig: → Tracing: → TracerName:`.\n\nCommon fields:\n**Type**: PCAP\n**Timestamp**: Microsecond or Nanosecond\n**LoggingType**: MultipleAdapterMode or PerformanceMode\n\n**LoggerConfiguration → FileConfig**:\n- **BaseFileName**: Base name for rotating log files (e.g., trace_eth_1).\n- **Extension**: '.pcap', '.pcapng', or '.pcapng.zst' (Zstandard compression).\n- **MaxFile**: Max number of rotating files.\n- **MaxFileSize**: Max file size in MB before rotating.\n- **CompressionLevel**: For .pcapng.zst only (MultipleAdapterMode only).\n\n**LoggerConfiguration → BufferConfig**:\n- **BufferSize**: Buffer size in MB.\n- **BufferNumber**: (PerformanceMode only) Number of buffers.\n- **WriteBurstSize**: (PerformanceMode only) Block write size.\n\nExample (MultipleAdapterMode with compression):\n```yaml\nFrameworkConfig:\n  Tracing:\n    PCAP_Tracer_1:\n      Type: PCAP\n      LoggingType: MultipleAdapterMode\n      Timestamp: Microsecond\n      LoggerConfiguration:\n        BufferConfig:\n          BufferSize: 200\n        FileConfig:\n          BaseFileName: trace_1\n          Extension: \".pcapng.zst\"\n          CompressionLevel: 5\n```",
+    "keywords": [
+      "PCAP tracer",
+      "Tracing",
+      "LoggingType",
+      "MultipleAdapterMode",
+      "PerformanceMode",
+      "BaseFileName",
+      "Extension",
+      "MaxFile",
+      "MaxFileSize",
+      "BufferSize",
+      "BufferNumber",
+      "WriteBurstSize",
+      "CompressionLevel",
+      "pcapng",
+      "zst"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#pcap-tracer-configuration",
+    "relatedIds": [
+      "mtf_config_024",
+      "mtf_config_026"
+    ],
+    "summary": "PCAP tracer: Type=PCAP, LoggingType (MultipleAdapterMode/PerformanceMode), FileConfig (BaseFileName, Extension, MaxFileSize) and BufferConfig.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_026",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – ASCII Tracer Configuration",
-    "title": "Section 3: FrameworkConfig – ASCII Tracer Configuration",
-    "content": "ASCII Tracer configuration fields in the FrameworkConfig section:\n- `type` (string): Must be set to `ASCII`.\n- `channels` (list): List of logical channel names to trace.\n- `output_dir` (string, optional): Directory where ASCII trace files are saved.\n- `file_prefix` (string, optional): Prefix for trace file names.\n\nASCII traces present decoded messages in a readable text format and are useful for quick manual inspection of communication logs.",
-    "keywords": ["ASCII", "tracer", "channels", "output_dir", "file_prefix", "text format", "trace log"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#ascii-tracer-configuration"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "ASCII Tracer Configuration",
+    "title": "FrameworkConfig – ASCII Tracer Configuration",
+    "content": "ASCII tracers log CAN/LIN/FlexRay traffic in text format. Defined under `FrameworkConfig: → Tracing: → TracerName:`.\n\n**Type**: ASCII\n**Base**: Hex or Decimal formatting.\n**Timestamp**: Microsecond (ASCII supports only Microsecond).\n**TimeStampSetting**: Absolute or Relative (to test case start).\n**InternalEventLogged**: true/false — log internal events like LIN wake-up.\n\n**LoggerConfiguration → FileConfig**:\n- **BaseFileName**: Base name for rotating .asc files.\n- **Extension**: e.g., '.asc'.\n- **MaxFile**: Max number of rotating files.\n- **MaxFileSize**: Max file size in MB.\n\nNote: If testing ASCII Tracer locally (no hardware), add the channel to VirtualDevices.\n\nExample:\n```yaml\nFrameworkConfig:\n  Tracing:\n    default_ascii_tracer:\n      Type: ASCII\n      Base: Hex\n      InternalEventLogged: 'true'\n      TimeStamp: Microsecond\n      TimeStampSetting: Absolute\n      LoggerConfiguration:\n        FileConfig:\n          BaseFileName: lin_can_trace\n          Extension: .asc\n          MaxFile: '150'\n          MaxFileSize: '200'\n```",
+    "keywords": [
+      "ASCII tracer",
+      "Tracing",
+      "Base",
+      "Hex",
+      "Decimal",
+      "Timestamp",
+      "Microsecond",
+      "TimeStampSetting",
+      "Absolute",
+      "Relative",
+      "InternalEventLogged",
+      "BaseFileName",
+      "Extension",
+      "asc",
+      "MaxFile",
+      "MaxFileSize"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#ascii-tracer-configuration",
+    "relatedIds": [
+      "mtf_config_024",
+      "mtf_config_025"
+    ],
+    "summary": "ASCII tracer: Type=ASCII, Base (Hex/Decimal), Timestamp=Microsecond, TimeStampSetting (Absolute/Relative), FileConfig for rotating .asc files.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_027",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – ConnectedEcus (DUTs)",
-    "title": "Section 3: FrameworkConfig – ConnectedEcus (DUT's)",
-    "content": "The `ConnectedEcus` sub-section in FrameworkConfig defines the Electronic Control Units (ECUs) or Devices Under Test (DUTs) that are connected in the test setup. Each ECU entry typically includes:\n- `name` (string): A unique identifier for the ECU.\n- `channels` (list): Logical channels through which this ECU communicates.\n- Additional metadata such as ECU type, software version, or diagnostic address.\n\nDefining ECUs allows MTF to associate communication channels with specific DUTs, enabling channel-to-ECU mapping used in diagnostics and reporting.",
-    "keywords": ["ConnectedEcus", "DUT", "ECU", "name", "channels", "diagnostic address", "FrameworkConfig"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#connectedecus-dut-s"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "ConnectedEcus and ServicePack",
+    "title": "FrameworkConfig – ConnectedEcus and ServicePack",
+    "content": "**ConnectedEcus**: List of ECU (Device Under Test) names connected to the test bench. Names must match ECU names defined in the database file (ARXML, DBC, LDF, FIBEX).\n\n```yaml\nFrameworkConfig:\n  ConnectedEcus:\n    - ECU1\n    - ECU2\n    - ECU3\n```\n\n**ServicePack**: Specifies an OEM service pack (group of ECUs) to start instead of listing individual ECUs under ConnectedEcus.\n\n```yaml\nFrameworkConfig:\n  ServicePack: ServicePack_name\n```",
+    "keywords": [
+      "ConnectedEcus",
+      "ServicePack",
+      "DUT",
+      "ECU",
+      "ARXML",
+      "DBC",
+      "LDF",
+      "FIBEX",
+      "FrameworkConfig"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#connectedecus-dut-s",
+    "relatedIds": [
+      "mtf_config_024"
+    ],
+    "summary": "ConnectedEcus lists DUT ECU names (matching database file); ServicePack specifies an OEM group of ECUs instead of individual listing.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_028",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – ServicePack",
-    "title": "Section 3: FrameworkConfig – ServicePack",
-    "content": "The `ServicePack` sub-section in FrameworkConfig specifies the MTF service pack or licensed feature set to activate for the test run. Different service packs unlock different MTF capabilities (e.g., specific protocol stacks, diagnostic services, or hardware support). The field typically contains:\n- `name` (string): Name or identifier of the service pack.\n- `version` (string, optional): Required version of the service pack.\n\nIf a required service pack is not licensed, MTF will raise an error at startup.",
-    "keywords": ["ServicePack", "license", "feature set", "service pack", "version", "FrameworkConfig"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#servicepack"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "Publisher Configuration",
+    "title": "FrameworkConfig – Publisher Configuration (PublisherType, ChannelsGroups)",
+    "content": "MTF implements a Publish/Subscribe model for event dispatching (e.g., received CAN frames).\n\n**PublisherType** (mandatory): SingleThreaded or MultiThreaded.\n- **SingleThreaded**: One thread for all event types.\n- **MultiThreaded**: Multiple threads for event dispatching.\n\n**ChannelsGroups** (only for MultiThreaded): Defines thread/channel mapping. Each group is a list of channel names that share a thread.\n\nExample:\n```yaml\nFrameworkConfig:\n  PublisherConfig:\n    PublisherType: MultiThreaded\n    ChannelsGroups:\n      - [Ch_CAN1, Ch_CAN2, Ch_CAN3]\n      - [ETH_SPY]\n```",
+    "keywords": [
+      "PublisherConfig",
+      "PublisherType",
+      "SingleThreaded",
+      "MultiThreaded",
+      "ChannelsGroups",
+      "Publish/Subscribe",
+      "event dispatching",
+      "threads"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#publisher-configuration",
+    "relatedIds": [
+      "mtf_config_024"
+    ],
+    "summary": "PublisherConfig: PublisherType SingleThreaded or MultiThreaded; ChannelsGroups maps channel groups to threads (MultiThreaded only).",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_029",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Publisher Configuration",
-    "title": "Section 3: FrameworkConfig – Publisher Configuration",
-    "content": "The `Publisher` configuration sub-section controls how MTF publishes or broadcasts test events and results during execution. This may include MQTT broker settings for real-time data streaming, or other notification mechanisms. Typical fields:\n- `type` (string): Publisher type (e.g., `MQTT`).\n- `broker_ip` (string): IP address of the MQTT broker.\n- `broker_port` (integer): Port of the MQTT broker (default 1883).\n- `topic_prefix` (string, optional): MQTT topic prefix for published messages.\n\nUseful for integrating MTF with CI/CD pipelines or real-time monitoring dashboards.",
-    "keywords": ["Publisher", "MQTT", "broker_ip", "broker_port", "topic_prefix", "CI/CD", "monitoring", "FrameworkConfig"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#publisher-configuration"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "Diagnostics Configuration",
+    "title": "FrameworkConfig – Diagnostics Configuration (DoIP, HSFZ)",
+    "content": "Optional Diagnostics section configures protocol and addresses for diagnostic sessions.\n\n**EcuIpAddress**: IP of the ECU to connect to. Use 'AutoDetect' for automatic detection.\n**TestersIpAddress**: Tester address. Use 'Auto' for automatic assignment.\n**Protocol**: HSFZ or DOIP.\n**NetID** (optional): Net address of the target ECU. If not specified, identification requests are sent through all interfaces.\n\nExample:\n```yaml\nFrameworkConfig:\n  Diagnostics:\n    EcuIpAddress: AutoDetect\n    TestersIpAddress: 172.172.22.22\n    Protocol: DOIP\n    NetID: 160.48\n```",
+    "keywords": [
+      "Diagnostics",
+      "DoIP",
+      "HSFZ",
+      "EcuIpAddress",
+      "TestersIpAddress",
+      "Protocol",
+      "NetID",
+      "AutoDetect"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#diagnostics",
+    "relatedIds": [
+      "mtf_config_024"
+    ],
+    "summary": "Diagnostics section: EcuIpAddress, TestersIpAddress, Protocol (DOIP/HSFZ), and optional NetID for targeted identification.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_030",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Ethernet Configuration",
-    "title": "Section 3: FrameworkConfig – Ethernet Configuration Overview",
-    "content": "The `EthernetConfiguration` sub-section within FrameworkConfig provides detailed settings for Ethernet-based communication. It is divided into several sub-keys:\n- **NPdu configuration**: Network PDU (Protocol Data Unit) configuration for AUTOSAR-compliant Ethernet stacks.\n- **SomeIP configuration**: SOME/IP (Scalable service-Oriented MiddlewarE over IP) service configuration.\n- **AppLayer Ports**: Application layer port definitions for Ethernet services.\n- **EthernetTopology**: Network topology description including ECU IP assignments.\n- **ChannelToEcusMapping**: Mapping of Ethernet channels to specific ECUs for routing.",
-    "keywords": ["Ethernet configuration", "NPdu", "SomeIP", "AppLayer", "EthernetTopology", "ChannelToEcusMapping", "AUTOSAR", "FrameworkConfig"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#ethernet-configuration"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "Ethernet Configuration",
+    "title": "FrameworkConfig – Ethernet Configuration (NPduConfig, SomeIPConfig, AppLayerPorts)",
+    "content": "EthernetConfig under FrameworkConfig provides optional Ethernet-specific settings.\n\n**ConsiderOnlyEthernetTopologyEcus** (optional, default false): Only consider ECUs from EthernetTopology section for COM Ethernet communication.\n\n**NPduConfig** (optional):\n- ManageVlansInCom: Add 802.1Q VLAN tags to NPDU packets.\n- RestrictedNPduChannelsInCom: Only create COM NPDU packets for DuT ECU channels.\n- IPMacTable: [[IP, MAC]] pairs.\n- VLans: InnerTags and OuterTags (each with ID, Priority, IPList).\n\n**SomeIPConfig** (optional):\n- ServerToClientPortRangeMapping: Map server port ranges to client port ranges.\n- EndpointImplementation: 'lwip' or 'boost' (default boost).\n\n**AppLayerPorts** (optional): Ports for NPdu, SomeIp, UDPNM, DLT, SomeIpSD protocols.\n\nExample:\n```yaml\nFrameworkConfig:\n  EthernetConfig:\n    ConsiderOnlyEthernetTopologyEcus: true\n    AppLayerPorts:\n      NPdu: [3000, [3100, 3200]]\n      SomeIp: [[500, 503], 1000]\n      UDPNM: [4100]\n      DLT: [5000]\n      SomeIpSD: [30490]\n```",
+    "keywords": [
+      "EthernetConfig",
+      "NPduConfig",
+      "SomeIPConfig",
+      "AppLayerPorts",
+      "VLAN",
+      "InnerTags",
+      "OuterTags",
+      "IPMacTable",
+      "SomeIP",
+      "NPdu",
+      "UDPNM",
+      "DLT",
+      "SomeIpSD",
+      "ConsiderOnlyEthernetTopologyEcus"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#ethernet-configuration",
+    "relatedIds": [
+      "mtf_config_024",
+      "mtf_config_031",
+      "mtf_config_020"
+    ],
+    "summary": "EthernetConfig: NPduConfig (VLAN, IPMacTable), SomeIPConfig (port mapping), AppLayerPorts (NPdu/SomeIp/UDPNM/DLT/SomeIpSD), ConsiderOnlyEthernetTopologyEcus.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_031",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Ethernet – NPdu Configuration",
-    "title": "Section 3: FrameworkConfig – Ethernet – NPdu Configuration",
-    "content": "NPdu (Network Protocol Data Unit) configuration is part of the Ethernet configuration and relates to AUTOSAR N-PDU routing. It defines how network PDUs are mapped and routed between communication channels and application layers. This configuration is typically needed for AUTOSAR-based ECU testing that uses IPDU multiplexing or PDU routing tables.\n\nFields include PDU ID assignments, routing paths, and multiplexer settings as defined in the AUTOSAR communication stack configuration.",
-    "keywords": ["NPdu", "Network PDU", "AUTOSAR", "PDU routing", "IPDU", "multiplexer", "Ethernet configuration"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#npdu-configuration"
-  },
-  {
-    "chunk_id": "mtf_config_032",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Ethernet – SomeIP Configuration",
-    "title": "Section 3: FrameworkConfig – Ethernet – SomeIP Configuration",
-    "content": "SOME/IP (Scalable service-Oriented MiddlewarE over IP) configuration defines how MTF handles SOME/IP services on Ethernet. Fields typically include:\n- Service ID, Instance ID, Method ID definitions.\n- Serialization format for SOME/IP payloads.\n- SD (Service Discovery) configuration: multicast groups, ports, TTL.\n- Event group subscriptions.\n\nThis enables MTF to act as a SOME/IP client or server during testing, sending/receiving service calls and events as defined by the SOME/IP specification.",
-    "keywords": ["SOME/IP", "SomeIP", "Service ID", "Instance ID", "Method ID", "SD", "Service Discovery", "multicast", "Ethernet configuration"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#someip-configuration"
-  },
-  {
-    "chunk_id": "mtf_config_033",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Ethernet – AppLayer Ports",
-    "title": "Section 3: FrameworkConfig – Ethernet – AppLayer Ports",
-    "content": "AppLayer Ports configuration defines the UDP/TCP ports used by the application layer protocols in the MTF Ethernet stack. This includes:\n- Ports for SOME/IP communication.\n- Ports for DoIP (Diagnostics over IP).\n- Custom application port assignments.\n\nProperly configuring these ports ensures that MTF's Ethernet stack listens on and sends from the correct network ports, matching the DUT's expected configuration.",
-    "keywords": ["AppLayer Ports", "UDP", "TCP", "SOME/IP", "DoIP", "Diagnostics over IP", "port assignment", "Ethernet"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#applayer-ports"
-  },
-  {
-    "chunk_id": "mtf_config_034",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Ethernet – EthernetTopology",
-    "title": "Section 3: FrameworkConfig – Ethernet – EthernetTopology",
-    "content": "The `EthernetTopology` sub-section describes the network topology of the test setup. It maps ECU names to their IP addresses and MAC addresses on the Ethernet network. This information is used by MTF to:\n- Address ECUs correctly when sending Ethernet frames.\n- Validate that the correct ECU is communicating on the expected channel.\n- Configure ARP and IP routing for multi-ECU test setups.\n\nEach entry defines an ECU with its `name`, `ip`, and optionally `mac` address.",
-    "keywords": ["EthernetTopology", "IP address", "MAC address", "ECU", "network topology", "ARP", "routing"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#ethernettopology"
-  },
-  {
-    "chunk_id": "mtf_config_035",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Ethernet – ChannelToEcusMapping",
-    "title": "Section 3: FrameworkConfig – Ethernet – ChannelToEcusMapping",
-    "content": "The `ChannelToEcusMapping` sub-section links Ethernet logical channels to specific ECUs defined in the EthernetTopology. This mapping tells MTF which ECUs are reachable through each Ethernet channel. Fields:\n- `channel` (string): Name of the Ethernet logical channel.\n- `ecus` (list): List of ECU names accessible through this channel.\n\nThis is important in multi-ECU setups where different ECUs may be on separate Ethernet segments or VLANs.",
-    "keywords": ["ChannelToEcusMapping", "channel", "ECU", "Ethernet", "VLAN", "routing", "multi-ECU"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#channeltoecusmapping"
-  },
-  {
-    "chunk_id": "mtf_config_036",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Diagnostics",
-    "title": "Section 3: FrameworkConfig – Diagnostics",
-    "content": "The `Diagnostics` sub-section in FrameworkConfig configures UDS (Unified Diagnostic Services, ISO 14229) and other diagnostic protocol settings for MTF. This includes:\n- Default diagnostic session type.\n- Tester present timing settings.\n- Security access seed/key configuration.\n- Transport protocol settings (e.g., DoIP, ISO-TP for CAN).\n- ECU target address and source address (tester address).\n\nProper diagnostics configuration enables MTF test cases to perform UDS services such as ECU reset, read DTC, write data by identifier, and software download.",
-    "keywords": ["Diagnostics", "UDS", "ISO 14229", "DoIP", "ISO-TP", "UDS session", "security access", "tester address", "ECU address"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#diagnostics"
+    "section": "Section 3: FrameworkConfig",
+    "subsection": "EthernetTopology",
+    "title": "FrameworkConfig – EthernetTopology Configuration",
+    "content": "EthernetTopology defines Ethernet ECUs and their network data for packet manipulation.\n\n**EthProtoPrioConfig**: List to set VLAN priority per Ethernet protocol.\n- Protocol: TCP, UDP, ICMPv6\n- DefaultPriority: 0–7\n- Ports: Override priority for specific port/range (SrcPort, DstPort, Priority).\n\n**TopologyConfig**: Per-ECU configuration.\n- EcuName (optional): ECU identifier.\n- SrcIpList (mandatory): List of ECU IP addresses.\n- SrcMacAdr (optional): Source MAC address.\n- TunTapAdapterName (optional): Links to a TunTap adapter.\n- Vlans (optional): VLAN config with DefaultVlan, OuterVlanTag, InnerVlanTag.\n  - VlanId, Ethertype (0x8100 for InnerVlan, 0x88a8/0x9100 for OuterVlan).\n  - VlanPriorityTag, VlanCfi.\n- MulticastVlanForwarding (optional).\n- DstIpVlanMapping (optional): Map destination IPs to VLAN configs.",
+    "keywords": [
+      "EthernetTopology",
+      "TopologyConfig",
+      "SrcIpList",
+      "SrcMacAdr",
+      "VlanId",
+      "VlanEthertype",
+      "EthProtoPrioConfig",
+      "InnerVlanTag",
+      "OuterVlanTag",
+      "MulticastVlanForwarding",
+      "DstIpVlanMapping"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#ethernettopology",
+    "relatedIds": [
+      "mtf_config_030",
+      "mtf_config_020"
+    ],
+    "summary": "EthernetTopology: per-ECU SrcIpList, SrcMacAdr, VLAN configuration; EthProtoPrioConfig sets VLAN priority per protocol.",
+    "importance": "medium"
   },
   {
     "chunk_id": "mtf_config_037",
-    "section": "MTF Configuration File > Section 4",
-    "subsection": "ChannelsConfig Section – FaultyChannels",
-    "title": "Section 4 (Optional): ChannelsConfig – FaultyChannels",
-    "content": "The optional `ChannelsConfig` section provides supplementary channel configuration. The `FaultyChannels` sub-key allows marking specific logical channels as faulty or non-operational. When a channel is listed under `FaultyChannels`, MTF will treat it as unavailable and skip any operations on that channel without raising a fatal error.\n\nThis is useful in scenarios where a physical interface is temporarily disconnected or known to be defective, allowing the rest of the test suite to continue execution.",
-    "keywords": ["ChannelsConfig", "FaultyChannels", "optional section", "faulty channel", "skip", "non-operational", "disconnected"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#faultychannels"
-  },
-  {
-    "chunk_id": "mtf_config_038",
-    "section": "MTF Configuration File",
-    "subsection": "Important Notes",
-    "title": "MTF Configuration File – Important Notes",
-    "content": "Key notes and best practices for working with the MTF Configuration File:\n1. **YAML syntax**: The file must be valid YAML. Indentation errors will cause parsing failures at startup.\n2. **Channel name uniqueness**: All logical channel names in the Channels section must be unique across the entire file.\n3. **Case sensitivity**: Channel names, device types, and keys are case-sensitive. Always match the exact expected casing.\n4. **Mandatory sections**: The Channels, Mappings, and FrameworkConfig sections are mandatory. Missing any of them will cause MTF to fail at initialization.\n5. **ChannelsConfig is optional**: The ChannelsConfig section can be omitted entirely if not needed.\n6. **Validation**: MTF performs configuration validation at startup. Any misconfigured field or missing required value will result in a descriptive error message.\n7. **Environment variables**: Some fields support environment variable substitution, allowing dynamic configuration values.\n8. **Version compatibility**: Configuration file syntax may vary between MTF versions. Always refer to the documentation for the installed MTF version.",
-    "keywords": ["important notes", "YAML", "validation", "case sensitive", "mandatory sections", "best practices", "environment variables", "version compatibility"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#important-notes"
+    "section": "Section 4: ChannelsConfig",
+    "subsection": "FaultyChannels",
+    "title": "Section 4: ChannelsConfig – FaultyChannels",
+    "content": "ChannelsConfig is an optional section used to define IO channels for fault injection (e.g., short circuit in a CAN bus, open wire in a LIN bus).\n\n**FaultyChannels**: A dict of {faultType: ioHWChannel} pairs.\n\nExample:\n```yaml\nChannelsConfig:\n  Io_Channel_Ex1:\n    FaultyChannels: {keyFaultyType, valueIoHwChannel}\n  Io_Channel_Ex2:\n    FaultyChannels: {keyFaultyType, valueIoHwChannel}\n```",
+    "keywords": [
+      "ChannelsConfig",
+      "FaultyChannels",
+      "fault injection",
+      "short circuit",
+      "open wire",
+      "CAN",
+      "LIN"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#section-4-optional-channelsconfig-section",
+    "relatedIds": [
+      "mtf_config_002"
+    ],
+    "summary": "ChannelsConfig (optional): FaultyChannels maps fault types to IO hardware channels for fault injection (short circuit, open wire).",
+    "importance": "low"
   },
   {
     "chunk_id": "mtf_config_039",
-    "section": "MTF Configuration File > Section 2",
-    "subsection": "Mapping to Capture Module – Setup Example",
-    "title": "Section 2: Mapping to Capture Module – Setup Example (Step-by-Step)",
-    "content": "Step-by-step example for mapping a CAN channel to a Capture Module:\n\n**Step 1 – Understand the physical setup**: A Technica Capture Module is connected at IP 192.168.1.10. Port 1 is a CAN port.\n\n**Step 2 – Define logical channels**: In the Channels section, create a logical channel named `CAN_BUS_1` of type `CAN`.\n\n**Step 3 – Create the Channels section**:\n```yaml\nChannels:\n  - name: CAN_BUS_1\n    type: CAN\n    baudrate: 500000\n```\n\n**Step 4 – Create the Mappings section**:\n```yaml\nMappings:\n  - logical_channel: CAN_BUS_1\n    device_type: CaptureModule\n    ip: 192.168.1.10\n    port: 1\n```",
-    "keywords": ["Capture Module", "setup example", "CAN", "YAML", "mapping", "step by step", "ip", "port", "logical channel"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id4"
+    "section": "Complete Example",
+    "subsection": "Full Configuration – Channels + Mappings + FrameworkConfig",
+    "title": "Complete MTF Configuration File Example (CM + BTS + PCAP + Tracers)",
+    "content": "Complete example for a setup with CM, BTS-EVO, and PCAP adapter:\n\n```yaml\nChannels:\n Ethernet_Switch:\n   Id: 8\n   Type: ETHERNET\n   TracerName: PCAP_Tracer_ETH\n CAN_FD_ch1:\n   Id: 9\n   TracerName: ASCII_Tracer_CAN\n   Type: CANFD\n   Protocol: CANFD\n CAN_ch1:\n   Id: 11\n   TracerName: ASCII_Tracer_CAN\n   Type: CAN\n   Protocol: CAN2.0\n FlexRay_ch1:\n   Id: 13\n   TracerName: ASCII_Tracer_FLEXRAY\n   LoggingName: A_FlexRay\n   Type: FR\n\nMappings:\n  CM:\n    Devices:\n      1:\n        Id: 64\n        Type: CAN_Combo\n        Buses:\n          CAN_ch1:\n            HWChannel: 10\n          FlexRay_ch1:\n            HWChannel: 12\n            OperationMode: Normal\n            KeySlot: 64\n            NodeType: ColdStartLeading\n            WakeUpCluster: false\n  BTS:\n    Boards:\n      1:\n        Id: 8\n        Type: BaseBoard\n        Version: EVO\n        Buses:\n          CAN_FD_ch1:\n            OperationMode: Normal\n            HWChannel: 2\n  PCAP:\n    1:\n      Adapter:\n        Name: Ethernet_Switch\n        FriendlyName: \"Ethernet_Switch\"\n        BufferSize: 1024\n        PacketProcessingActive: true\n        PacketIdentificationActive: true\n        DataLoggerType: TECMP\n\nFrameworkConfig:\n  Tracing:\n    PCAP_Tracer_ETH:\n      Type: PCAP\n      LoggingType: StandardMode\n      LoggerConfiguration:\n        FileConfig:\n          BaseFileName: ETH_BTS_CM\n          Extension: .pcap\n    ASCII_Tracer_CAN:\n      Type: ASCII\n      Base: Decimal\n      TimeStamp: Microsecond\n      TimeStampSetting: Absolute\n      InternalEventLogged: true\n      LoggerConfiguration:\n        FileConfig:\n          BaseFileName: can\n          Extension: .asc\n```",
+    "keywords": [
+      "complete example",
+      "CM",
+      "BTS",
+      "PCAP",
+      "Channels",
+      "Mappings",
+      "FrameworkConfig",
+      "Tracing",
+      "CAN",
+      "CANFD",
+      "FlexRay",
+      "Ethernet"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#setup-example-2",
+    "relatedIds": [
+      "mtf_config_005",
+      "mtf_config_006",
+      "mtf_config_009",
+      "mtf_config_025",
+      "mtf_config_026"
+    ],
+    "summary": "Complete MTF configuration example covering Channels (CAN, CANFD, FlexRay, Ethernet) with CM, BTS, PCAP mappings and ASCII/PCAP tracers.",
+    "importance": "high"
   },
   {
     "chunk_id": "mtf_config_040",
-    "section": "MTF Configuration File > Section 3",
-    "subsection": "FrameworkConfig – Tracers Setup Example",
-    "title": "Section 3: FrameworkConfig – Tracers Setup Example (Step-by-Step)",
-    "content": "Step-by-step example for configuring tracers in FrameworkConfig:\n\n**Step 1 – Understand setup**: Setup has a CAN channel and an Ethernet channel.\n\n**Step 2 – Define logical channels**: `CAN_BUS_1` and `ETH_CHANNEL` in Channels section.\n\n**Step 3 – Create the Channels section** with CAN and Ethernet entries.\n\n**Step 4 – Map channels to physical devices** in Mappings section.\n\n**Step 5 – Create tracers** in FrameworkConfig:\n```yaml\nFrameworkConfig:\n  Tracers:\n    - type: PCAP\n      channels:\n        - ETH_CHANNEL\n      output_dir: ./traces/\n      file_prefix: eth_trace\n    - type: ASCII\n      channels:\n        - CAN_BUS_1\n      output_dir: ./traces/\n      file_prefix: can_trace\n```",
-    "keywords": ["Tracers", "PCAP", "ASCII", "FrameworkConfig", "setup example", "step by step", "YAML", "output_dir", "channels"],
-    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#id40"
+    "section": "Complete Example",
+    "subsection": "Power Supply + BTS-Revo Full Example",
+    "title": "Complete Example – Power Supply + BTS-Revo Configuration",
+    "content": "Example for a setup with a Genesys power supply and BTS-Revo board:\n\n```yaml\nChannels:\n  PS_bts_Ch:\n    Id: 70\n    TracerName: default_ascii_tracer\n    LoggingName: PowerSupply\n    Type: PS\n  Ch1-BTS:\n    Id: 72\n    TracerName: default_ascii_tracer\n    Type: IOOUTPUT\n  Ch3-BTS:\n    Id: 73\n    TracerName: default_ascii_tracer\n    Type: IOOUTPUT\n\nMappings:\n  Genesys_PowerSupply:\n    Channels:\n      1:\n        BitRate: 9600\n        ChannelName: PS_bts_Ch\n        DefaultMaxCurrent: 120\n        DefaultVoltage: 12\n        MaxVoltage: 20\n        PortName: COM9\n        KeepStatus: true\n  BTS-Revo:\n    Boards:\n      1:\n        Id: 160\n        IOs:\n          Ch1-BTS:\n            HWChannel: 1\n            MeasurementAttribute: Voltage\n          Ch3-BTS:\n            HWChannel: 3\n            Function: VBATSwitch\n            MeasurementAttribute: Voltage\n```",
+    "keywords": [
+      "Genesys",
+      "Power Supply",
+      "BTS-Revo",
+      "PS",
+      "IOOUTPUT",
+      "ChannelName",
+      "PortName",
+      "BitRate",
+      "DefaultVoltage",
+      "MaxVoltage",
+      "HWChannel",
+      "MeasurementAttribute",
+      "Function",
+      "VBATSwitch"
+    ],
+    "source_url": "https://files.technica-engineering.de/MTF/Documentation/MTF_1.38.0_documentation/source/common_files_for_documentation/rst%20files/MTF_Configuration_File.html#setup-example-3",
+    "relatedIds": [
+      "mtf_config_011",
+      "mtf_config_013"
+    ],
+    "summary": "Full example with PS-type logical channels, Genesys power supply mapping, and BTS-Revo IO mapping with VBATSwitch function.",
+    "importance": "medium"
   }
 ]

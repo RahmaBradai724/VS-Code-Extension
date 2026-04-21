@@ -32,4 +32,6 @@ export const initialState: AppState = {
   agentMessages: [],
   agentLoading: false,
   agentStreamingText: '',
+  // Framework
+  frameworkSection: null,
 };

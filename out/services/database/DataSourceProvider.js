@@ -68,7 +68,7 @@ function getDataSource() {
             username: dbConfig.username,
             password: dbConfig.password,
             database: dbConfig.database,
-            synchronize: false,
+            synchronize: true,
             logging: false,
             entities: [
                 logicalChannels_1.FlexRayChannel, logicalChannels_1.SerialChannel, logicalChannels_1.CANChannel, logicalChannels_1.IOInputChannel, logicalChannels_1.IOOutputChannel,

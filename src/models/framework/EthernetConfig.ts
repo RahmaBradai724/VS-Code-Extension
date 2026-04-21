@@ -28,6 +28,9 @@ export class EthernetConfig {
   @Column({ type: 'jsonb', nullable: true })
   someIPConfig?: object;
 
+  @Column({ type: 'jsonb', nullable: true })
+  ethernetTopology?: object;
+
   toYAML(): object {
     return {
       autoDetectEthSettings: this.autoDetectEthSettings,
@@ -35,7 +38,8 @@ export class EthernetConfig {
       appLayerPorts: this.appLayerPorts,
       considerOnlyEthernetTopologyEcus: this.considerOnlyEthernetTopologyEcus,
       npduConfig: this.npduConfig,
-      someIPConfig: this.someIPConfig
+      someIPConfig: this.someIPConfig,
+      ethernetTopology: this.ethernetTopology,
     };
   }
 

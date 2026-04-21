@@ -33,6 +33,10 @@ export class MessageHandler {
   /** userId of the currently authenticated user (null = not logged in) */
   private loggedInUserId: number | null = null;
 
+  /** Cached agent resources — lazy-initialised on first agentAsk call */
+  private readonly ollama = new OllamaClient();
+  private kb: KnowledgeBase | null = null;
+
   constructor(
     private readonly storageService: StorageService,
     private readonly tokenStorage: TokenStorage,
@@ -594,11 +598,12 @@ export class MessageHandler {
     if (!question) { return; }
 
     try {
-      // Load knowledge base
-      const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
-      const kb = KnowledgeBase.load(resourcesDir);
-      const ollama = new OllamaClient();
-      const agent  = new MtfAgent(kb, ollama);
+      // Load knowledge base once and reuse
+      if (!this.kb) {
+        const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
+        this.kb = KnowledgeBase.load(resourcesDir);
+      }
+      const agent = new MtfAgent(this.kb, this.ollama);
 
       const { sources } = await agent.ask(
         question,
@@ -610,9 +615,13 @@ export class MessageHandler {
       webview.postMessage({
         command: 'agentDone',
         sources: sources.map(r => ({
-          section:    r.chunk.metadata.section,
-          subsection: r.chunk.metadata.subsection,
-          score:      r.score,
+          section:     r.chunk.section,
+          subsection:  r.chunk.subsection,
+          title:       r.chunk.title,
+          source_url:  r.chunk.source_url,
+          score:       r.score,
+          vectorScore: r.vectorScore,
+          fromGraph:   r.fromGraph,
         })),
       });
     } catch (e: any) {

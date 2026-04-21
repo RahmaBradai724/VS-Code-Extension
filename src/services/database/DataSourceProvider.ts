@@ -57,7 +57,7 @@ export function getDataSource(): DataSource {
       username: dbConfig.username,
       password: dbConfig.password,
       database: dbConfig.database,
-      synchronize: false,
+      synchronize: true,
       logging: false,
       entities: [
         FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel,
