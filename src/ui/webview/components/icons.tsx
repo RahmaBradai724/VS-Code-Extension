@@ -55,4 +55,66 @@ export const Icons = {
       <path d="M8 2V0.5M8 0.5h1.5M8 0.5H6.5" stroke="currentColor" strokeWidth=".8" strokeLinecap="round" />
     </>
   ),
+  // ── Framework sub-tree icons ─────────────────────────────────────────────
+  /** Tracers → waveform / signal */
+  fwTracers: () => icon(
+    <path d="M1 8h2l2-5 2 10 2-7 2 4 2-2h2" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  /** ConnectedEcus → monitor/device */
+  fwEcus: () => icon(
+    <path d="M2 2h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H9v1.5h1.5v1h-5v-1H7V12H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm0 1v7h12V3H2z" />
+  ),
+  /** ServicePack → package/box */
+  fwServicePack: () => icon(
+    <path d="M8 1L1.5 4.5v7L8 15l6.5-3.5v-7L8 1zm0 1.3l5 2.7-5 2.7-5-2.7 5-2.7zM2.5 5.8l5 2.7v5.1l-5-2.7V5.8zm6 7.8V8.5l5-2.7v5.1l-5 2.7z" />
+  ),
+  /** Publisher → broadcast hub */
+  fwPublisher: () => icon(
+    <>
+      <circle cx="8" cy="8" r="1.5" />
+      <path d="M5.2 5.2a4 4 0 0 0 0 5.6M10.8 5.2a4 4 0 0 1 0 5.6" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      <path d="M3.4 3.4a7 7 0 0 0 0 9.2M12.6 3.4a7 7 0 0 1 0 9.2" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    </>
+  ),
+  /** Ethernet → network plug */
+  fwEthernet: () => icon(
+    <path d="M1 4h3v2H3v4h2v2H1V4zm11 0h3v8h-4v-2h2V6h-1V4zM5 1h6v2H5V1zm0 12h6v2H5v-2zm1-9h4v8H6V4zm1 1v6h2V5H7z" />
+  ),
+  /** NPdu → layers / stack */
+  fwNpdu: () => icon(
+    <path d="M8 1.5L1 5l7 3.5L15 5 8 1.5zM1 8.5l7 3.5 7-3.5M1 11.5l7 3.5 7-3.5" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  /** SomeIP → service/API node */
+  fwSomeIP: () => icon(
+    <>
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
+      <path d="M5 8h6M8 5v6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      <circle cx="8" cy="8" r="1.5" />
+    </>
+  ),
+  /** AppLayerPorts → port/plug */
+  fwPorts: () => icon(
+    <path d="M5 2v3H3v2h2v3H3v2h2v2h2v-2h2v2h2v-2h2v-2h-2V7h2V5h-2V2H9v3H7V2H5zm2 5h2v3H7V7z" />
+  ),
+  /** EthernetTopology → sitemap / tree */
+  fwTopology: () => icon(
+    <>
+      <rect x="6" y="1" width="4" height="3" rx=".5" />
+      <rect x="1" y="10" width="4" height="3" rx=".5" />
+      <rect x="6" y="10" width="4" height="3" rx=".5" />
+      <rect x="11" y="10" width="4" height="3" rx=".5" />
+      <path d="M8 4v2.5M8 6.5H3m0 0V10m5-3.5V10m5-3.5V10m0-3.5H8" stroke="currentColor" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+    </>
+  ),
+  /** ChannelToEcusMapping → arrows link */
+  fwMapping: () => icon(
+    <>
+      <rect x="1" y="3" width="5" height="3" rx=".5" />
+      <rect x="10" y="10" width="5" height="3" rx=".5" />
+      <path d="M6 4.5h2l5 5h-2" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11 9.5l.5 2-1.5-.5" stroke="currentColor" strokeWidth="1.1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  /** Chevron down for expanded tree */
+  chevronDown: () => icon(<path d="M3 6l5 5 5-5H3z" />),
 };

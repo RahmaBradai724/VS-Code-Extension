@@ -21,4 +21,15 @@ export declare const Icons: {
     tracers: () => React.JSX.Element;
     gear: () => React.JSX.Element;
     agent: () => React.JSX.Element;
+    fwTracers: () => React.JSX.Element;
+    fwEcus: () => React.JSX.Element;
+    fwServicePack: () => React.JSX.Element;
+    fwPublisher: () => React.JSX.Element;
+    fwEthernet: () => React.JSX.Element;
+    fwNpdu: () => React.JSX.Element;
+    fwSomeIP: () => React.JSX.Element;
+    fwPorts: () => React.JSX.Element;
+    fwTopology: () => React.JSX.Element;
+    fwMapping: () => React.JSX.Element;
+    chevronDown: () => React.JSX.Element;
 };

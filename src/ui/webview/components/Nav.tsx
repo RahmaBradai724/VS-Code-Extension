@@ -17,7 +17,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'hardware',  label: 'Hardware Channels', Icon: Icons.hardware,  countKey: 'hardwareChannels' },
   { id: 'mappings',  label: 'Mappings',          Icon: Icons.mappings,  countKey: 'mappings' },
   { id: 'framework', label: 'Framework Configuration',Icon: Icons.framework },
-  { id: 'tracers',   label: 'Tracers',           Icon: Icons.tracers },
   { id: 'generate',  label: 'Generate',          Icon: Icons.generate },
   { id: 'dashboard', label: 'Dashboard',          Icon: Icons.dashboard },
   { id: 'diagrams',  label: 'Diagrams',           Icon: Icons.diagrams  },
@@ -33,17 +32,26 @@ interface FwItem {
   navigateTo?: Page;
 }
 
+interface FwItem {
+  id: FrameworkSection;
+  label: string;
+  indent: number;
+  Icon?: () => React.ReactElement;
+  children?: FwItem[];
+  navigateTo?: Page;
+}
+
 const FW_TREE: FwItem[] = [
-  { id: 'tracers',              label: 'Tracers',                  indent: 1, navigateTo: 'tracers' },
-  { id: 'connectedEcus',        label: 'ConnectedEcus (DUT\'s)',   indent: 1 },
-  { id: 'servicePack',          label: 'ServicePack',              indent: 1 },
-  { id: 'publisher',            label: 'Publisher Configuration',  indent: 1 },
-  { id: 'ethernet',             label: 'Ethernet Configuration',   indent: 1, children: [
-    { id: 'npduConfig',           label: 'NPdu configuration',      indent: 2 },
-    { id: 'someIPConfig',         label: 'SomeIP configuration',    indent: 2 },
-    { id: 'appLayerPorts',        label: 'AppLayer Ports',          indent: 2 },
-    { id: 'ethernetTopology',     label: 'EthernetTopology',        indent: 2 },
-    { id: 'channelToEcusMapping', label: 'ChannelToEcusMapping',    indent: 2 },
+  { id: 'tracers',              label: 'Tracers',                  indent: 1, Icon: Icons.fwTracers, navigateTo: 'tracers' },
+  { id: 'connectedEcus',        label: "ConnectedEcus (DUT's)",    indent: 1, Icon: Icons.fwEcus },
+  { id: 'servicePack',          label: 'ServicePack',              indent: 1, Icon: Icons.fwServicePack },
+  { id: 'publisher',            label: 'Publisher Configuration',  indent: 1, Icon: Icons.fwPublisher },
+  { id: 'ethernet',             label: 'Ethernet Configuration',   indent: 1, Icon: Icons.fwEthernet, children: [
+    { id: 'npduConfig',           label: 'NPdu Configuration',      indent: 2, Icon: Icons.fwNpdu },
+    { id: 'someIPConfig',         label: 'SomeIP Configuration',    indent: 2, Icon: Icons.fwSomeIP },
+    { id: 'appLayerPorts',        label: 'AppLayer Ports',          indent: 2, Icon: Icons.fwPorts },
+    { id: 'ethernetTopology',     label: 'Ethernet Topology',       indent: 2, Icon: Icons.fwTopology },
+    { id: 'channelToEcusMapping', label: 'Channel → ECU Mapping',   indent: 2, Icon: Icons.fwMapping },
   ]},
 ];
 
@@ -210,10 +218,11 @@ export function Nav() {
 
               {/* ── Framework sub-tree ─────────────────────────────── */}
               {id === 'framework' && isActive && (
-                <div style={{ paddingLeft: '8px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                <div style={{ paddingLeft: '6px', paddingTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {FW_TREE.map(item => {
                     const isEth = item.id === 'ethernet';
                     const isSelected = state.frameworkSection === item.id;
+                    const ItemIcon = item.Icon;
                     return (
                       <React.Fragment key={item.id}>
                         <button
@@ -226,48 +235,63 @@ export function Nav() {
                             }
                           }}
                           style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: `5px 8px 5px ${10 + item.indent * 12}px`,
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            padding: `6px 8px 6px ${8 + item.indent * 10}px`,
                             background: isSelected ? `${tokens.accent}22` : 'transparent',
                             border: 'none',
                             borderRadius: tokens.radius.sm,
                             cursor: 'pointer',
                             color: isSelected ? tokens.accent : tokens.fgMuted,
-                            fontSize: '11.5px',
+                            fontSize: '12px',
+                            fontWeight: isSelected ? 600 : 400,
                             textAlign: 'left',
                             width: '100%',
                           }}
                         >
-                          {isEth && (
-                            <span style={{ fontSize: '9px', width: '10px', textAlign: 'center', opacity: 0.6 }}>
-                              {ethExpanded ? '▾' : '▸'}
+                          {ItemIcon && (
+                            <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, opacity: isSelected ? 1 : 0.6 }}>
+                              <ItemIcon />
                             </span>
                           )}
                           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.label}
                           </span>
+                          {isEth && (
+                            <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, opacity: 0.5, transform: ethExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }}>
+                              <Icons.chevronDown />
+                            </span>
+                          )}
                         </button>
                         {/* Ethernet children */}
                         {isEth && ethExpanded && item.children?.map(child => {
                           const childSelected = state.frameworkSection === child.id;
+                          const ChildIcon = child.Icon;
                           return (
                             <button
                               key={child.id}
                               onClick={() => dispatch({ type: 'SET_FRAMEWORK_SECTION', section: child.id })}
                               style={{
-                                display: 'flex', alignItems: 'center',
-                                padding: `4px 8px 4px ${10 + child.indent * 12}px`,
+                                display: 'flex', alignItems: 'center', gap: '7px',
+                                padding: `5px 8px 5px ${8 + child.indent * 10}px`,
                                 background: childSelected ? `${tokens.accent}22` : 'transparent',
                                 border: 'none',
                                 borderRadius: tokens.radius.sm,
                                 cursor: 'pointer',
                                 color: childSelected ? tokens.accent : tokens.fgMuted,
-                                fontSize: '11px',
+                                fontSize: '11.5px',
+                                fontWeight: childSelected ? 600 : 400,
                                 textAlign: 'left',
                                 width: '100%',
                               }}
                             >
-                              {child.label}
+                              {ChildIcon && (
+                                <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, opacity: childSelected ? 1 : 0.55 }}>
+                                  <ChildIcon />
+                                </span>
+                              )}
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {child.label}
+                              </span>
                             </button>
                           );
                         })}
