@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useApp } from '../hooks/useApp';
 import {
   HARDWARE_SUBCLASS_OPTIONS, HARDWARE_EXTRA_FIELDS, HardwareChannel,
 } from '../types';
-import { T, DynamicField, ChannelRow, SectionHeader } from '../components/shared';
+import { T, SectionHeader } from '../components/shared';
+import { AddChannelForm } from './hardware/AddChannelForm';
+import { HardwareList } from './hardware/HardwareList';
 
 function initExtras(subclass: string): Record<string, any> {
   const fields = HARDWARE_EXTRA_FIELDS[subclass] ?? [];
@@ -11,15 +13,6 @@ function initExtras(subclass: string): Record<string, any> {
   fields.forEach(f => { obj[f.key] = f.type === 'checkbox' ? false : ''; });
   return obj;
 }
-
-const SUBCLASS_COLOR: Record<string, string> = {
-  // Capture Module variants (legacy CIBInterface/CMInterface kept for existing data)
-  CANInterface: '#569cd6', CIBInterface: '#569cd6', CMInterface: '#9cdcfe',
-  LINCard: '#dcb67a',
-  EthernetAdapter: '#4ec9b0', RelayBoard: '#c678dd',
-  HIDRelay: '#c678dd', SerialPort: '#d4d4d4', AnalogDevice: '#f0c040',
-  TEAnalog: '#f0c040', HHLoad: '#f87171',
-};
 
 const HW_NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
 
@@ -41,7 +34,7 @@ export default function HardwarePanel() {
       if (!v) {
         setNameError('Name is required.');
       } else if (!HW_NAME_RE.test(v)) {
-        setNameError('Invalid name — must start with a letter or underscore; no spaces. Allowed: A–Z, a–z, 0–9, _, -');
+        setNameError('Invalid name â€” must start with a letter or underscore; no spaces. Allowed: Aâ€“Z, aâ€“z, 0â€“9, _, -');
       } else {
         setNameError('');
       }
@@ -59,7 +52,7 @@ export default function HardwarePanel() {
   function handleAdd() {
     if (!form.name.trim()) { notify('error', 'Channel name is required.'); return; }
     if (!HW_NAME_RE.test(form.name.trim())) {
-      setNameError('Invalid name — must start with a letter or underscore; no spaces.');
+      setNameError('Invalid name â€” must start with a letter or underscore; no spaces.');
       notify('error', 'Please fix the highlighted errors before adding.');
       return;
     }
@@ -82,8 +75,6 @@ export default function HardwarePanel() {
     setShowForm(false);
   }
 
-  const extraFields = HARDWARE_EXTRA_FIELDS[form.subclass] ?? [];
-
   return (
     <div>
       <SectionHeader
@@ -97,76 +88,18 @@ export default function HardwarePanel() {
       />
 
       {showForm && (
-        <div className="ccm-form-card" style={{ ...T.cardAccent, marginBottom: '20px' }}>
-          <p style={T.cardTitle}>New Hardware Channel</p>
-
-          <div style={{ marginBottom: '12px' }}>
-            <label style={T.label}>Name *</label>
-            <input
-              style={{ ...T.input, ...(nameError ? { borderColor: '#f87171', outline: '1px solid #f87171' } : {}) }}
-              placeholder="e.g. CAN_Interface_1"
-              value={form.name}
-              onChange={e => setField('name', e.target.value)}
-            />
-            {nameError && <span style={HW_S_ERR}>{nameError}</span>}
-          </div>
-
-          <div style={{ marginBottom: '12px' }}>
-            <label style={T.label}>Hardware Type *</label>
-            <select style={T.select} value={form.subclass} onChange={e => setSubclass(e.target.value)}>
-              {HARDWARE_SUBCLASS_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {extraFields.length > 0 && (
-            <>
-              <div style={T.divider} />
-              <p style={{ ...T.cardTitle, marginBottom: '8px', opacity: 0.7 }}>Hardware-specific fields</p>
-              <div className="ccm-grid2" style={T.grid2}>
-                {extraFields.map(f => (
-                  <DynamicField key={f.key} def={f} value={form.extras[f.key]} onChange={setExtra} />
-                ))}
-              </div>
-            </>
-          )}
-
-          <div style={{ ...T.divider, marginTop: '16px' }} />
-          <div style={{ ...T.row, justifyContent: 'flex-end' }}>
-            <button style={T.btnSecondary} onClick={handleCancelForm}>Cancel</button>
-            <button style={T.btnPrimary} onClick={handleAdd}>Add Channel</button>
-          </div>
-        </div>
+        <AddChannelForm
+          form={form}
+          nameError={nameError}
+          setField={setField}
+          setSubclass={setSubclass}
+          setExtra={setExtra}
+          handleAdd={handleAdd}
+          handleCancelForm={handleCancelForm}
+        />
       )}
 
-      {state.hardwareChannels.length === 0 ? (
-        <div style={T.empty}>No hardware channels yet. Add one above.</div>
-      ) : (
-        <div>
-          {state.hardwareChannels.map(hw => {
-            const color = SUBCLASS_COLOR[hw.subclass] ?? '#888';
-            const label = HARDWARE_SUBCLASS_OPTIONS.find(o => o.value === hw.subclass)?.label ?? hw.subclass;
-            return (
-              <ChannelRow
-                key={hw.id}
-                name={hw.name}
-                badgeLabel={label}
-                badgeColor={color}
-                onDelete={() => send('deleteHardwareChannel', { channelId: hw.id })}
-              />
-            );
-          })}
-        </div>
-      )}
+      <HardwareList hardwareChannels={state.hardwareChannels} send={send} />
     </div>
   );
 }
-
-const HW_S_ERR: React.CSSProperties = {
-  display: 'block',
-  marginTop: '4px',
-  fontSize: '11px',
-  color: '#f87171',
-  lineHeight: 1.4,
-};

@@ -1,0 +1,14 @@
+.venv
+scripts
+src
+tsconfig.json
+webpack.webview.config.js
+.vscode
+MTF.yaml
+debug.log
+webview-tsbuild
+**/*.map
+node_modules/.bin
+node_modules/**/test
+node_modules/**/tests
+node_modules/**/*.md
