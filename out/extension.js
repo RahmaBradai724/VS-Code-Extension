@@ -45,11 +45,7 @@ const autoLoadState_1 = require("./ui/autoLoadState");
 async function activate(context) {
     console.log('Channel Configuration Manager is now active.');
     // Silently initialize database in the background
-    (0, databaseService_1.testDatabaseConnection)().then(async (connected) => {
-        if (connected) {
-            await (0, databaseService_1.initializeDatabase)();
-        }
-    });
+    (0, databaseService_1.testDatabaseConnection)();
     const storageService = new storageService_1.StorageService(context);
     const importer = new configImporter_1.ConfigImporter(storageService);
     /** Default content written to a freshly created MTF.yaml */

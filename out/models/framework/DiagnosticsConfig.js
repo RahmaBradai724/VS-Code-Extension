@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiagnosticsConfig = void 0;
 const typeorm_1 = require("typeorm");
-class DiagnosticsConfig {
+let DiagnosticsConfig = class DiagnosticsConfig {
     constructor() {
         this.ecuIpAddress = '';
         this.testerIpAddress = '';
@@ -24,8 +24,17 @@ class DiagnosticsConfig {
     toJSON() {
         return { ...this };
     }
-}
+};
 exports.DiagnosticsConfig = DiagnosticsConfig;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], DiagnosticsConfig.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)('FrameworkConfig', 'diagnostics'),
+    (0, typeorm_1.JoinColumn)(),
+    __metadata("design:type", Function)
+], DiagnosticsConfig.prototype, "frameworkConfig", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -46,4 +55,7 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], DiagnosticsConfig.prototype, "rai", void 0);
+exports.DiagnosticsConfig = DiagnosticsConfig = __decorate([
+    (0, typeorm_1.Entity)('diagnostics_configs')
+], DiagnosticsConfig);
 //# sourceMappingURL=DiagnosticsConfig.js.map

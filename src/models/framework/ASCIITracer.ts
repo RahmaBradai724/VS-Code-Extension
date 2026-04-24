@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import type { FrameworkConfig } from './FrameworkConfig';
 
 /** Dedicated table for ASCII tracers. */
 @Entity('ascii_tracers')
@@ -10,8 +11,9 @@ export class ASCIITracer {
   name: string = '';
 
   /** FK to framework_configs.id */
-  @Column({ nullable: true })
-  frameworkConfigId?: number;
+  @ManyToOne('FrameworkConfig', 'asciiTracers', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'frameworkConfigId' })
+  frameworkConfig!: FrameworkConfig;
 
   /** Hex | Decimal */
   @Column({ nullable: true })

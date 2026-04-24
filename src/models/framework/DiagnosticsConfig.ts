@@ -1,6 +1,15 @@
-import { Column } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import type { FrameworkConfig } from './FrameworkConfig';
 
+@Entity('diagnostics_configs')
 export class DiagnosticsConfig {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @OneToOne('FrameworkConfig', 'diagnostics')
+  @JoinColumn()
+  frameworkConfig!: FrameworkConfig;
+
   @Column()
   ecuIpAddress: string = '';
 

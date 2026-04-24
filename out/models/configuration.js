@@ -78,7 +78,7 @@ __decorate([
     __metadata("design:type", Array)
 ], Configuration.prototype, "mappings", void 0);
 __decorate([
-    (0, typeorm_1.OneToOne)(() => frameworkConfig_1.FrameworkConfig, { cascade: true }),
+    (0, typeorm_1.OneToOne)(() => frameworkConfig_1.FrameworkConfig, { cascade: true, eager: true }),
     (0, typeorm_1.JoinColumn)(),
     __metadata("design:type", frameworkConfig_1.FrameworkConfig)
 ], Configuration.prototype, "frameworkConfig", void 0);

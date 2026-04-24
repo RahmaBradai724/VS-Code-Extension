@@ -29,7 +29,7 @@ import {
 import { Configuration } from '../../models/configuration';
 import { User } from '../../models/user';
 import { Mapping } from '../../models/mapping';
-import { FrameworkConfig, PCAPTracer, ASCIITracer } from '../../models/frameworkConfig';
+import { FrameworkConfig, PCAPTracer, ASCIITracer, EthernetConfig, PublisherConfig, DiagnosticsConfig } from '../../models/frameworkConfig';
 
 // ── Database configuration ──────────────────────────────────────────────────
 const dbConfig = {
@@ -65,6 +65,7 @@ export function getDataSource(): DataSource {
         LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice,
         CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo,
         PCAPTracer, ASCIITracer, FrameworkConfig,
+        EthernetConfig, PublisherConfig, DiagnosticsConfig,
         Configuration, User, Mapping,
       ],
     });
@@ -86,31 +87,11 @@ export function initializeDatabase(): Promise<void> {
       if (!ds.isInitialized) {
         await ds.initialize();
       }
-      // Ensure tracer tables exist (safe: IF NOT EXISTS avoids conflicts on reload)
-      await ds.query(`
-        CREATE TABLE IF NOT EXISTS pcap_tracers (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR NOT NULL,
-          "frameworkConfigId" INTEGER,
-          "loggingType" VARCHAR,
-          "timestamp" VARCHAR,
-          "loggerConfiguration" JSONB
-        )
-      `);
-      await ds.query(`
-        CREATE TABLE IF NOT EXISTS ascii_tracers (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR NOT NULL,
-          "frameworkConfigId" INTEGER,
-          base VARCHAR,
-          "internalEventLogged" BOOLEAN NOT NULL DEFAULT false,
-          "timeStampSetting" VARCHAR,
-          "timestamp" VARCHAR,
-          "loggerConfiguration" JSONB
-        )
-      `);
       console.log('Database initialized successfully (TypeORM).');
     } catch (err: any) {
+      // Reset so the next call can retry with a fresh DataSource
+      initializationPromise = null;
+      appDataSource = null;
       console.error('Error initializing database:', err);
       vscode.window.showErrorMessage(
         `Failed to initialize database schema. ${err?.message || ''}`
@@ -124,11 +105,8 @@ export function initializeDatabase(): Promise<void> {
 
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
-    const ds = getDataSource();
-    if (!ds.isInitialized) {
-      await ds.initialize();
-    }
-    await ds.query('SELECT 1');
+    await initializeDatabase();
+    await getDataSource().query('SELECT 1');
     return true;
   } catch (err) {
     console.error('Error connecting to the database:', err);

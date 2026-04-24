@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EthernetConfig = void 0;
 const typeorm_1 = require("typeorm");
-class EthernetConfig {
+let EthernetConfig = class EthernetConfig {
     toYAML() {
         return {
             autoDetectEthSettings: this.autoDetectEthSettings,
@@ -26,8 +26,17 @@ class EthernetConfig {
     toJSON() {
         return { ...this };
     }
-}
+};
 exports.EthernetConfig = EthernetConfig;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], EthernetConfig.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)('FrameworkConfig', 'ethernetConfig'),
+    (0, typeorm_1.JoinColumn)(),
+    __metadata("design:type", Function)
+], EthernetConfig.prototype, "frameworkConfig", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Boolean)
@@ -68,4 +77,7 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)
 ], EthernetConfig.prototype, "ethernetTopology", void 0);
+exports.EthernetConfig = EthernetConfig = __decorate([
+    (0, typeorm_1.Entity)('ethernet_configs')
+], EthernetConfig);
 //# sourceMappingURL=EthernetConfig.js.map

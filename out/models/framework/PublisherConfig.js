@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublisherConfig = void 0;
 const typeorm_1 = require("typeorm");
 const enums_1 = require("../enums");
-class PublisherConfig {
+let PublisherConfig = class PublisherConfig {
     constructor() {
         this.publisherType = enums_1.PublisherMode.SingleThreaded;
         this.channelsGroups = [];
@@ -23,8 +23,17 @@ class PublisherConfig {
     toJSON() {
         return { publisherType: this.publisherType, topicCancel: this.topicCancel, channelsGroups: this.channelsGroups };
     }
-}
+};
 exports.PublisherConfig = PublisherConfig;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], PublisherConfig.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)('FrameworkConfig', 'publisherConfig'),
+    (0, typeorm_1.JoinColumn)(),
+    __metadata("design:type", Function)
+], PublisherConfig.prototype, "frameworkConfig", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -37,4 +46,7 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
     __metadata("design:type", Array)
 ], PublisherConfig.prototype, "channelsGroups", void 0);
+exports.PublisherConfig = PublisherConfig = __decorate([
+    (0, typeorm_1.Entity)('publisher_configs')
+], PublisherConfig);
 //# sourceMappingURL=PublisherConfig.js.map

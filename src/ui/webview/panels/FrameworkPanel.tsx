@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+ï»¿import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../hooks/useApp';
 import { FrameworkData, FrameworkSection } from '../types';
 import { T } from '../components/shared';
@@ -56,7 +56,7 @@ export default function FrameworkPanel() {
   }, [state.frameworkSection]);
 
   // Live-sync local data into global state so the YAML preview stays in sync
-  // (same logic as logical channels — immediate, no debounce)
+  // (same logic as logical channels ï¿½ immediate, no debounce)
 
   function setD(key: keyof FrameworkData, val: any) {
     const updated = { ...data, [key]: val };
@@ -164,7 +164,7 @@ export default function FrameworkPanel() {
           { id: 'fw-someIPConfig',  label: 'SomeIP' },
           { id: 'fw-appLayerPorts', label: 'App Ports' },
           { id: 'fw-ethernetTopology', label: 'Eth Topology' },
-          { id: 'fw-channelToEcusMapping', label: 'CH ? ECU' },
+          { id: 'fw-channelToEcusMapping', label: 'ECU Mapping' },
         ] as { id: string; label: string }[]).map(s => (
           <button key={s.id} style={NAV_PILL}
             onClick={() => scrollRef.current?.querySelector(`#${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>

@@ -49,9 +49,10 @@ __decorate([
     __metadata("design:type", String)
 ], PCAPTracer.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], PCAPTracer.prototype, "frameworkConfigId", void 0);
+    (0, typeorm_1.ManyToOne)('FrameworkConfig', 'pcapTracers', { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'frameworkConfigId' }),
+    __metadata("design:type", Function)
+], PCAPTracer.prototype, "frameworkConfig", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)

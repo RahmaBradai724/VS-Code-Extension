@@ -78,8 +78,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run bundle",
     "compile": "tsc -p ./ && webpack --config webpack.webview.config.js",
+    "bundle": "tsc -p ./ --noEmit && webpack --config webpack.extension.config.js && webpack --config webpack.webview.config.js",
     "build:webview": "webpack --config webpack.webview.config.js",
     "watch": "tsc -watch -p ./",
     "watch:webview": "webpack --watch --config webpack.webview.config.js",

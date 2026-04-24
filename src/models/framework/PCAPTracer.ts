@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import type { FrameworkConfig } from './FrameworkConfig';
 
 /** Dedicated table for PCAP tracers. */
 @Entity('pcap_tracers')
@@ -10,8 +11,9 @@ export class PCAPTracer {
   name: string = '';
 
   /** FK to framework_configs.id */
-  @Column({ nullable: true })
-  frameworkConfigId?: number;
+  @ManyToOne('FrameworkConfig', 'pcapTracers', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'frameworkConfigId' })
+  frameworkConfig!: FrameworkConfig;
 
   /** MultipleAdapterMode | PerformanceMode | StandardMode */
   @Column({ nullable: true })

@@ -10,11 +10,7 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log('Channel Configuration Manager is now active.');
 
   // Silently initialize database in the background
-  testDatabaseConnection().then(async (connected) => {
-    if (connected) {
-      await initializeDatabase();
-    }
-  });
+  testDatabaseConnection();
 
   const storageService = new StorageService(context);
   const importer       = new ConfigImporter(storageService);

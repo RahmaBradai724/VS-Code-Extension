@@ -1,6 +1,15 @@
-import { Column } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import type { FrameworkConfig } from './FrameworkConfig';
 
+@Entity('ethernet_configs')
 export class EthernetConfig {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @OneToOne('FrameworkConfig', 'ethernetConfig')
+  @JoinColumn()
+  frameworkConfig!: FrameworkConfig;
+
   @Column({ nullable: true })
   autoDetectEthSettings?: boolean;
 

@@ -25,7 +25,7 @@ import {
 } from '../../models/hardwareChannels';
 import { Configuration } from '../../models/configuration';
 import { Mapping } from '../../models/mapping';
-import { FrameworkConfig, EthernetConfig } from '../../models/framework';
+import { FrameworkConfig, EthernetConfig, PublisherConfig } from '../../models/framework';
 import { PCAPTracer } from '../../models/framework/PCAPTracer';
 import { ASCIITracer } from '../../models/framework/ASCIITracer';
 import { getDataSource, initializeDatabase } from './DataSourceProvider';
@@ -125,15 +125,22 @@ export class ConfigurationRepository {
       const fwRepo = ds.getRepository(FrameworkConfig);
       const existingWithFw = await repo.findOne({
         where: { id: configId },
-        relations: ['frameworkConfig'],
+        relations: [
+          'frameworkConfig',
+          'frameworkConfig.publisherConfig',
+          'frameworkConfig.diagnostics',
+          'frameworkConfig.ethernetConfig',
+        ],
       });
       const fwEntity = existingWithFw?.frameworkConfig ?? new FrameworkConfig();
       const fw = parsedData.frameworkConfig;
-      fwEntity.tracers       = fw.tracers        ?? [];
       fwEntity.connectedEcus = fw.connectedEcus  ?? [];
       if (fw.servicePack !== undefined) { fwEntity.servicePack = fw.servicePack; }
-      if (fw.publisherType)    { fwEntity.publisherConfig.publisherType    = fw.publisherType; }
-      if (fw.channelsGroups)   { fwEntity.publisherConfig.channelsGroups   = fw.channelsGroups; }
+      if (fw.publisherType || fw.channelsGroups) {
+        if (!fwEntity.publisherConfig) { fwEntity.publisherConfig = new PublisherConfig(); }
+        if (fw.publisherType)  { fwEntity.publisherConfig.publisherType  = fw.publisherType; }
+        if (fw.channelsGroups) { fwEntity.publisherConfig.channelsGroups = fw.channelsGroups; }
+      }
       if (fw.ethernetConfig) {
         const ec = fw.ethernetConfig;
         if (!fwEntity.ethernetConfig) { fwEntity.ethernetConfig = new EthernetConfig(); }
@@ -154,15 +161,15 @@ export class ConfigurationRepository {
       const pcapRepo  = ds.getRepository(PCAPTracer);
       const asciiRepo = ds.getRepository(ASCIITracer);
 
-      // Remove stale rows for this frameworkConfig before reinserting
-      await pcapRepo.delete({ frameworkConfigId: savedFw.id });
-      await asciiRepo.delete({ frameworkConfigId: savedFw.id });
+      // Remove stale tracer rows for this frameworkConfig before reinserting
+      await pcapRepo.createQueryBuilder().delete().where('"frameworkConfigId" = :id', { id: savedFw.id }).execute();
+      await asciiRepo.createQueryBuilder().delete().where('"frameworkConfigId" = :id', { id: savedFw.id }).execute();
 
       for (const t of tracers) {
         if (t.Type === 'PCAP') {
           await pcapRepo.save(pcapRepo.create({
             name:                t.name,
-            frameworkConfigId:   savedFw.id,
+            frameworkConfig:     savedFw,
             loggingType:         t.LoggingType,
             timestamp:           t.Timestamp,
             loggerConfiguration: t.LoggerConfiguration,
@@ -170,7 +177,7 @@ export class ConfigurationRepository {
         } else if (t.Type === 'ASCII') {
           await asciiRepo.save(asciiRepo.create({
             name:                t.name,
-            frameworkConfigId:   savedFw.id,
+            frameworkConfig:     savedFw,
             base:                t.Base,
             internalEventLogged: t.InternalEventLogged ?? false,
             timeStampSetting:    t.TimeStampSetting,
@@ -182,5 +189,35 @@ export class ConfigurationRepository {
     }
 
     console.log(`Configuration ${name} saved to DB.`);
+  }
+
+  async findById(configId: string): Promise<Configuration | null> {
+    await initializeDatabase();
+    return getDataSource().getRepository(Configuration).findOne({
+      where: { id: configId },
+      relations: [
+        'frameworkConfig',
+        'frameworkConfig.publisherConfig',
+        'frameworkConfig.diagnostics',
+        'frameworkConfig.ethernetConfig',
+        'frameworkConfig.pcapTracers',
+        'frameworkConfig.asciiTracers',
+        'mappings',
+      ],
+    });
+  }
+
+  async findAll(): Promise<Configuration[]> {
+    await initializeDatabase();
+    return getDataSource().getRepository(Configuration).find({
+      relations: [
+        'frameworkConfig',
+        'frameworkConfig.publisherConfig',
+        'frameworkConfig.diagnostics',
+        'frameworkConfig.ethernetConfig',
+        'frameworkConfig.pcapTracers',
+        'frameworkConfig.asciiTracers',
+      ],
+    });
   }
 }

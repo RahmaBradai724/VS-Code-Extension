@@ -31,7 +31,7 @@ export class Configuration {
   @OneToMany(() => Mapping, (m) => m.configuration)
   mappings!: Mapping[];
 
-  @OneToOne(() => FrameworkConfig, { cascade: true })
+  @OneToOne(() => FrameworkConfig, { cascade: true, eager: true })
   @JoinColumn()
   frameworkConfig!: FrameworkConfig;
 

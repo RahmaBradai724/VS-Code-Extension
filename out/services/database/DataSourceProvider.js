@@ -76,6 +76,7 @@ function getDataSource() {
                 hardwareChannels_1.LINCard, hardwareChannels_1.SerialPort, hardwareChannels_1.HIDRelay, hardwareChannels_1.RelayBoard, hardwareChannels_1.EthernetAdapter, hardwareChannels_1.AnalogDevice,
                 hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad, hardwareChannels_1.BTSRevo,
                 frameworkConfig_1.PCAPTracer, frameworkConfig_1.ASCIITracer, frameworkConfig_1.FrameworkConfig,
+                frameworkConfig_1.EthernetConfig, frameworkConfig_1.PublisherConfig, frameworkConfig_1.DiagnosticsConfig,
                 configuration_1.Configuration, user_1.User, mapping_1.Mapping,
             ],
         });
@@ -95,32 +96,12 @@ function initializeDatabase() {
             if (!ds.isInitialized) {
                 await ds.initialize();
             }
-            // Ensure tracer tables exist (safe: IF NOT EXISTS avoids conflicts on reload)
-            await ds.query(`
-        CREATE TABLE IF NOT EXISTS pcap_tracers (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR NOT NULL,
-          "frameworkConfigId" INTEGER,
-          "loggingType" VARCHAR,
-          "timestamp" VARCHAR,
-          "loggerConfiguration" JSONB
-        )
-      `);
-            await ds.query(`
-        CREATE TABLE IF NOT EXISTS ascii_tracers (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR NOT NULL,
-          "frameworkConfigId" INTEGER,
-          base VARCHAR,
-          "internalEventLogged" BOOLEAN NOT NULL DEFAULT false,
-          "timeStampSetting" VARCHAR,
-          "timestamp" VARCHAR,
-          "loggerConfiguration" JSONB
-        )
-      `);
             console.log('Database initialized successfully (TypeORM).');
         }
         catch (err) {
+            // Reset so the next call can retry with a fresh DataSource
+            initializationPromise = null;
+            appDataSource = null;
             console.error('Error initializing database:', err);
             vscode.window.showErrorMessage(`Failed to initialize database schema. ${err?.message || ''}`);
             throw err;
@@ -130,11 +111,8 @@ function initializeDatabase() {
 }
 async function testDatabaseConnection() {
     try {
-        const ds = getDataSource();
-        if (!ds.isInitialized) {
-            await ds.initialize();
-        }
-        await ds.query('SELECT 1');
+        await initializeDatabase();
+        await getDataSource().query('SELECT 1');
         return true;
     }
     catch (err) {

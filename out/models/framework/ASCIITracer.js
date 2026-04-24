@@ -57,9 +57,10 @@ __decorate([
     __metadata("design:type", String)
 ], ASCIITracer.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], ASCIITracer.prototype, "frameworkConfigId", void 0);
+    (0, typeorm_1.ManyToOne)('FrameworkConfig', 'asciiTracers', { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'frameworkConfigId' }),
+    __metadata("design:type", Function)
+], ASCIITracer.prototype, "frameworkConfig", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
