@@ -12,6 +12,40 @@ interface DynamicFieldProps {
 }
 
 export function DynamicField({ def, value, onChange }: DynamicFieldProps) {
+  const [touched, setTouched] = useState(false);
+  const strVal = String(value ?? '');
+  const isInvalid = touched && !!def.pattern && strVal !== '' && !def.pattern.test(strVal);
+  const ERR_COLOR = 'var(--vscode-editorError-foreground, #f44747)';
+
+  if (def.type === 'json') {
+    const [jsonError, setJsonError] = useState('');
+    const raw = typeof value === 'string' ? value : value !== undefined ? JSON.stringify(value, null, 2) : '';
+    return (
+      <div style={{ marginBottom: '10px', gridColumn: '1 / -1' }}>
+        <label style={T.label}>{def.label}</label>
+        <textarea
+          style={{
+            ...T.input,
+            width: '100%',
+            minHeight: '120px',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            resize: 'vertical',
+            ...(jsonError ? { borderColor: 'var(--vscode-editorError-foreground, #f44747)', outline: '1px solid var(--vscode-editorError-foreground, #f44747)' } : {}),
+          }}
+          placeholder={def.placeholder || '[]'}
+          value={raw}
+          onChange={e => {
+            const text = e.target.value;
+            if (text === '') { setJsonError(''); onChange(def.key, undefined); return; }
+            try { onChange(def.key, JSON.parse(text)); setJsonError(''); }
+            catch { onChange(def.key, text); setJsonError('Invalid JSON'); }
+          }}
+        />
+        {jsonError && <span style={{ fontSize: '11px', color: 'var(--vscode-editorError-foreground, #f44747)', marginTop: '3px', display: 'block' }}>{jsonError}</span>}
+      </div>
+    );
+  }
   if (def.type === 'checkbox') {
     return (
       <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -47,12 +81,18 @@ export function DynamicField({ def, value, onChange }: DynamicFieldProps) {
     <div style={{ marginBottom: '10px' }}>
       <label style={T.label}>{def.label}</label>
       <input
-        style={T.input}
+        style={{ ...T.input, ...(isInvalid ? { borderColor: ERR_COLOR, outline: `1px solid ${ERR_COLOR}` } : {}) }}
         type={def.type === 'number' ? 'number' : 'text'}
         placeholder={def.placeholder || ''}
         value={value ?? ''}
         onChange={e => onChange(def.key, def.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+        onBlur={() => setTouched(true)}
       />
+      {isInvalid && (
+        <span style={{ fontSize: '11px', color: ERR_COLOR, marginTop: '3px', display: 'block' }}>
+          {def.patternError || 'Invalid format'}
+        </span>
+      )}
     </div>
   );
 }

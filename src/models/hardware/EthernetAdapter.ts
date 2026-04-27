@@ -5,12 +5,6 @@ import { HardwareChannelCategory, HardwareChannelSubclass } from '../enums';
 @Entity('hardware_ethernet_adapters')
 export class EthernetAdapter extends HardwareChannel {
   @Column()
-  macAddress: string = '';
-
-  @Column()
-  ipAddress: string = '';
-
-  @Column()
   friendlyName: string = '';
 
   @Column()
@@ -80,7 +74,6 @@ export class EthernetAdapter extends HardwareChannel {
   toYAML(): object {
     return {
       id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-      macAddress: this.macAddress, ipAddress: this.ipAddress,
       friendlyName: this.friendlyName, interface: this.interface,
       bufferSize: this.bufferSize, bpFilter: this.bpFilter,
       timeout: this.timeout, timeStampPrecision: this.timeStampPrecision,

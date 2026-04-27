@@ -44,6 +44,7 @@ export enum HardwareChannelCategory {
   BTS_REVO = 'BTS_REVO',
   GENESYS_PS = 'GENESYS_PS',
   MANSON_PS = 'MANSON_PS',
+  TUNTAP_BRIDGE = 'TUNTAP_BRIDGE',
 }
 
 export enum HardwareChannelSubclass {
@@ -61,6 +62,7 @@ export enum HardwareChannelSubclass {
   BTS_REVO = 'BTSRevo',
   GENESYS_PS = 'GenesysPowerSupply',
   MANSON_PS = 'MansonPowerSupply',
+  TUNTAP_BRIDGE = 'TunTapBridge',
 }
 
 export enum CaptureType {

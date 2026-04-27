@@ -1,10 +1,12 @@
 import { Entity, Column } from 'typeorm';
 import { LogicalChannel } from '../LogicalChannel';
 import { LogicalChannelCategory, LogicalChannelSubclass } from '../enums';
+import { VlanConfig, TunTapAdapterConfig } from '../hardware/TunTapBridge';
 
-export interface TunTapAdapter {
-  [key: string]: unknown;
-}
+/** @deprecated Use TunTapAdapterConfig from hardware/TunTapBridge instead. */
+export type TunTapAdapter = TunTapAdapterConfig;
+
+export { VlanConfig, TunTapAdapterConfig };
 
 @Entity('logical_bridge_channels')
 export class BridgeChannel extends LogicalChannel {
@@ -12,7 +14,7 @@ export class BridgeChannel extends LogicalChannel {
   bridgeName?: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  tunTapAdapterList?: TunTapAdapter[];
+  tunTapAdapterList?: TunTapAdapterConfig[];
 
   constructor(id: string, name: string) {
     super(id, name, LogicalChannelCategory.BRIDGE, LogicalChannelSubclass.BRIDGE);

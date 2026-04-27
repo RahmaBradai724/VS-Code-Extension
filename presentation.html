@@ -321,7 +321,7 @@
         </div>
       </div>
       <div class="agenda-item"><div class="agenda-num">3</div><div class="agenda-text"><strong>Defined Solution</strong> — Architecture and technology choices</div></div>
-      <div class="agenda-item"><div class="agenda-num">4</div><div class="agenda-text"><strong>Key Features</strong> — Config generation, AI validation, RAG agent</div></div>
+      <div class="agenda-item"><div class="agenda-num">4</div><div class="agenda-text"><strong>Key Features</strong> — Config generation, Hardware Discovery, Mapping rules enforcement</div></div>
       <div class="agenda-item"><div class="agenda-num">5</div><div class="agenda-text"><strong>Live Demo</strong> — End-to-end walkthrough</div></div>
       <div class="agenda-item"><div class="agenda-num">6</div><div class="agenda-text"><strong>Current Status &amp; Next Steps</strong> — Milestones to completion</div></div>
     </div>
@@ -414,9 +414,9 @@
           <li>Mapping engine with compatibility validation</li>
           <li>Automatic <code>config.yaml</code> generation</li>
           <li>Import existing configurations</li>
-          <li>AI validation (Gemini API)</li>
-          <li>MTF knowledge chatbot (local Ollama RAG)</li>
+          <li><strong>Hardware Device Discovery</strong> — detected devices listed automatically</li>
           <li>Hardware diagram visualization</li>
+          <li>Dashboard with live statistics</li>
         </ul>
       </div>
       <div>
@@ -425,8 +425,7 @@
           <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">Extension</span> <span style="color:#fff; font-size:0.88rem;">TypeScript + VS Code API</span></div>
           <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">Frontend UI</span> <span style="color:#fff; font-size:0.88rem;">React + TypeScript (Webview)</span></div>
           <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">Database</span> <span style="color:#fff; font-size:0.88rem;">SQLite via TypeORM</span></div>
-          <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">AI Validation</span> <span style="color:#fff; font-size:0.88rem;">Google Gemini Pro API</span></div>
-          <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">RAG Agent</span> <span style="color:#fff; font-size:0.88rem;">Ollama (llama3.2 + nomic-embed)</span></div>
+          <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">Discovery</span> <span style="color:#fff; font-size:0.88rem;">VS Code API + Node.js (auto-detect)</span></div>
           <div class="card" style="padding:10px 16px;"><span style="color:#aaa; font-size:0.82rem; display:inline-block; width:120px;">Auth</span> <span style="color:#fff; font-size:0.88rem;">JWT + bcryptjs</span></div>
         </div>
       </div>
@@ -790,133 +789,153 @@ Webview (React)
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════ SLIDE 9 – AI Validation ═══ -->
-  <div class="slide" id="slide-9" data-notes="The second AI feature is AI-powered validation using the Google Gemini Pro API. First, local rule-based validation runs — this is fast and always available with no API dependency. Then, if a Gemini API key is configured, the extension sends the generated YAML plus a structured summary of the channels and mappings to Gemini. The prompt asks Gemini to analyze five categories: protocol mismatches, suboptimal configurations, best practice violations, missing recommended fields, and other anomalies. Gemini responds in a strict JSON format with errors, warnings, and suggestions. These are merged with local results and displayed to the engineer. If no API key is configured, the system falls back gracefully to local validation only.">
+  <!-- ═══════════════════════════════════════════ SLIDE 9 – Hardware Discovery ═══ -->
+  <div class="slide" id="slide-9" data-notes="One of the key convenience features is hardware device discovery. When the extension starts, or when an MTF.yaml is detected in the workspace, the system automatically scans for known hardware devices connected to the machine. Detected devices are listed directly in the Hardware Channels panel — engineers don't need to manually type device names or remember port identifiers. This eliminates a major source of configuration errors: wrong device names. For example, a PEAK PCAN-USB adapter will be detected as PCAN_USBBUS1, a COM port will be found with its real system name like COM3, and a network adapter will show its friendly name. The discovery flow is: scan → match known device types → pre-fill a hardware channel draft → the engineer only needs to confirm or adjust the name.">
     <div class="label">Key Feature</div>
-    <h2>AI Validation (Gemini Pro)</h2>
+    <h2>Hardware Device Discovery</h2>
     <div class="two-col" style="align-items:start; gap:40px;">
       <div>
-        <h3>Two-Layer Validation</h3>
-        <div class="card" style="margin-bottom:12px;">
-          <p style="font-size:0.88rem;"><strong>Layer 1 — Local Rules (always runs)</strong><br/>Fast, offline, deterministic. Catches structural and naming errors.</p>
+        <h3>What is Discovery?</h3>
+        <p style="font-size:0.9rem; margin-bottom:14px;">When hardware is physically connected to the bench machine, the extension <span class="highlight">detects it automatically</span> and lists it in the Hardware Channels panel — no manual device name entry needed.</p>
+        <h3>Discovery Flow</h3>
+        <div class="flow" style="flex-direction:column; align-items:flex-start; gap:6px;">
+          <div class="flow-box">① Extension activates / MTF.yaml detected</div>
+          <div class="flow-arrow" style="margin-left:20px;">↓</div>
+          <div class="flow-box">② Scan connected devices (USB, COM ports, adapters)</div>
+          <div class="flow-arrow" style="margin-left:20px;">↓</div>
+          <div class="flow-box">③ Match against known hardware types</div>
+          <div class="flow-arrow" style="margin-left:20px;">↓</div>
+          <div class="flow-box">④ Pre-fill hardware channel draft</div>
+          <div class="flow-arrow" style="margin-left:20px;">↓</div>
+          <div class="flow-box" style="background:rgba(34,197,94,0.12); border-color:#22c55e; color:#22c55e;">⑤ Device listed automatically ✓</div>
         </div>
-        <div class="card accent">
-          <p style="font-size:0.88rem;"><strong>Layer 2 — Gemini AI (when key configured)</strong><br/>Semantic analysis: detects protocol mismatches, missing recommended fields, best practice violations.</p>
-        </div>
-        <br/>
-        <h3>What Gemini analyzes</h3>
-        <ul style="font-size:0.88rem;">
-          <li>Protocol incompatibilities in mappings</li>
-          <li>Suboptimal parameter configurations</li>
-          <li>Missing optional but recommended fields</li>
-          <li>Best practice violations</li>
-          <li>Any other anomalies in the YAML</li>
-        </ul>
       </div>
       <div>
-        <h3>Output Structure</h3>
-        <pre style="font-size:0.82rem;">{
-  <span class="key">"isValid"</span>: <span class="val">true</span>,
-  <span class="key">"errors"</span>: [
-    <span class="val">"CAN_ECU mapped to LIN hardware"</span>
-  ],
-  <span class="key">"warnings"</span>: [
-    <span class="val">"Baudrate not specified for CAN_ECU"</span>
-  ],
-  <span class="key">"suggestions"</span>: [
-    <span class="val">"Add loggingName for traceability"</span>,
-    <span class="val">"Consider enabling PCAP tracer"</span>
-  ]
-}</pre>
-        <div class="card" style="margin-top:12px;">
-          <p style="font-size:0.82rem; color:#aaa;">Graceful degradation: falls back to local validation if no API key is set, with a clear warning message.</p>
+        <h3>Detected Device Types</h3>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px;">
+          <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#f5c400; font-weight:700; font-size:0.88rem;">CAN Interface</span>
+            <span style="color:#aaa; font-size:0.82rem;">e.g. PCAN_USBBUS1 (Peak PCAN-USB)</span>
+          </div>
+          <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#f5c400; font-weight:700; font-size:0.88rem;">Serial / COM Port</span>
+            <span style="color:#aaa; font-size:0.82rem;">e.g. COM3, /dev/ttyUSB0</span>
+          </div>
+          <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#f5c400; font-weight:700; font-size:0.88rem;">Ethernet Adapter</span>
+            <span style="color:#aaa; font-size:0.82rem;">Friendly name / interface description</span>
+          </div>
+          <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#f5c400; font-weight:700; font-size:0.88rem;">Relay / HID Device</span>
+            <span style="color:#aaa; font-size:0.82rem;">USB HID relay boards detected by VID/PID</span>
+          </div>
+          <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#f5c400; font-weight:700; font-size:0.88rem;">Power Supply</span>
+            <span style="color:#aaa; font-size:0.82rem;">Detected via COM port enumeration</span>
+          </div>
+        </div>
+        <div class="card accent">
+          <p style="font-size:0.88rem;"><strong>Benefit:</strong> Engineers no longer need to remember device identifiers. The system finds what is physically present and offers it as a ready-to-use hardware channel — reducing setup time and device name errors.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════ SLIDE 10 – RAG Agent ═══ -->
-  <div class="slide alt" id="slide-10" data-notes="The third AI feature is the MTF Agent — a local RAG chatbot that engineers can use to ask questions about the MTF configuration format. RAG stands for Retrieval-Augmented Generation. The pipeline has four steps. First, the user's question is embedded into a vector using Ollama's nomic-embed-text model — this runs entirely locally, no internet connection needed. Second, the knowledge base is searched using a hybrid approach: 65% vector cosine similarity for semantic matching, plus 35% keyword scoring for exact field name lookups, plus a graph expansion that follows relatedIds links between chunks. Third, the top 5 most relevant chunks from the MTF documentation are injected into a grounded system prompt that instructs the model to answer only from that context. Fourth, the answer is streamed token-by-token from the llama3.2 model running locally in Ollama. This means engineers get accurate, grounded answers about MTF syntax without sending any data to external servers.">
-    <div class="label">Key Feature</div>
-    <h2>MTF Agent — Local RAG Chatbot</h2>
+  <!-- ═══════════════════════════════════════════ SLIDE 10 – Mapping Rules ═══ -->
+  <div class="slide dark" id="slide-10" data-notes="Let me now go deeper into the mapping validation rules — these are enforced by the system at the moment the engineer tries to create a mapping, not just at generation time. There are five categories of rules. First, protocol compatibility: the compatibility matrix is hard-coded in CompatibilityRules.ts. Each logical channel category has a fixed set of allowed hardware categories. An attempt to map a CAN channel to an Ethernet adapter is rejected immediately with a clear error message listing what hardware types are actually allowed. Second, CM device sub-type enforcement: CMInterface devices come in two flavors — CAN_Combo (for CAN/CANFD/FlexRay) and LIN_Combo (for LIN only). The system checks the cmType field and rejects cross-type assignments. Third, one-logical-one-hardware: each logical channel can appear in at most one mapping. Trying to add a second mapping to the same logical channel throws an error immediately — before the database is touched. Fourth, no duplicate pairs: the same logical+hardware combination cannot be registered twice. Fifth, at config generation time, an additional check ensures all referenced channels and tracers actually exist.">
+    <div class="label">Key Feature — Mapping Engine</div>
+    <h2>Mapping Validation Rules</h2>
     <div class="two-col" style="align-items:start; gap:40px;">
       <div>
-        <h3>RAG Pipeline (fully local)</h3>
-        <div class="flow" style="flex-direction:column; align-items:flex-start; gap:6px;">
-          <div class="flow-box">① Embed question → nomic-embed-text</div>
-          <div class="flow-arrow" style="margin-left:20px;">↓</div>
-          <div class="flow-box">② Hybrid retrieval from knowledge base</div>
-          <div class="flow-arrow" style="margin-left:20px; color:#aaa; font-size:0.8rem;">65% vector cosine + 35% keyword + graph expansion</div>
-          <div class="flow-arrow" style="margin-left:20px;">↓</div>
-          <div class="flow-box">③ Build grounded system prompt (top 5 chunks)</div>
-          <div class="flow-arrow" style="margin-left:20px;">↓</div>
-          <div class="flow-box">④ Stream answer via llama3.2 (Ollama)</div>
+        <h3>Rule 1 — Protocol Compatibility</h3>
+        <p style="font-size:0.85rem; color:#aaa; margin-bottom:8px;">Enforced at mapping creation time via <code>CompatibilityRules.ts</code>:</p>
+        <div style="display:flex; flex-direction:column; gap:4px; font-size:0.83rem;">
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">CAN / CANFD</span><span style="color:#666;">→</span><span style="color:#ccc;">CAN_INTERFACE only</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">ETHERNET</span><span style="color:#666;">→</span><span style="color:#ccc;">ETHERNET_ADAPTER only</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">LIN</span><span style="color:#666;">→</span><span style="color:#ccc;">CAN_INTERFACE or SERIAL_PORT</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">FLEXRAY / FR</span><span style="color:#666;">→</span><span style="color:#ccc;">CAN_INTERFACE or ETHERNET_ADAPTER</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">IOINPUT/OUT</span><span style="color:#666;">→</span><span style="color:#ccc;">RELAY, HID_RELAY, ANALOG, BTS, HH_LOAD</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">SERIAL</span><span style="color:#666;">→</span><span style="color:#ccc;">SERIAL_PORT only</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">TE_ANALOG</span><span style="color:#666;">→</span><span style="color:#ccc;">TE_ANALOG only</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">PS</span><span style="color:#666;">→</span><span style="color:#ccc;">GENESYS_PS or MANSON_PS only</span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="color:#a855f7; font-weight:700; min-width:90px;">BRIDGE</span><span style="color:#666;">→</span><span style="color:#ccc;">CAN_INTERFACE, ETH_ADAPTER, SERIAL_PORT</span></div>
+        </div>
+        <div class="card accent" style="margin-top:12px; padding:10px 14px;">
+          <p style="font-size:0.84rem;">Error includes: <em>"Compatible hardware types: CAN_INTERFACE"</em> — so the engineer knows what to use.</p>
         </div>
       </div>
       <div>
-        <h3>Knowledge Base</h3>
-        <p style="font-size:0.88rem;">Pre-built JSON file containing embedded chunks of the MTF documentation:</p>
-        <ul style="font-size:0.88rem; margin-top:8px;">
-          <li>Each chunk has: title, section, content, summary, keywords</li>
-          <li><code>relatedIds</code> — graph links to related chunks</li>
-          <li>Pre-computed embeddings (no runtime cost)</li>
-          <li>Importance scores (high / medium / low)</li>
-        </ul>
-        <div class="card accent" style="margin-top:16px;">
-          <p style="font-size:0.88rem;"><strong>100% offline</strong> — no data leaves the machine. Engineers can ask: <em>"What fields are required for a CAN channel?"</em> and get an accurate, sourced answer.</p>
+        <h3>Rule 2 — CM Device Sub-type</h3>
+        <div class="card" style="margin-bottom:10px; padding:10px 14px;">
+          <p style="font-size:0.84rem;"><span style="color:#a855f7; font-weight:700;">CAN_Combo</span> CMInterface → only CAN / CANFD / FlexRay channels</p>
+        </div>
+        <div class="card" style="margin-bottom:16px; padding:10px 14px;">
+          <p style="font-size:0.84rem;"><span style="color:#a855f7; font-weight:700;">LIN_Combo</span> CMInterface → only LIN channels</p>
+        </div>
+        <h3>Rule 3 — One Logical → One Hardware</h3>
+        <div class="card accent" style="margin-bottom:10px; padding:10px 14px;">
+          <p style="font-size:0.84rem;">Each logical channel can appear in <strong>at most 1 mapping</strong>. A second mapping attempt throws immediately — before any DB write.</p>
+        </div>
+        <h3>Rule 4 — No Duplicate Pairs</h3>
+        <div class="card" style="margin-bottom:16px; padding:10px 14px;">
+          <p style="font-size:0.84rem;">The same logical+hardware pair cannot be registered twice. Detected by scanning all existing mappings before insertion.</p>
+        </div>
+        <h3>Rule 5 — Referential Integrity (at generation)</h3>
+        <div class="card" style="padding:10px 14px;">
+          <p style="font-size:0.84rem;">All <code>tracerName</code> values referenced in channels must be declared in the Framework Config tracers list.</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════ SLIDE 11 – Current Status ═══ -->
-  <div class="slide" id="slide-11" data-notes="Here is the current status of the project. All the core features are implemented and functional. Channel management for all types — both logical and hardware — is complete. The mapping engine with compatibility rules is done. The config.yaml generator with full MTF formatting is working. Config import is done. The Gemini AI validation is integrated. The local RAG agent with Ollama is working. User authentication with JWT is done. The hardware diagram visualization panel is implemented. The framework and tracer configuration panel is complete. SQLite persistence is in place. The auto-load mechanism that detects MTF.yaml at startup and rehydrates the last configuration is working.">
+  <div class="slide" id="slide-11" data-notes="Here is the current status of the project. All the core features are implemented and functional. Channel management for all types — both logical and hardware — is complete. The mapping engine with all five validation rules is done. The config.yaml generator with full MTF formatting is working. Config import is done. Hardware device discovery is implemented — detected devices are listed automatically. User authentication with JWT is done. The hardware diagram visualization panel is implemented. The framework and tracer configuration panel is complete. SQLite persistence is in place. The auto-load mechanism that detects MTF.yaml at startup and rehydrates the last configuration is working.">
     <div class="label">Current Status</div>
     <h2>What Is Done</h2>
     <div class="two-col" style="align-items:start; gap:32px;">
       <div>
         <div class="status-row"><span>Channel CRUD (all logical types)</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>Channel CRUD (all hardware types)</span><span class="badge-done">Done</span></div>
-        <div class="status-row"><span>Mapping engine + compatibility rules</span><span class="badge-done">Done</span></div>
+        <div class="status-row"><span>Mapping engine + 5 validation rules</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>config.yaml generation (MTF format)</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>Config import (YAML → model)</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>Config export</span><span class="badge-done">Done</span></div>
       </div>
       <div>
-        <div class="status-row"><span>AI validation (Gemini API)</span><span class="badge-done">Done</span></div>
-        <div class="status-row"><span>MTF Agent — RAG chatbot (Ollama)</span><span class="badge-done">Done</span></div>
+        <div class="status-row"><span>Hardware device discovery (auto-list)</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>User authentication (JWT + bcrypt)</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>Hardware diagram visualization</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>Framework / tracer config panel</span><span class="badge-done">Done</span></div>
         <div class="status-row"><span>SQLite persistence + auto-load</span><span class="badge-done">Done</span></div>
+        <div class="status-row"><span>Dashboard with live statistics</span><span class="badge-done">Done</span></div>
       </div>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════ SLIDE 12 – Next Steps ═══ -->
-  <div class="slide alt" id="slide-12" data-notes="For the next steps before the end of my internship, I have identified four main milestones. First, I plan to expand the knowledge base coverage — the RAG chatbot currently covers the main MTF documentation sections, but there are edge cases and advanced topics that need more chunks. Second, I want to enhance the diagram panel with interactive features like drag-and-drop topology editing. Third, I plan to add a multi-configuration management feature so engineers can save and switch between multiple bench configurations. Fourth, I will work on packaging and publishing the extension — writing tests, setting up a CI pipeline, and preparing the extension for internal deployment or VS Code Marketplace publishing.">
+  <div class="slide alt" id="slide-12" data-notes="For the next steps before the end of my internship, I have identified four main milestones. First, AI-powered validation using the Google Gemini API — the infrastructure is ready, we have been experimenting with prompt engineering and testing the results. This is currently in research phase. Second, a local RAG chatbot powered by Ollama that engineers can query to ask questions about the MTF format — the knowledge base and retrieval pipeline have been designed and are being refined. Third, I want to enhance the diagram panel with interactive features like drag-and-drop topology editing. Fourth, I will work on packaging, unit tests, and preparation for internal deployment.">
     <div class="label">Next Steps</div>
     <h2>Milestones to End of Internship</h2>
     <div style="max-width: 700px;">
       <div class="agenda-item" style="padding:14px 0;">
         <div class="agenda-num" style="background:rgba(0,180,216,0.15); border-color:#00b4d8; color:#00b4d8;">1</div>
         <div>
-          <div class="agenda-text"><strong>Knowledge Base Expansion</strong></div>
-          <p style="font-size:0.88rem; color:#aaa; margin-top:4px;">Add coverage for advanced MTF sections, edge cases, and diagnostics configuration in the RAG knowledge base.</p>
+          <div class="agenda-text"><strong>AI Validation (Gemini API)</strong> <span class="badge-wip">In Research</span></div>
+          <p style="font-size:0.88rem; color:#aaa; margin-top:4px;">Semantic validation of generated YAML via Gemini Pro. Currently experimenting with prompt design and output parsing — testing in progress.</p>
         </div>
       </div>
       <div class="agenda-item" style="padding:14px 0;">
         <div class="agenda-num" style="background:rgba(0,180,216,0.15); border-color:#00b4d8; color:#00b4d8;">2</div>
         <div>
-          <div class="agenda-text"><strong>Interactive Diagram</strong></div>
-          <p style="font-size:0.88rem; color:#aaa; margin-top:4px;">Add drag-and-drop channel topology editing to the hardware diagram visualization panel.</p>
+          <div class="agenda-text"><strong>MTF Knowledge Chatbot (Local RAG)</strong> <span class="badge-wip">In Research</span></div>
+          <p style="font-size:0.88rem; color:#aaa; margin-top:4px;">Local Ollama-based RAG pipeline to answer MTF configuration questions. Knowledge base designed; hybrid retrieval (vector + keyword) being validated.</p>
         </div>
       </div>
       <div class="agenda-item" style="padding:14px 0;">
         <div class="agenda-num" style="background:rgba(0,180,216,0.15); border-color:#00b4d8; color:#00b4d8;">3</div>
         <div>
-          <div class="agenda-text"><strong>Multi-Configuration Management</strong></div>
-          <p style="font-size:0.88rem; color:#aaa; margin-top:4px;">Allow engineers to save, name, and switch between multiple bench configurations per workspace.</p>
+          <div class="agenda-text"><strong>Interactive Diagram</strong></div>
+          <p style="font-size:0.88rem; color:#aaa; margin-top:4px;">Add drag-and-drop channel topology editing to the hardware diagram visualization panel.</p>
         </div>
       </div>
       <div class="agenda-item" style="padding:14px 0; border-bottom:none;">
@@ -946,8 +965,8 @@ Webview (React)
         <div class="flow" style="flex-direction:column; align-items:flex-start; gap:8px;">
           <div class="flow-box" style="background:rgba(168,85,247,0.12); border-color:#a855f7; color:#a855f7;">⑤ Configure Framework: SingleThreaded + PCAP tracer</div>
           <div class="flow-box" style="background:rgba(168,85,247,0.12); border-color:#a855f7; color:#a855f7;">⑥ Generate config.yaml → show output file</div>
-          <div class="flow-box" style="background:rgba(168,85,247,0.12); border-color:#a855f7; color:#a855f7;">⑦ Run AI Validation → show Gemini suggestions</div>
-          <div class="flow-box" style="background:rgba(34,197,94,0.12); border-color:#22c55e; color:#22c55e;">⑧ Ask MTF Agent: "What fields are required for a CAN channel?"</div>
+          <div class="flow-box" style="background:rgba(168,85,247,0.12); border-color:#a855f7; color:#a855f7;">⑦ Show discovered device auto-populated in HW panel</div>
+          <div class="flow-box" style="background:rgba(34,197,94,0.12); border-color:#22c55e; color:#22c55e;">⑧ Show validation errors blocked before generation ✓</div>
         </div>
       </div>
     </div>
@@ -967,8 +986,10 @@ Webview (React)
           <li>Graphical channel &amp; mapping management</li>
           <li>Automated, correctly-formatted YAML generation</li>
           <li>Pre-generation validation (zero silent failures)</li>
-          <li>AI semantic validation via Gemini</li>
-          <li>Offline MTF knowledge assistant (RAG)</li>
+          <li>5 enforced mapping rules (protocol + structural)</li>
+          <li>Hardware device auto-discovery</li>
+          <li>Hardware diagram visualization</li>
+          <li>Dashboard with live statistics</li>
         </ul>
       </div>
       <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px; height:100%;">

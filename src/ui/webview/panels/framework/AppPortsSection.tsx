@@ -10,13 +10,6 @@ interface Props {
   setDirty: (d: boolean) => void;
 }
 
-function parsePortList(s: string): any[] {
-  return s.split(',').map(x => x.trim()).filter(Boolean).map(x => {
-    const m = x.match(/^(\d+)-(\d+)$/);
-    return m ? [Number(m[1]), Number(m[2])] : (isNaN(Number(x)) ? x : Number(x));
-  });
-}
-
 export function AppPortsSection({ appPorts, portInputs, setPortInputs, setEth, setDirty }: Props) {
   return (
     <div id="fw-appLayerPorts" style={{ ...T.card, marginBottom: '10px' }}>
@@ -25,10 +18,20 @@ export function AppPortsSection({ appPorts, portInputs, setPortInputs, setEth, s
         {(['NPdu', 'SomeIp', 'UDPNM', 'DLT', 'SomeIpSD'] as const).map(proto => (
           <div key={proto}>
             <label style={T.label}>{proto}</label>
-            <input style={T.input} placeholder="ports or ranges, comma-separated (e.g. 3000, 3100-3200, 3208)"
+            <input
+              style={T.input}
+              type="number"
+              min={0}
+              max={65535}
+              placeholder="e.g. 3000"
               value={portInputs[proto] ?? ''}
-              onChange={e => setPortInputs(p => ({ ...p, [proto]: e.target.value }))}
-              onBlur={e => { setEth('appLayerPorts', { ...appPorts, [proto]: parsePortList(e.target.value) }); setDirty(true); }} />
+              onChange={e => {
+                setPortInputs(p => ({ ...p, [proto]: e.target.value }));
+                const num = e.target.value === '' ? undefined : Number(e.target.value);
+                setEth('appLayerPorts', { ...appPorts, [proto]: num });
+                setDirty(true);
+              }}
+            />
           </div>
         ))}
       </div>

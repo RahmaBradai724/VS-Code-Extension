@@ -25,7 +25,7 @@ const SECTION_IDS: Record<FrameworkSection, string> = {
 };
 
 function portListToStringInit(v: any): string {
-  if (!v) return '';
+  if (v == null) return '';
   if (Array.isArray(v)) return v.map((p: any) => Array.isArray(p) ? `${p[0]}-${p[1]}` : String(p)).join(', ');
   return String(v);
 }
@@ -136,8 +136,8 @@ export default function FrameworkPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      {/* -- Header ----------------------------------------------------------- */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexShrink: 0 }}>
+      {/* -- Header (not sticky) -------------------------------------------- */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexShrink: 0 }}>
         <div>
           <h2 style={T.pageTitle}>Framework Configuration</h2>
           <p style={{ ...T.pageSub, marginBottom: 0 }}>Publisher, tracing and ethernet settings</p>
@@ -154,8 +154,17 @@ export default function FrameworkPanel() {
         </div>
       </div>
 
-      {/* -- Section nav pills ------------------------------------------------ */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px', flexShrink: 0 }}>
+      {/* -- Sticky Section nav pills --------------------------------------- */}
+      <div style={{
+        display: 'flex',
+        gap: '6px',
+        flexWrap: 'wrap',
+        marginTop: '14px', // space above nav bar
+        marginBottom: '18px', // space below nav bar
+        flexShrink: 0,
+        paddingTop: '6px', // extra space inside nav bar (top)
+        paddingBottom: '6px', // extra space inside nav bar (bottom)
+      }}>
         {([
           { id: 'fw-connectedEcus', label: 'General' },
           { id: 'fw-publisher',     label: 'Publisher' },
@@ -196,10 +205,24 @@ export default function FrameworkPanel() {
 
         <AppPortsSection appPorts={appPorts} portInputs={portInputs} setPortInputs={setPortInputs} setEth={setEth} setDirty={setDirty} />
 
-        <TopologySection ethProtoCfg={ethProtoCfg} topoCfg={topoCfg} setTopoProtoCfg={setTopoProtoCfg} setTopoTopoCfg={setTopoTopoCfg} />
+        <TopologySection
+          ethProtoCfg={ethProtoCfg}
+          topoCfg={topoCfg}
+          setTopoProtoCfg={setTopoProtoCfg}
+          setTopoTopoCfg={setTopoTopoCfg}
+          tunTapVirtualAdapterNames={
+            (state.hardwareChannels as any[])
+              .filter(h => h.subclass === 'TunTapBridge')
+              .flatMap((h: any) => (h.tunTapAdapters ?? []).map((a: any) => a.name).filter(Boolean))
+          }
+        />
 
         <div style={{ marginBottom: '32px' }}>
-          <ChannelMappingSection ctEcuEntries={ctEcuEntries} setCtEcuEntries={setCtEcuEntries} />
+          <ChannelMappingSection
+            ctEcuEntries={ctEcuEntries}
+            setCtEcuEntries={setCtEcuEntries}
+            logicalChannelNames={state.logicalChannels.map((ch: any) => ch.name).filter(Boolean)}
+          />
         </div>
 
       </div>

@@ -14,6 +14,9 @@ export abstract class Channel {
 
   @Column({ type: 'varchar' })
   type: ChannelType;
+
+  @Column({ nullable: true })
+  configurationId?: string;
   
 
   constructor(id: string, name: string, type: ChannelType) {

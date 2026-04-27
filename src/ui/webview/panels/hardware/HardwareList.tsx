@@ -9,6 +9,7 @@ const SUBCLASS_COLOR: Record<string, string> = {
   EthernetAdapter: '#4ec9b0', RelayBoard: '#c678dd',
   HIDRelay: '#c678dd', SerialPort: '#d4d4d4', AnalogDevice: '#f0c040',
   TEAnalog: '#f0c040', HHLoad: '#f87171',
+  TunTapBridge: '#38bdf8',
 };
 
 interface Props {

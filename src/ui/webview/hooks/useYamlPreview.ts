@@ -402,6 +402,7 @@ function buildMtfObject(state: AppState): Record<string, any> {
       const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
       const adapterObj: Record<string, any> = { Name: logicalChannelName };
       if (hw.friendlyName)              { adapterObj.FriendlyName             = hw.friendlyName; }
+      if (hw.interface)                 { adapterObj.Interface                = hw.interface; }
       if (hw.bufferSize)                { adapterObj.BufferSize               = hw.bufferSize; }
       if (hw.bpFilter)                  { adapterObj.BpfFilter                = hw.bpFilter; }
       if (hw.timeout)                   { adapterObj.Timeout                  = hw.timeout; }

@@ -49,6 +49,7 @@ const enums_1 = require("../models/enums");
 const channelFactories_1 = require("./channelFactories");
 const AuthService_1 = require("../services/auth/AuthService");
 const UserRepository_1 = require("../services/database/UserRepository");
+const ConfigurationRepository_1 = require("../services/database/ConfigurationRepository");
 const autoLoadState_1 = require("./autoLoadState");
 /**
  * Owns all mutable runtime state and handles every webview message command.
@@ -70,6 +71,7 @@ class MessageHandler {
         const jwtSecret = this.tokenStorage.getOrCreateJwtSecret();
         this.authService = new AuthService_1.AuthService(jwtSecret);
         this.userRepository = new UserRepository_1.UserRepository(this.authService);
+        this.configurationRepository = new ConfigurationRepository_1.ConfigurationRepository();
     }
     // ── Public entry point ──────────────────────────────────────────────────
     async handle(message, webview) {
@@ -199,13 +201,21 @@ class MessageHandler {
         this._saveCurrentConfig();
         webview.postMessage({ command: 'configurationCreated', data: this.currentConfig.toJSON() });
     }
-    _deleteConfiguration(message, webview) {
+    async _deleteConfiguration(message, webview) {
         const cfg = this.storageService.getConfigurationById(message.configId);
         if (cfg && Number(cfg.userId) !== this.loggedInUserId) {
             webview.postMessage({ command: 'error', message: 'You can only delete your own configurations.' });
             return;
         }
+        // Remove from VS Code globalState (webview list)
         this.storageService.deleteConfiguration(message.configId);
+        // Remove from PostgreSQL database
+        try {
+            await this.configurationRepository.deleteById(message.configId);
+        }
+        catch (e) {
+            console.error('[deleteConfiguration] DB delete failed:', e?.message);
+        }
         webview.postMessage({ command: 'configurationDeleted', configId: message.configId });
     }
     _loadConfiguration(message, webview) {
@@ -475,6 +485,80 @@ class MessageHandler {
                 }
                 if (entry.ApplicationProtocol !== undefined) {
                     lc.applicationProtocol = entry.ApplicationProtocol;
+                }
+            }
+            // Apply PCAP adapter fields from Mappings.PCAP section
+            const pcapMappings = parsed.Mappings?.PCAP || parsed.mappings?.PCAP;
+            if (pcapMappings && typeof pcapMappings === 'object') {
+                for (const entry of Object.values(pcapMappings)) {
+                    const adapter = entry?.Adapter;
+                    if (!adapter) {
+                        continue;
+                    }
+                    const logicalName = adapter.Name;
+                    if (!logicalName) {
+                        continue;
+                    }
+                    // Find the hardware channel linked to this logical channel via mappings
+                    const mapping = this.currentConfig.mappings.find((m) => m.logicalChannelName === logicalName);
+                    if (!mapping) {
+                        continue;
+                    }
+                    const hw = this.currentConfig.hardwareChannels.find((h) => h.id === mapping.hardwareChannelId);
+                    if (!hw || hw.subclass !== 'ETHERNET_ADAPTER') {
+                        continue;
+                    }
+                    if (adapter.FriendlyName !== undefined) {
+                        hw.friendlyName = adapter.FriendlyName;
+                    }
+                    if (adapter.Interface !== undefined) {
+                        hw.interface = adapter.Interface;
+                    }
+                    if (adapter.BufferSize !== undefined) {
+                        hw.bufferSize = adapter.BufferSize;
+                    }
+                    if (adapter.BpfFilter !== undefined) {
+                        hw.bpFilter = adapter.BpfFilter;
+                    }
+                    if (adapter.Timeout !== undefined) {
+                        hw.timeout = adapter.Timeout;
+                    }
+                    if (adapter.TimeStampPrecision !== undefined) {
+                        hw.timeStampPrecision = adapter.TimeStampPrecision;
+                    }
+                    if (adapter.TimeStampSource !== undefined) {
+                        hw.timeStampSource = adapter.TimeStampSource;
+                    }
+                    if (adapter.ImmediateMode !== undefined) {
+                        hw.immediateMode = adapter.ImmediateMode;
+                    }
+                    if (adapter.SnapshotLength !== undefined) {
+                        hw.snapshotLength = adapter.SnapshotLength;
+                    }
+                    if (adapter.PcapDeviceMode !== undefined) {
+                        hw.pcapDeviceMode = adapter.PcapDeviceMode;
+                    }
+                    if (adapter.UseDataLoggerTimeStamp !== undefined) {
+                        hw.useDataLoggerTimeStamp = adapter.UseDataLoggerTimeStamp;
+                    }
+                    if (adapter.RemoveDataLoggerMetaData !== undefined) {
+                        hw.removeDataLoggerMetaData = adapter.RemoveDataLoggerMetaData;
+                    }
+                    if (adapter.DataLoggerType !== undefined) {
+                        hw.dataLoggerType = adapter.DataLoggerType;
+                    }
+                    if (adapter.PacketProcessingActive !== undefined) {
+                        hw.packetProcessingActive = adapter.PacketProcessingActive;
+                    }
+                    if (adapter.PacketIdentificationActive !== undefined) {
+                        hw.packetIdentificationActive = adapter.PacketIdentificationActive;
+                    }
+                    if (adapter.DifferentHandlerForTxAndRx !== undefined) {
+                        hw.differentHandlerForTxAndRx = adapter.DifferentHandlerForTxAndRx;
+                    }
+                    if (adapter.TECMPPacketizationActive !== undefined) {
+                        hw.tecmpPacketizationActive = adapter.TECMPPacketizationActive;
+                    }
                 }
             }
             await this._saveCurrentConfig();

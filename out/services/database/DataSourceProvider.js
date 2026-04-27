@@ -76,7 +76,8 @@ function getDataSource() {
                 hardwareChannels_1.LINCard, hardwareChannels_1.SerialPort, hardwareChannels_1.HIDRelay, hardwareChannels_1.RelayBoard, hardwareChannels_1.EthernetAdapter, hardwareChannels_1.AnalogDevice,
                 hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad, hardwareChannels_1.BTSRevo,
                 frameworkConfig_1.PCAPTracer, frameworkConfig_1.ASCIITracer, frameworkConfig_1.FrameworkConfig,
-                frameworkConfig_1.EthernetConfig, frameworkConfig_1.PublisherConfig, frameworkConfig_1.DiagnosticsConfig,
+                frameworkConfig_1.EthernetConfig, frameworkConfig_1.PublisherConfig,
+                frameworkConfig_1.NpduConfig, frameworkConfig_1.SomeIPConfig, frameworkConfig_1.AppLayerPortsConfig, frameworkConfig_1.EthernetTopology, frameworkConfig_1.ChannelEcuMapping,
                 configuration_1.Configuration, user_1.User, mapping_1.Mapping,
             ],
         });

@@ -47,4 +47,8 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar' }),
     __metadata("design:type", String)
 ], Channel.prototype, "type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Channel.prototype, "configurationId", void 0);
 //# sourceMappingURL=ChannelBase.js.map

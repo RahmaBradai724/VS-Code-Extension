@@ -29,5 +29,8 @@ exports.hardwareChannelFactories = {
     [enums_1.HardwareChannelSubclass.CM_INTERFACE]: (id, name) => new hardwareChannels_1.CMInterface(id, name),
     [enums_1.HardwareChannelSubclass.HH_LOAD]: (id, name) => new hardwareChannels_1.HHLoad(id, name),
     [enums_1.HardwareChannelSubclass.BTS_REVO]: (id, name) => new hardwareChannels_1.BTSRevo(id, name),
+    [enums_1.HardwareChannelSubclass.GENESYS_PS]: (id, name) => new hardwareChannels_1.GenesysPowerSupply(id, name),
+    [enums_1.HardwareChannelSubclass.MANSON_PS]: (id, name) => new hardwareChannels_1.MansonPowerSupply(id, name),
+    [enums_1.HardwareChannelSubclass.TUNTAP_BRIDGE]: (id, name) => new hardwareChannels_1.TunTapBridge(id, name),
 };
 //# sourceMappingURL=channelFactories.js.map

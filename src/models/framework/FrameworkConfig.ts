@@ -1,6 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, OneToMany } from 'typeorm';
 import { PublisherConfig } from './PublisherConfig';
-import { DiagnosticsConfig } from './DiagnosticsConfig';
 import { EthernetConfig } from './EthernetConfig';
 import { PCAPTracer } from './PCAPTracer';
 import { ASCIITracer } from './ASCIITracer';
@@ -20,9 +19,6 @@ export class FrameworkConfig {
   @OneToOne(() => PublisherConfig, (pc) => pc.frameworkConfig, { cascade: true, eager: true, nullable: true } as any)
   publisherConfig!: PublisherConfig;
 
-  @OneToOne(() => DiagnosticsConfig, (dc) => dc.frameworkConfig, { cascade: true, eager: true, nullable: true } as any)
-  diagnostics!: DiagnosticsConfig;
-
   @OneToOne(() => EthernetConfig, (ec) => ec.frameworkConfig, { cascade: true, eager: true, nullable: true } as any)
   ethernetConfig!: EthernetConfig;
 
@@ -38,13 +34,9 @@ export class FrameworkConfig {
   @Column({ nullable: true })
   servicePack?: string;
 
-  @Column({ type: 'jsonb', default: {} })
-  channelToEcusMapping: Map<string, string[]> = new Map();
-
   toYAML(): object {
     return {
       publisher: this.publisherConfig?.toYAML(),
-      diagnostics: this.diagnostics?.toYAML(),
       ethernet: this.ethernetConfig?.toYAML(),
     };
   }
@@ -52,7 +44,6 @@ export class FrameworkConfig {
   toJSON(): object {
     return {
       publisherConfig: this.publisherConfig?.toJSON(),
-      diagnostics: this.diagnostics?.toJSON(),
       ethernetConfig: this.ethernetConfig?.toJSON(),
       tracers: [
         ...(this.pcapTracers ?? []).map((t) => t.toJSON()),
@@ -60,7 +51,6 @@ export class FrameworkConfig {
       ],
       connectedEcus: this.connectedEcus,
       servicePack: this.servicePack,
-      channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,
     };
   }
 }

@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FrameworkConfig = void 0;
 const typeorm_1 = require("typeorm");
 const PublisherConfig_1 = require("./PublisherConfig");
-const DiagnosticsConfig_1 = require("./DiagnosticsConfig");
 const EthernetConfig_1 = require("./EthernetConfig");
 const PCAPTracer_1 = require("./PCAPTracer");
 const ASCIITracer_1 = require("./ASCIITracer");
@@ -21,19 +20,16 @@ let FrameworkConfig = class FrameworkConfig {
         this.keys = new Map();
         this.channels = new Map();
         this.connectedEcus = [];
-        this.channelToEcusMapping = new Map();
     }
     toYAML() {
         return {
             publisher: this.publisherConfig?.toYAML(),
-            diagnostics: this.diagnostics?.toYAML(),
             ethernet: this.ethernetConfig?.toYAML(),
         };
     }
     toJSON() {
         return {
             publisherConfig: this.publisherConfig?.toJSON(),
-            diagnostics: this.diagnostics?.toJSON(),
             ethernetConfig: this.ethernetConfig?.toJSON(),
             tracers: [
                 ...(this.pcapTracers ?? []).map((t) => t.toJSON()),
@@ -41,7 +37,6 @@ let FrameworkConfig = class FrameworkConfig {
             ],
             connectedEcus: this.connectedEcus,
             servicePack: this.servicePack,
-            channelToEcusMapping: this.channelToEcusMapping instanceof Map ? Object.fromEntries(this.channelToEcusMapping) : this.channelToEcusMapping,
         };
     }
 };
@@ -63,10 +58,6 @@ __decorate([
     __metadata("design:type", PublisherConfig_1.PublisherConfig)
 ], FrameworkConfig.prototype, "publisherConfig", void 0);
 __decorate([
-    (0, typeorm_1.OneToOne)(() => DiagnosticsConfig_1.DiagnosticsConfig, (dc) => dc.frameworkConfig, { cascade: true, eager: true, nullable: true }),
-    __metadata("design:type", DiagnosticsConfig_1.DiagnosticsConfig)
-], FrameworkConfig.prototype, "diagnostics", void 0);
-__decorate([
     (0, typeorm_1.OneToOne)(() => EthernetConfig_1.EthernetConfig, (ec) => ec.frameworkConfig, { cascade: true, eager: true, nullable: true }),
     __metadata("design:type", EthernetConfig_1.EthernetConfig)
 ], FrameworkConfig.prototype, "ethernetConfig", void 0);
@@ -86,10 +77,6 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], FrameworkConfig.prototype, "servicePack", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'jsonb', default: {} }),
-    __metadata("design:type", Map)
-], FrameworkConfig.prototype, "channelToEcusMapping", void 0);
 exports.FrameworkConfig = FrameworkConfig = __decorate([
     (0, typeorm_1.Entity)('framework_configs')
 ], FrameworkConfig);

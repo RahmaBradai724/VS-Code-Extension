@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MansonPowerSupply = exports.GenesysPowerSupply = exports.BTSRevo = exports.HHLoad = exports.CMInterface = exports.CIBInterface = exports.CANInterface = exports.TEAnalog = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = void 0;
+exports.TunTapBridge = exports.MansonPowerSupply = exports.GenesysPowerSupply = exports.BTSRevo = exports.HHLoad = exports.CMInterface = exports.CIBInterface = exports.CANInterface = exports.TEAnalog = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = void 0;
 var LINCard_1 = require("./LINCard");
 Object.defineProperty(exports, "LINCard", { enumerable: true, get: function () { return LINCard_1.LINCard; } });
 var SerialPort_1 = require("./SerialPort");
@@ -29,4 +29,6 @@ var GenesysPowerSupply_1 = require("./GenesysPowerSupply");
 Object.defineProperty(exports, "GenesysPowerSupply", { enumerable: true, get: function () { return GenesysPowerSupply_1.GenesysPowerSupply; } });
 var MansonPowerSupply_1 = require("./MansonPowerSupply");
 Object.defineProperty(exports, "MansonPowerSupply", { enumerable: true, get: function () { return MansonPowerSupply_1.MansonPowerSupply; } });
+var TunTapBridge_1 = require("./TunTapBridge");
+Object.defineProperty(exports, "TunTapBridge", { enumerable: true, get: function () { return TunTapBridge_1.TunTapBridge; } });
 //# sourceMappingURL=index.js.map

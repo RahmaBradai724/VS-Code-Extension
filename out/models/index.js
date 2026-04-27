@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = exports.Configuration = exports.Mapping = exports.FrameworkConfig = exports.DiagnosticsConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = exports.HHLoad = exports.CMInterface = exports.TEAnalog = exports.CIBInterface = exports.CANInterface = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = exports.PSChannel = exports.EthernetChannel = exports.BridgeChannel = exports.IOSerialChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = exports.HardwareChannel = exports.LogicalChannel = exports.Channel = exports.Category = exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelSubclass = exports.LogicalChannelSubclass = exports.HardwareChannelCategory = exports.LogicalChannelCategory = exports.ChannelType = void 0;
+exports.User = exports.Configuration = exports.Mapping = exports.FrameworkConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = exports.TunTapBridge = exports.HHLoad = exports.CMInterface = exports.TEAnalog = exports.CIBInterface = exports.CANInterface = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = exports.PSChannel = exports.EthernetChannel = exports.BridgeChannel = exports.IOSerialChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = exports.HardwareChannel = exports.LogicalChannel = exports.Channel = exports.Category = exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelSubclass = exports.LogicalChannelSubclass = exports.HardwareChannelCategory = exports.LogicalChannelCategory = exports.ChannelType = void 0;
 var enums_1 = require("./enums");
 Object.defineProperty(exports, "ChannelType", { enumerable: true, get: function () { return enums_1.ChannelType; } });
 Object.defineProperty(exports, "LogicalChannelCategory", { enumerable: true, get: function () { return enums_1.LogicalChannelCategory; } });
@@ -39,13 +39,13 @@ Object.defineProperty(exports, "CIBInterface", { enumerable: true, get: function
 Object.defineProperty(exports, "TEAnalog", { enumerable: true, get: function () { return hardwareChannels_1.TEAnalog; } });
 Object.defineProperty(exports, "CMInterface", { enumerable: true, get: function () { return hardwareChannels_1.CMInterface; } });
 Object.defineProperty(exports, "HHLoad", { enumerable: true, get: function () { return hardwareChannels_1.HHLoad; } });
+Object.defineProperty(exports, "TunTapBridge", { enumerable: true, get: function () { return hardwareChannels_1.TunTapBridge; } });
 var frameworkConfig_1 = require("./frameworkConfig");
 Object.defineProperty(exports, "Tracer", { enumerable: true, get: function () { return frameworkConfig_1.Tracer; } });
 Object.defineProperty(exports, "PCAPTracer", { enumerable: true, get: function () { return frameworkConfig_1.PCAPTracer; } });
 Object.defineProperty(exports, "ASCIITracer", { enumerable: true, get: function () { return frameworkConfig_1.ASCIITracer; } });
 Object.defineProperty(exports, "PublisherConfig", { enumerable: true, get: function () { return frameworkConfig_1.PublisherConfig; } });
 Object.defineProperty(exports, "EthernetConfig", { enumerable: true, get: function () { return frameworkConfig_1.EthernetConfig; } });
-Object.defineProperty(exports, "DiagnosticsConfig", { enumerable: true, get: function () { return frameworkConfig_1.DiagnosticsConfig; } });
 Object.defineProperty(exports, "FrameworkConfig", { enumerable: true, get: function () { return frameworkConfig_1.FrameworkConfig; } });
 var mapping_1 = require("./mapping");
 Object.defineProperty(exports, "Mapping", { enumerable: true, get: function () { return mapping_1.Mapping; } });

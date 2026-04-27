@@ -16,6 +16,7 @@ import { logicalChannelFactories, hardwareChannelFactories } from './channelFact
 import { AuthService } from '../services/auth/AuthService';
 import { TokenStorage } from '../services/auth/TokenStorage';
 import { UserRepository } from '../services/database/UserRepository';
+import { ConfigurationRepository } from '../services/database/ConfigurationRepository';
 import { YamlParser } from '../services/config/YamlParser';
 import { consumeAutoLoad } from './autoLoadState';
 
@@ -30,6 +31,7 @@ export class MessageHandler {
 
   private readonly authService: AuthService;
   private readonly userRepository: UserRepository;
+  private readonly configurationRepository: ConfigurationRepository;
   /** userId of the currently authenticated user (null = not logged in) */
   private loggedInUserId: number | null = null;
 
@@ -48,6 +50,7 @@ export class MessageHandler {
     const jwtSecret = this.tokenStorage.getOrCreateJwtSecret();
     this.authService = new AuthService(jwtSecret);
     this.userRepository = new UserRepository(this.authService);
+    this.configurationRepository = new ConfigurationRepository();
   }
 
   // ── Public entry point ──────────────────────────────────────────────────
@@ -188,13 +191,20 @@ export class MessageHandler {
     webview.postMessage({ command: 'configurationCreated', data: this.currentConfig.toJSON() });
   }
 
-  private _deleteConfiguration(message: any, webview: vscode.Webview) {
+  private async _deleteConfiguration(message: any, webview: vscode.Webview) {
     const cfg = this.storageService.getConfigurationById(message.configId) as any;
     if (cfg && Number(cfg.userId) !== this.loggedInUserId) {
       webview.postMessage({ command: 'error', message: 'You can only delete your own configurations.' });
       return;
     }
+    // Remove from VS Code globalState (webview list)
     this.storageService.deleteConfiguration(message.configId);
+    // Remove from PostgreSQL database
+    try {
+      await this.configurationRepository.deleteById(message.configId);
+    } catch (e: any) {
+      console.error('[deleteConfiguration] DB delete failed:', e?.message);
+    }
     webview.postMessage({ command: 'configurationDeleted', configId: message.configId });
   }
 
@@ -446,6 +456,39 @@ export class MessageHandler {
         if (entry.Alias !== undefined)               { lc.alias               = Array.isArray(entry.Alias) ? entry.Alias : [entry.Alias]; }
         if (entry.LoggingBusIndex !== undefined)     { lc.loggingBusIndex     = entry.LoggingBusIndex; }
         if (entry.ApplicationProtocol !== undefined) { lc.applicationProtocol = entry.ApplicationProtocol; }
+      }
+
+      // Apply PCAP adapter fields from Mappings.PCAP section
+      const pcapMappings = parsed.Mappings?.PCAP || parsed.mappings?.PCAP;
+      if (pcapMappings && typeof pcapMappings === 'object') {
+        for (const entry of Object.values(pcapMappings) as any[]) {
+          const adapter = entry?.Adapter;
+          if (!adapter) { continue; }
+          const logicalName: string = adapter.Name;
+          if (!logicalName) { continue; }
+          // Find the hardware channel linked to this logical channel via mappings
+          const mapping = this.currentConfig.mappings.find((m: any) => m.logicalChannelName === logicalName);
+          if (!mapping) { continue; }
+          const hw = this.currentConfig.hardwareChannels.find((h: any) => h.id === mapping.hardwareChannelId) as any;
+          if (!hw || hw.subclass !== 'ETHERNET_ADAPTER') { continue; }
+          if (adapter.FriendlyName    !== undefined) { hw.friendlyName            = adapter.FriendlyName; }
+          if (adapter.Interface       !== undefined) { hw.interface               = adapter.Interface; }
+          if (adapter.BufferSize      !== undefined) { hw.bufferSize              = adapter.BufferSize; }
+          if (adapter.BpfFilter       !== undefined) { hw.bpFilter                = adapter.BpfFilter; }
+          if (adapter.Timeout         !== undefined) { hw.timeout                 = adapter.Timeout; }
+          if (adapter.TimeStampPrecision !== undefined) { hw.timeStampPrecision   = adapter.TimeStampPrecision; }
+          if (adapter.TimeStampSource !== undefined) { hw.timeStampSource         = adapter.TimeStampSource; }
+          if (adapter.ImmediateMode   !== undefined) { hw.immediateMode           = adapter.ImmediateMode; }
+          if (adapter.SnapshotLength  !== undefined) { hw.snapshotLength          = adapter.SnapshotLength; }
+          if (adapter.PcapDeviceMode  !== undefined) { hw.pcapDeviceMode          = adapter.PcapDeviceMode; }
+          if (adapter.UseDataLoggerTimeStamp    !== undefined) { hw.useDataLoggerTimeStamp    = adapter.UseDataLoggerTimeStamp; }
+          if (adapter.RemoveDataLoggerMetaData  !== undefined) { hw.removeDataLoggerMetaData  = adapter.RemoveDataLoggerMetaData; }
+          if (adapter.DataLoggerType            !== undefined) { hw.dataLoggerType            = adapter.DataLoggerType; }
+          if (adapter.PacketProcessingActive    !== undefined) { hw.packetProcessingActive    = adapter.PacketProcessingActive; }
+          if (adapter.PacketIdentificationActive!== undefined) { hw.packetIdentificationActive= adapter.PacketIdentificationActive; }
+          if (adapter.DifferentHandlerForTxAndRx!== undefined) { hw.differentHandlerForTxAndRx= adapter.DifferentHandlerForTxAndRx; }
+          if (adapter.TECMPPacketizationActive  !== undefined) { hw.tecmpPacketizationActive  = adapter.TECMPPacketizationActive; }
+        }
       }
 
       await this._saveCurrentConfig();

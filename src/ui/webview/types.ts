@@ -1,3 +1,24 @@
+// ── Address format regexes (shared across forms) ────────────────────────────
+export const REGEX = {
+  /** IPv4: 0.0.0.0 – 255.255.255.255 */
+  IPV4: /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+
+  /**
+   * IPv6: full (8 groups of 1–4 hex digits, colon-separated)
+   *   or compressed with :: (e.g. 2001:db8::8a2e:370:7334)
+   */
+  IPV6: /^(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){1,7}:)|(([0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,5}(:[0-9A-Fa-f]{1,4}){1,2})|(([0-9A-Fa-f]{1,4}:){1,4}(:[0-9A-Fa-f]{1,4}){1,3})|(([0-9A-Fa-f]{1,4}:){1,3}(:[0-9A-Fa-f]{1,4}){1,4})|(([0-9A-Fa-f]{1,4}:){1,2}(:[0-9A-Fa-f]{1,4}){1,5})|([0-9A-Fa-f]{1,4}:(:[0-9A-Fa-f]{1,4}){1,6})|(:(:[0-9A-Fa-f]{1,4}){1,7})|::)$/,
+
+  /** IPv4 or IPv6 */
+  IP: /^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))$|^(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(([0-9A-Fa-f]{1,4}:){1,7}:)|(([0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,5}(:[0-9A-Fa-f]{1,4}){1,2})|(([0-9A-Fa-f]{1,4}:){1,4}(:[0-9A-Fa-f]{1,4}){1,3})|(([0-9A-Fa-f]{1,4}:){1,3}(:[0-9A-Fa-f]{1,4}){1,4})|(([0-9A-Fa-f]{1,4}:){1,2}(:[0-9A-Fa-f]{1,4}){1,5})|([0-9A-Fa-f]{1,4}:(:[0-9A-Fa-f]{1,4}){1,6})|(:(:[0-9A-Fa-f]{1,4}){1,7})|::)$/,
+
+  /** MAC: six colon-separated hex byte pairs e.g. AA:BB:CC:DD:EE:FF */
+  MAC: /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/,
+
+  /** First 3 octets of an IPv4 prefix e.g. 10.104.3 */
+  IP_PREFIX: /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){2}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+} as const;
+
 export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams' | 'agent';
 
 export type FrameworkSection =
@@ -181,9 +202,14 @@ export interface SelectOption {
 export interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'checkbox' | 'select';
+  type: 'text' | 'number' | 'checkbox' | 'select' | 'json';
   placeholder?: string;
   options?: (string | SelectOption)[];
+  defaultValue?: string | number | boolean;
+  /** Regex to validate the value (only applied when the field is non-empty). */
+  pattern?: RegExp;
+  /** Error message shown when the value does not match `pattern`. */
+  patternError?: string;
 }
 
 // ── Channel type badge colors ─────────────────────────────────────────────
@@ -209,6 +235,8 @@ export const CHANNEL_COLORS: Record<string, string> = {
   ANALOG_DEVICE: '#e5c07b',
   HH_LOAD: '#fb923c',
   BTS_REVO: '#f97316',
+  TUNTAP_BRIDGE: '#38bdf8',
+  TunTapBridge: '#38bdf8',
 };
 
 // ── Logical channel subclass → extra fields ───────────────────────────────
@@ -230,7 +258,7 @@ export const LOGICAL_EXTRA_FIELDS: Record<string, FieldDef[]> = {
   LINChannel: [{ key: 'protocol', label: 'Protocol', type: 'text', placeholder: 'e.g. 2.1' }],
   FlexRayChannel: [],
   EthernetChannel: [
-    { key: 'applicationProtocol', label: 'Application Protocol', type: 'select', options: ['XCP', 'DIAG', 'VIS', 'Nothing'] },
+    { key: 'applicationProtocol', label: 'Application Protocol', type: 'select', options: ['XCP', 'DIAG', 'VIS', 'Nothing', 'All'], defaultValue: 'All' },
   ],
   SerialChannel: [],
   IOInputChannel: [
@@ -258,6 +286,7 @@ export const HARDWARE_SUBCLASS_OPTIONS = [
   { value: 'BTSRevo',              label: 'BTS-REVO (Body Electronics)',        category: 'BTS_REVO' },
   { value: 'GenesysPowerSupply',   label: 'Genesys Power Supply',              category: 'GENESYS_PS' },
   { value: 'MansonPowerSupply',    label: 'Manson Power Supply',               category: 'MANSON_PS' },
+  { value: 'TunTapBridge',         label: 'TUN/TAP Bridge',                    category: 'TUNTAP_BRIDGE' },
 ];
 
 export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
@@ -292,21 +321,19 @@ export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
     ]},
   ],
   EthernetAdapter: [
-    { key: 'macAddress', label: 'MAC Address', type: 'text', placeholder: 'e.g. 00:00:00:00:00:01' },
-    { key: 'ipAddress', label: 'IP Address', type: 'text', placeholder: 'e.g. 192.168.1.1' },
-    { key: 'friendlyName', label: 'Friendly Name', type: 'text', placeholder: '' },
-    { key: 'interface', label: 'Interface Name', type: 'text', placeholder: '' },
-    { key: 'bufferSize', label: 'Buffer Size', type: 'number', placeholder: '' },
-    { key: 'bpFilter', label: 'BPF Filter', type: 'text', placeholder: 'e.g. tcp' },
-    { key: 'timeout', label: 'Timeout (ms)', type: 'number', placeholder: 'e.g. 100' },
-    { key: 'timeStampPrecision', label: 'Timestamp Precision', type: 'text', placeholder: '' },
-    { key: 'timeStampSource', label: 'Timestamp Source', type: 'text', placeholder: '' },
+    { key: 'friendlyName', label: 'Friendly Name (AdapterFriendlyName)', type: 'text', placeholder: 'e.g. Ethernet-ch' },
+    { key: 'interface', label: 'Interface Name', type: 'text', placeholder: 'e.g. ensp04 or DeviceNPF_{...}' },
+    { key: 'bufferSize', label: 'Buffer Size (MB)', type: 'number', placeholder: 'e.g. 8' },
+    { key: 'bpFilter', label: 'BPF Filter', type: 'text', placeholder: 'e.g. ip src 192.168.0.1' },
+    { key: 'timeout', label: 'Timeout (ms)', type: 'number', placeholder: 'e.g. 1' },
+    { key: 'timeStampPrecision', label: 'Timestamp Precision', type: 'select', options: ['', 'Microsecond', 'Nanosecond'] },
+    { key: 'timeStampSource', label: 'Timestamp Source', type: 'select', options: ['', 'TimeStampHost', 'TimeStampHostLowPrecision', 'TimeStampHostHighPrecisionSync', 'TimeStampAdapterUnsync', 'TimeStampHostHighPrecisionUnsync'] },
     { key: 'immediateMode', label: 'Immediate Mode', type: 'checkbox' },
-    { key: 'snapshotLength', label: 'Snapshot Length', type: 'number', placeholder: 'e.g. 65535' },
-    { key: 'pcapDeviceMode', label: 'PCAP Device Mode', type: 'text', placeholder: 'e.g. Promiscuous' },
+    { key: 'snapshotLength', label: 'Snapshot Length', type: 'number', placeholder: 'e.g. 65536' },
+    { key: 'pcapDeviceMode', label: 'PCAP Device Mode', type: 'select', options: ['', 'Promiscuous'] },
     { key: 'useDataLoggerTimeStamp', label: 'Use DataLogger Timestamp', type: 'checkbox' },
     { key: 'removeDataLoggerMetaData', label: 'Remove DataLogger Metadata', type: 'checkbox' },
-    { key: 'dataLoggerType', label: 'DataLogger Type', type: 'text', placeholder: 'e.g. MDF' },
+    { key: 'dataLoggerType', label: 'DataLogger Type', type: 'text', placeholder: 'e.g. NotDefined, TECMP' },
     { key: 'packetProcessingActive', label: 'Packet Processing Active', type: 'checkbox' },
     { key: 'packetIdentificationActive', label: 'Packet Identification Active', type: 'checkbox' },
     { key: 'differentHandlerForTxAndRx', label: 'Different Handler For Tx And Rx', type: 'checkbox' },
@@ -359,7 +386,8 @@ export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
     { key: 'portName',              label: 'Port Name (Serial)',     type: 'text',   placeholder: 'e.g. COM2' },
     { key: 'bitRate',               label: 'Bit Rate (Serial)',      type: 'number', placeholder: 'e.g. 19200' },
     // TCP fields
-    { key: 'ip',                    label: 'IP Address (TCP)',       type: 'text',   placeholder: 'e.g. 169.254.16.136' },
+    { key: 'ip',                    label: 'IP Address (TCP)',       type: 'text',   placeholder: 'e.g. 169.254.16.136',
+      pattern: REGEX.IP, patternError: 'Expected a valid IPv4 (e.g. 169.254.16.136) or IPv6 (e.g. 2001:db8::1) address' },
     { key: 'port',                  label: 'TCP Port',               type: 'number', placeholder: 'e.g. 8003' },
     { key: 'language',              label: 'Language',               type: 'select', options: ['SCPI', 'GEN'] },
     { key: 'continuousMonitoringActive', label: 'Continuous Monitoring', type: 'checkbox' },
@@ -376,8 +404,19 @@ export const HARDWARE_EXTRA_FIELDS: Record<string, FieldDef[]> = {
     { key: 'continuousReadingInterval', label: 'Continuous Reading Interval (ms)', type: 'number', placeholder: 'e.g. 1000' },
   ],
   BTSRevo: [
-    { key: 'addressPrefix', label: 'Address Prefix (first 3 IP octets)', type: 'text', placeholder: 'e.g. 10.104.3' },
+    { key: 'addressPrefix', label: 'Address Prefix (first 3 IP octets)', type: 'text', placeholder: 'e.g. 10.104.3',
+      pattern: REGEX.IP_PREFIX, patternError: 'Expected 3 octets: e.g. 10.104.3' },
     { key: 'boardId', label: 'Board ID (4th IP byte)', type: 'number', placeholder: 'e.g. 160' },
     { key: 'ethernetPort', label: 'Ethernet Port', type: 'number', placeholder: 'e.g. 5001' },
+  ],
+  TunTapBridge: [
+    {
+      key: 'physicalAdapterName',
+      label: 'Physical Adapter (friendly name)',
+      type: 'text',
+      placeholder: 'e.g. Ethernet adapter',
+    },
+    // tunTapAdapters is managed by the dedicated TunTapAdaptersEditor in AddChannelForm
+    // (not a simple FieldDef — it's an array of structured objects)
   ],
 };

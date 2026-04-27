@@ -361,7 +361,10 @@ export class ConfigGenerator {
   generate(): string {
     const errors = this.preGenerationValidate();
     if (errors.length > 0) {
-      throw new Error(`Cannot generate config.yaml:\n${errors.map(e => `  â€¢ ${e}`).join('\n')}`);
+      throw new Error(
+        `Cannot generate config.yaml — ${errors.length} validation error${errors.length > 1 ? 's' : ''}:\n\n` +
+        errors.map((e, i) => `  ${i + 1}. ${e}`).join('\n')
+      );
     }
     const raw = yaml.dump(this._buildMtfObject(), { indent: 2, lineWidth: 120, noRefs: true });
     const fixedKeys = raw.replace(/^(\s*)'(\d+)':/gm, '$1$2:');
@@ -491,6 +494,7 @@ export class ConfigGenerator {
       const logicalChannelName = hwMappings[0]?.logicalChannelName ?? hw.name;
       const adapterObj: Record<string, any> = { Name: logicalChannelName };
       if (a.friendlyName) { adapterObj.FriendlyName = a.friendlyName; }
+      if (a.interface)     { adapterObj.Interface     = a.interface; }
       if (a.bufferSize) { adapterObj.BufferSize = a.bufferSize; }
       if (a.bpFilter) { adapterObj.BpfFilter = a.bpFilter; }
       if (a.timeout) { adapterObj.Timeout = a.timeout; }
@@ -740,58 +744,44 @@ export class ConfigGenerator {
 
     // EthernetConfig
     if (fc?.ethernetConfig) {
-      const ec = fc.ethernetConfig as any;
+      const ec = fc.ethernetConfig;
       const ethOut: Record<string, any> = {};
       if (ec.considerOnlyEthernetTopologyEcus !== undefined) { ethOut.ConsiderOnlyEthernetTopologyEcus = ec.considerOnlyEthernetTopologyEcus; }
+
       if (ec.npduConfig) {
-        const n = ec.npduConfig;
-        const npduOut: Record<string, any> = {};
-        if (n.ManageVlansInCom            !== undefined) { npduOut.ManageVlansInCom            = n.ManageVlansInCom; }
-        if (n.RestrictNPduChannelsInCom   !== undefined) { npduOut.RestrictNPduChannelsInCom   = n.RestrictNPduChannelsInCom; }
-        if (n.IPMacTable?.length)  { npduOut.IPMacTable = n.IPMacTable; }
-        if (n.VLans) {
-          const vlansOut: Record<string, any> = {};
-          if (n.VLans.InnerTags?.length) { vlansOut.InnerTags = n.VLans.InnerTags; }
-          if (n.VLans.OuterTags?.length) { vlansOut.OuterTags = n.VLans.OuterTags; }
-          if (Object.keys(vlansOut).length) { npduOut.VLans = vlansOut; }
-        }
+        const npduOut = ec.npduConfig.toYAML();
         if (Object.keys(npduOut).length) { ethOut.NPduConfig = npduOut; }
       }
+
       if (ec.someIPConfig) {
-        const s = ec.someIPConfig;
-        const someipOut: Record<string, any> = {};
-        if (s.ServerToClientPortRangeMapping) {
-          someipOut.ServerToClientPortRangeMapping = {
-            ServerPorts: s.ServerToClientPortRangeMapping.ServerPorts,
-            ClientPorts: s.ServerToClientPortRangeMapping.ClientPorts,
-          };
-        }
-        if (s.EndpointImplementation) { someipOut.EndpointImplementation = s.EndpointImplementation; }
-        if (s.AdapterName)            { someipOut.AdapterName            = s.AdapterName; }
+        const someipOut = ec.someIPConfig.toYAML();
         if (Object.keys(someipOut).length) { ethOut.SomeIPConfig = someipOut; }
       }
-      if (ec.appLayerPorts) {
-        const alpObj: Record<string, any> = {};
-        for (const [k, v] of Object.entries(ec.appLayerPorts as Record<string, any>)) {
-          if (v !== undefined && v !== null) { alpObj[k] = v; }
-        }
-        if (Object.keys(alpObj).length) { ethOut.AppLayerPorts = alpObj; }
+
+      if (ec.appLayerPortsConfig) {
+        const alpOut = ec.appLayerPortsConfig.toYAML();
+        if (Object.keys(alpOut).length) { ethOut.AppLayerPorts = alpOut; }
       }
+
       if (ec.ethernetTopology) {
         const topo = ec.ethernetTopology;
         const topoOut: Record<string, any> = {};
-        if (topo.EthProtoPrioConfig?.length) {
-          topoOut.EthProtoPrioConfig = topo.EthProtoPrioConfig.map((entry: any) => {
+        if (topo.ethProtoPrioConfig?.length) {
+          topoOut.EthProtoPrioConfig = topo.ethProtoPrioConfig.map((entry: any) => {
             if (!Array.isArray(entry.Ports) || entry.Ports.length === 0) { return entry; }
             return { ...entry, Ports: entry.Ports.map(mapPortEntry) };
           });
         }
-        if (topo.TopologyConfig?.length)     { topoOut.TopologyConfig     = topo.TopologyConfig; }
+        if (topo.topologyConfig?.length) { topoOut.TopologyConfig = topo.topologyConfig; }
         if (Object.keys(topoOut).length) { ethOut.EthernetTopology = topoOut; }
       }
-      if (ec.channelToEcusMapping && Object.keys(ec.channelToEcusMapping).length) {
-        ethOut.ChannelToEcusMapping = ec.channelToEcusMapping;
+
+      if (ec.channelEcuMappings?.length) {
+        const mapping: Record<string, string[]> = {};
+        for (const m of ec.channelEcuMappings) { mapping[m.channelName] = m.ecus; }
+        ethOut.ChannelToEcusMapping = mapping;
       }
+
       if (Object.keys(ethOut).length) { section.EthernetConfig = ethOut; }
     }
 

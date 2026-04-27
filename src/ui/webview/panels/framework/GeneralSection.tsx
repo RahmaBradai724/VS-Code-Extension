@@ -40,7 +40,7 @@ export function GeneralSection({ data, ecuInput, setEcuInput, setD, tracerCount 
           </div>
           <div id="fw-servicePack">
             <label style={T.label}>Service Pack Name</label>
-            <input style={T.input} placeholder="ServicePack_name" value={data.servicePack || ''} onChange={e => setD('servicePack', e.target.value)} />
+            <input style={T.input} placeholder="BMW" value={data.servicePack || ''} onChange={e => setD('servicePack', e.target.value)} />
           </div>
         </div>
       </div>

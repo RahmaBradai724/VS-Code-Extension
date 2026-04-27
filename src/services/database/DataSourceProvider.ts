@@ -25,11 +25,13 @@ import {
   CMInterface,
   HHLoad,
   BTSRevo,
+  TunTapBridge,
 } from '../../models/hardwareChannels';
 import { Configuration } from '../../models/configuration';
 import { User } from '../../models/user';
 import { Mapping } from '../../models/mapping';
-import { FrameworkConfig, PCAPTracer, ASCIITracer, EthernetConfig, PublisherConfig, DiagnosticsConfig } from '../../models/frameworkConfig';
+import { FrameworkConfig, PCAPTracer, ASCIITracer, EthernetConfig, PublisherConfig,
+  NpduConfig, SomeIPConfig, AppLayerPortsConfig, EthernetTopology, ChannelEcuMapping } from '../../models/frameworkConfig';
 
 // ── Database configuration ──────────────────────────────────────────────────
 const dbConfig = {
@@ -63,9 +65,10 @@ export function getDataSource(): DataSource {
         FlexRayChannel, SerialChannel, CANChannel, IOInputChannel, IOOutputChannel,
         LINChannel, IOSerialChannel, BridgeChannel, EthernetChannel, PSChannel,
         LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice,
-        CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo,
+        CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo, TunTapBridge,
         PCAPTracer, ASCIITracer, FrameworkConfig,
-        EthernetConfig, PublisherConfig, DiagnosticsConfig,
+        EthernetConfig, PublisherConfig,
+        NpduConfig, SomeIPConfig, AppLayerPortsConfig, EthernetTopology, ChannelEcuMapping,
         Configuration, User, Mapping,
       ],
     });

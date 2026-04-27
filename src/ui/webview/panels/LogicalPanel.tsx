@@ -14,7 +14,10 @@ LOGICAL_SUBCLASS_OPTIONS.forEach(o => { CATEGORY_OF[o.value] = o.category; });
 function initExtras(subclass: string): Record<string, any> {
   const fields = LOGICAL_EXTRA_FIELDS[subclass] ?? [];
   const obj: Record<string, any> = {};
-  fields.forEach(f => { obj[f.key] = f.type === 'checkbox' ? false : ''; });
+  fields.forEach(f => {
+    obj[f.key] = f.defaultValue !== undefined ? f.defaultValue
+      : f.type === 'checkbox' ? false : '';
+  });
   return obj;
 }
 

@@ -1,3 +1,10 @@
+export declare const REGEX: {
+    readonly IPV4: RegExp;
+    readonly IPV6: RegExp;
+    readonly IP: RegExp;
+    readonly MAC: RegExp;
+    readonly IP_PREFIX: RegExp;
+};
 export type Page = 'configs' | 'logical' | 'hardware' | 'mappings' | 'framework' | 'tracers' | 'generate' | 'dashboard' | 'diagrams' | 'agent';
 export type FrameworkSection = 'tracers' | 'connectedEcus' | 'servicePack' | 'publisher' | 'ethernet' | 'npduConfig' | 'someIPConfig' | 'appLayerPorts' | 'ethernetTopology' | 'channelToEcusMapping';
 export interface Notification {
@@ -209,9 +216,12 @@ export interface SelectOption {
 export interface FieldDef {
     key: string;
     label: string;
-    type: 'text' | 'number' | 'checkbox' | 'select';
+    type: 'text' | 'number' | 'checkbox' | 'select' | 'json';
     placeholder?: string;
     options?: (string | SelectOption)[];
+    defaultValue?: string | number | boolean;
+    pattern?: RegExp;
+    patternError?: string;
 }
 export declare const CHANNEL_COLORS: Record<string, string>;
 export declare const LOGICAL_SUBCLASS_OPTIONS: {

@@ -11,6 +11,7 @@ interface Props {
     setExtra: (key: string, val: any) => void;
     handleAdd: () => void;
     handleCancelForm: () => void;
+    adapterFriendlyNames?: string[];
 }
-export declare function AddChannelForm({ form, nameError, setField, setSubclass, setExtra, handleAdd, handleCancelForm }: Props): React.JSX.Element;
+export declare function AddChannelForm({ form, nameError, setField, setSubclass, setExtra, handleAdd, handleCancelForm, adapterFriendlyNames }: Props): React.JSX.Element;
 export {};

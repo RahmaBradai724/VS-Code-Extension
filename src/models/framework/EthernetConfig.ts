@@ -1,5 +1,10 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import type { FrameworkConfig } from './FrameworkConfig';
+import { NpduConfig } from './NpduConfig';
+import { SomeIPConfig } from './SomeIPConfig';
+import { AppLayerPortsConfig } from './AppLayerPortsConfig';
+import { EthernetTopology } from './EthernetTopology';
+import { ChannelEcuMapping } from './ChannelEcuMapping';
 
 @Entity('ethernet_configs')
 export class EthernetConfig {
@@ -23,36 +28,48 @@ export class EthernetConfig {
   build?: string;
 
   @Column({ nullable: true })
-  appLayerPort?: number;
-
-  @Column({ type: 'jsonb', nullable: true })
-  appLayerPorts?: number[];
-
-  @Column({ nullable: true })
   considerOnlyEthernetTopologyEcus?: boolean;
 
-  @Column({ type: 'jsonb', nullable: true })
-  npduConfig?: object;
+  @OneToOne(() => NpduConfig, 'ethernetConfig', { cascade: true, eager: true, nullable: true } as any)
+  npduConfig!: NpduConfig;
 
-  @Column({ type: 'jsonb', nullable: true })
-  someIPConfig?: object;
+  @OneToOne(() => SomeIPConfig, 'ethernetConfig', { cascade: true, eager: true, nullable: true } as any)
+  someIPConfig!: SomeIPConfig;
 
-  @Column({ type: 'jsonb', nullable: true })
-  ethernetTopology?: object;
+  @OneToOne(() => AppLayerPortsConfig, 'ethernetConfig', { cascade: true, eager: true, nullable: true } as any)
+  appLayerPortsConfig!: AppLayerPortsConfig;
+
+  @OneToOne(() => EthernetTopology, 'ethernetConfig', { cascade: true, eager: true, nullable: true } as any)
+  ethernetTopology!: EthernetTopology;
+
+  @OneToMany(() => ChannelEcuMapping, (m) => m.ethernetConfig, { cascade: true, eager: true })
+  channelEcuMappings!: ChannelEcuMapping[];
 
   toYAML(): object {
     return {
-      autoDetectEthSettings: this.autoDetectEthSettings,
-      protocol: this.protocol,
-      appLayerPorts: this.appLayerPorts,
-      considerOnlyEthernetTopologyEcus: this.considerOnlyEthernetTopologyEcus,
-      npduConfig: this.npduConfig,
-      someIPConfig: this.someIPConfig,
-      ethernetTopology: this.ethernetTopology,
+      autoDetectEthSettings:             this.autoDetectEthSettings,
+      protocol:                          this.protocol,
+      considerOnlyEthernetTopologyEcus:  this.considerOnlyEthernetTopologyEcus,
     };
   }
 
   toJSON(): object {
-    return { ...this };
+    const channelToEcusMapping = this.channelEcuMappings?.length
+      ? Object.fromEntries(this.channelEcuMappings.map(m => [m.channelName, m.ecus]))
+      : undefined;
+    return {
+      id:                               this.id,
+      autoDetectEthSettings:            this.autoDetectEthSettings,
+      maxDataCols:                      this.maxDataCols,
+      protocol:                         this.protocol,
+      build:                            this.build,
+      considerOnlyEthernetTopologyEcus: this.considerOnlyEthernetTopologyEcus,
+      npduConfig:                       this.npduConfig?.toJSON(),
+      someIPConfig:                     this.someIPConfig?.toJSON(),
+      // "appLayerPorts" key kept for webview compatibility
+      appLayerPorts:                    this.appLayerPortsConfig?.toJSON(),
+      ethernetTopology:                 this.ethernetTopology?.toJSON(),
+      channelToEcusMapping,
+    };
   }
 }

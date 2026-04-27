@@ -1,6 +1,20 @@
 import React from 'react';
 import { T } from '../../components/shared';
+import { REGEX } from '../../types';
 import { CardRow, AddBtn, SUB_CARD, SUB_TITLE } from './shared';
+
+const ERR_COLOR = 'var(--vscode-editorError-foreground, #f44747)';
+const errStyle = (invalid: boolean) => invalid ? { borderColor: ERR_COLOR, outline: `1px solid ${ERR_COLOR}` } : {};
+const errText = (msg: string) => <span style={{ fontSize: '11px', color: ERR_COLOR, display: 'block', marginTop: '2px' }}>{msg}</span>;
+
+function macErr(val: string): string | null {
+  return val && !REGEX.MAC.test(val) ? 'Expected: XX:XX:XX:XX:XX:XX (hex pairs, colon-separated)' : null;
+}
+function ipListErr(raw: string | string[]): string | null {
+  const items = (Array.isArray(raw) ? raw : raw.split(',')).map(s => s.trim()).filter(Boolean);
+  const bad = items.filter(ip => !REGEX.IPV4.test(ip) && !REGEX.IPV6.test(ip));
+  return bad.length ? `Invalid IP(s): ${bad.join(', ')}` : null;
+}
 
 const PROTO_TYPES = ['TCP', 'UDP', 'ICMPv6'];
 const PORT_TYPE_OPTIONS = ['SrcPort', 'DstPort', 'SrcPortRange', 'DstPortRange'];
@@ -59,9 +73,10 @@ interface Props {
   topoCfg: any[];
   setTopoProtoCfg: (list: any[]) => void;
   setTopoTopoCfg: (list: any[]) => void;
+  tunTapVirtualAdapterNames?: string[];
 }
 
-export function TopologySection({ ethProtoCfg, topoCfg, setTopoProtoCfg, setTopoTopoCfg }: Props) {
+export function TopologySection({ ethProtoCfg, topoCfg, setTopoProtoCfg, setTopoTopoCfg, tunTapVirtualAdapterNames = [] }: Props) {
   return (
     <div id="fw-ethernetTopology" style={{ ...T.card, marginBottom: '10px' }}>
       <p style={SUB_TITLE}>EthernetTopology</p>
@@ -143,20 +158,33 @@ export function TopologySection({ ethProtoCfg, topoCfg, setTopoProtoCfg, setTopo
                 <input style={T.input} placeholder="e.g. ECU1" value={ecu.EcuName || ''}
                   onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], EcuName: e.target.value }; setTopoTopoCfg(l); }} /></div>
               <div><label style={T.label}>SrcMacAdr (optional)</label>
-                <input style={T.input} placeholder="AA:BB:CC:DD:EE:FF" value={ecu.SrcMacAdr || ''}
-                  onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], SrcMacAdr: e.target.value }; setTopoTopoCfg(l); }} /></div>
+                <input style={{ ...T.input, ...errStyle(!!macErr(ecu.SrcMacAdr || '')) }}
+                  placeholder="AA:BB:CC:DD:EE:FF" value={ecu.SrcMacAdr || ''}
+                  onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], SrcMacAdr: e.target.value }; setTopoTopoCfg(l); }} />
+                {macErr(ecu.SrcMacAdr || '') && errText(macErr(ecu.SrcMacAdr || '')!)}
+              </div>
             </div>
             <div style={{ marginBottom: '8px' }}>
               <label style={T.label}>SrcIpList (mandatory, comma-separated)</label>
-              <input style={T.input} placeholder="192.168.1.1, 192.168.1.2"
+              <input style={{ ...T.input, ...errStyle(!!ipListErr(ecu.SrcIpList)) }}
+                placeholder="192.168.1.1, 192.168.1.2"
                 value={Array.isArray(ecu.SrcIpList) ? ecu.SrcIpList.join(', ') : (ecu.SrcIpList || '')}
                 onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], SrcIpList: e.target.value }; setTopoTopoCfg(l); }}
                 onBlur={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], SrcIpList: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }; setTopoTopoCfg(l); }} />
+              {ipListErr(ecu.SrcIpList) && errText(ipListErr(ecu.SrcIpList)!)}
             </div>
             <div style={{ marginBottom: '8px' }}>
               <label style={T.label}>TunTapAdapterName (optional)</label>
-              <input style={T.input} placeholder="tap adapter name" value={ecu.TunTapAdapterName || ''}
-                onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], TunTapAdapterName: e.target.value }; setTopoTopoCfg(l); }} />
+              {tunTapVirtualAdapterNames.length > 0 ? (
+                <select style={T.select} value={ecu.TunTapAdapterName || ''}
+                  onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], TunTapAdapterName: e.target.value }; setTopoTopoCfg(l); }}>
+                  <option value=''>— none —</option>
+                  {tunTapVirtualAdapterNames.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              ) : (
+                <input style={T.input} placeholder="tap adapter name" value={ecu.TunTapAdapterName || ''}
+                  onChange={e => { const l = [...topoCfg]; l[idx] = { ...l[idx], TunTapAdapterName: e.target.value }; setTopoTopoCfg(l); }} />
+              )}
             </div>
             {/* Vlans */}
             {(() => {

@@ -11,6 +11,9 @@ function initExtras(subclass: string): Record<string, any> {
   const fields = HARDWARE_EXTRA_FIELDS[subclass] ?? [];
   const obj: Record<string, any> = {};
   fields.forEach(f => { obj[f.key] = f.type === 'checkbox' ? false : ''; });
+  if (subclass === 'TunTapBridge') {
+    obj.tunTapAdapters = [];
+  }
   return obj;
 }
 
@@ -34,7 +37,7 @@ export default function HardwarePanel() {
       if (!v) {
         setNameError('Name is required.');
       } else if (!HW_NAME_RE.test(v)) {
-        setNameError('Invalid name â€” must start with a letter or underscore; no spaces. Allowed: Aâ€“Z, aâ€“z, 0â€“9, _, -');
+        setNameError('Invalid name, It must start with a letter or underscore, no spaces are allowed. Allowed: [A-Z]');
       } else {
         setNameError('');
       }
@@ -96,6 +99,9 @@ export default function HardwarePanel() {
           setExtra={setExtra}
           handleAdd={handleAdd}
           handleCancelForm={handleCancelForm}
+          adapterFriendlyNames={(
+            state.hardwareChannels as any[]
+          ).filter(h => h.subclass === 'EthernetAdapter' && h.friendlyName).map((h: any) => h.friendlyName as string)}
         />
       )}
 

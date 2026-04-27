@@ -4,162 +4,19 @@ Channels:
     Type: CAN
     Protocol: canfd
     LoggingName: logging
-    TracerName: tracer
     Alias:
       - alias1
       - alias2
-  ethernet:
-    Id: 2
-    Type: ETHERNET
-    LoggingName: Logging
-    TracerName: Tracer
-    Alias:
-      - alias1
-      - alias2
-    ApplicationProtocol: XCP
 Mappings:
   CM:
     Devices:
       1:
-        Id: 64
+        Id: 60
         Type: CAN_Combo
         Buses:
           can:
             HWChannel: 600
             OperationMode: Normal
-  PCAP:
-    1:
-      Adapter:
-        Name: ethernet
-        FriendlyName: friendly
-        BufferSize: 200
-        BpfFilter: tcp
-        Timeout: 100
-        TimeStampPrecision: Nanosecond
-        TimeStampSource: Nanosecond
-        ImmediateMode: true
-        SnapshotLength: 650000
-        PcapDeviceMode: Promiscuous
-        UseDataLoggerTimeStamp: true
-        RemoveDataLoggerMetaData: true
-        DataLoggerType: MDF
-        PacketProcessingActive: true
-        PacketIdentificationActive: true
-        DifferentHandlerForTxAndRx: true
-        TECMPPacketizationActive: true
 FrameworkConfig:
-  Tracing:
-    tracer:
-      Type: PCAP
-      Timestamp: Microsecond
-      LoggingType: MultipleAdapterMode
-      LoggerConfiguration:
-        BufferConfig:
-          BufferSize: 200
-        FileConfig:
-          BaseFileName: trace
-          Extension: .pcapng
-          MaxFile: 200
-          MaxFileSize: 200
-    Tracer:
-      Type: PCAP
-      Timestamp: Microsecond
-      LoggingType: MultipleAdapterMode
-      LoggerConfiguration:
-        BufferConfig:
-          BufferSize: 300
-        FileConfig:
-          BaseFileName: trace
-          Extension: .pcapng
-          MaxFile: 300
-          MaxFileSize: 300
   PublisherConfig:
-    PublisherType: MultiThreaded
-    ChannelsGroups:
-      - [can, ethernet]
-  ConnectedEcus:
-    - ECU1
-    - ECU2
-  ServicePack: BMW
-  EthernetConfig:
-    ConsiderOnlyEthernetTopologyEcus: true
-    NPduConfig:
-      ManageVlansInCom: true
-      RestrictNPduChannelsInCom: true
-      IPMacTable: [[192.168.1.1, 00:00:00:00:00:01]]
-      VLans:
-        InnerTags:
-          -
-            ID: 1
-            Priority: 7
-            IPList: [192.168.1.2,192.168.1.3]
-        OuterTags:
-          -
-            ID: 2
-            Priority: 7
-            IPList: [192.168.1.4,192.168.1.5]
-    SomeIPConfig:
-      ServerToClientPortRangeMapping:
-        ServerPorts: [[30500,30599]]
-        ClientPorts: [[30599,30499]]
-    AppLayerPorts:
-      NPdu: [3000, [3200, 3500]]
-      SomeIp: [3000, [3200, 3500]]
-      UDPNM: [3000, [3200, 3500]]
-      DLT: [3000, [3200, 3500]]
-      SomeIpSD: [3000, [3200, 3500]]
-    EthernetTopology:
-      EthProtoPrioConfig:
-        - Protocol: TCP
-          DefaultPriority: 5
-          Ports:
-            - SrcPort: 4000
-              Priority: 5
-            - SrcPort: 4001
-              Priority: 4
-      TopologyConfig:
-        - EcuName: ECU1
-          SrcIpList:
-            - 192.168.1.1
-            - 192.168.1.2
-          SrcMacAdr: AA:BB:CC:DD
-          TunTapAdapterName: tuntap
-          Vlans:
-            DefaultVlan:
-              InnerVlanTag:
-                Id: 2
-                Ethertype: 33024
-                VlanPriorityTag: 5
-                VlanCfi: true
-              OuterVlanTag:
-                Id: 3
-                Ethertype: 37120
-                VlanPriorityTag: 5
-                VlanCfi: true
-            MulticastVlanForwarding:
-              - InnerVlanTag:
-                  Id: 4
-                  Ethertype: 33024
-                  VlanPriorityTag: 3
-                  VlanCfi: true
-                OuterVlanTag:
-                  Id: 5
-                  Ethertype: 34984
-                  VlanPriorityTag: 4
-                  VlanCfi: true
-            DstIpVlanMapping:
-              - DstIp: 2001:8b:rjglt
-                InnerVlanTag:
-                  Id: 8
-                  Ethertype: 33024
-                  VlanPriorityTag: 6
-                  VlanCfi: true
-                OuterVlanTag:
-                  Id: 14
-                  Ethertype: 34984
-                  VlanPriorityTag: 7
-                  VlanCfi: true
-    ChannelToEcusMapping:
-      can:
-        - ecu1
-        - ecu2
+    PublisherType: SingleThreaded

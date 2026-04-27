@@ -16,8 +16,6 @@ const enums_1 = require("../enums");
 let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.ETHERNET_ADAPTER, enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER);
-        this.macAddress = '';
-        this.ipAddress = '';
         this.friendlyName = '';
         this.interface = '';
         this.bufferSize = 0;
@@ -48,7 +46,6 @@ let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareCh
     toYAML() {
         return {
             id: this.id, name: this.name, type: this.type, category: this.category, subclass: this.subclass,
-            macAddress: this.macAddress, ipAddress: this.ipAddress,
             friendlyName: this.friendlyName, interface: this.interface,
             bufferSize: this.bufferSize, bpFilter: this.bpFilter,
             timeout: this.timeout, timeStampPrecision: this.timeStampPrecision,
@@ -68,14 +65,6 @@ let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareCh
     }
 };
 exports.EthernetAdapter = EthernetAdapter;
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], EthernetAdapter.prototype, "macAddress", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], EthernetAdapter.prototype, "ipAddress", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

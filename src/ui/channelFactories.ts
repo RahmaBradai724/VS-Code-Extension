@@ -5,6 +5,7 @@ import {
 import {
   LINCard, SerialPort, HIDRelay, RelayBoard, EthernetAdapter, AnalogDevice,
   CANInterface, CIBInterface, TEAnalog, CMInterface, HHLoad, BTSRevo,
+  GenesysPowerSupply, MansonPowerSupply, TunTapBridge,
 } from '../models/hardwareChannels';
 import { LogicalChannelSubclass, HardwareChannelSubclass } from '../models/enums';
 
@@ -34,4 +35,7 @@ export const hardwareChannelFactories: Record<string, (id: string, name: string)
   [HardwareChannelSubclass.CM_INTERFACE]:    (id, name) => new CMInterface(id, name),
   [HardwareChannelSubclass.HH_LOAD]:         (id, name) => new HHLoad(id, name),
   [HardwareChannelSubclass.BTS_REVO]:         (id, name) => new BTSRevo(id, name),
+  [HardwareChannelSubclass.GENESYS_PS]:       (id, name) => new GenesysPowerSupply(id, name),
+  [HardwareChannelSubclass.MANSON_PS]:        (id, name) => new MansonPowerSupply(id, name),
+  [HardwareChannelSubclass.TUNTAP_BRIDGE]:    (id, name) => new TunTapBridge(id, name),
 };

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FrameworkConfig = exports.DiagnosticsConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = void 0;
+exports.ChannelEcuMapping = exports.EthernetTopology = exports.AppLayerPortsConfig = exports.SomeIPConfig = exports.NpduConfig = exports.FrameworkConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = void 0;
 var Tracer_1 = require("./Tracer");
 Object.defineProperty(exports, "Tracer", { enumerable: true, get: function () { return Tracer_1.Tracer; } });
 var PCAPTracer_1 = require("./PCAPTracer");
@@ -11,8 +11,16 @@ var PublisherConfig_1 = require("./PublisherConfig");
 Object.defineProperty(exports, "PublisherConfig", { enumerable: true, get: function () { return PublisherConfig_1.PublisherConfig; } });
 var EthernetConfig_1 = require("./EthernetConfig");
 Object.defineProperty(exports, "EthernetConfig", { enumerable: true, get: function () { return EthernetConfig_1.EthernetConfig; } });
-var DiagnosticsConfig_1 = require("./DiagnosticsConfig");
-Object.defineProperty(exports, "DiagnosticsConfig", { enumerable: true, get: function () { return DiagnosticsConfig_1.DiagnosticsConfig; } });
 var FrameworkConfig_1 = require("./FrameworkConfig");
 Object.defineProperty(exports, "FrameworkConfig", { enumerable: true, get: function () { return FrameworkConfig_1.FrameworkConfig; } });
+var NpduConfig_1 = require("./NpduConfig");
+Object.defineProperty(exports, "NpduConfig", { enumerable: true, get: function () { return NpduConfig_1.NpduConfig; } });
+var SomeIPConfig_1 = require("./SomeIPConfig");
+Object.defineProperty(exports, "SomeIPConfig", { enumerable: true, get: function () { return SomeIPConfig_1.SomeIPConfig; } });
+var AppLayerPortsConfig_1 = require("./AppLayerPortsConfig");
+Object.defineProperty(exports, "AppLayerPortsConfig", { enumerable: true, get: function () { return AppLayerPortsConfig_1.AppLayerPortsConfig; } });
+var EthernetTopology_1 = require("./EthernetTopology");
+Object.defineProperty(exports, "EthernetTopology", { enumerable: true, get: function () { return EthernetTopology_1.EthernetTopology; } });
+var ChannelEcuMapping_1 = require("./ChannelEcuMapping");
+Object.defineProperty(exports, "ChannelEcuMapping", { enumerable: true, get: function () { return ChannelEcuMapping_1.ChannelEcuMapping; } });
 //# sourceMappingURL=index.js.map

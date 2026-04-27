@@ -4,6 +4,7 @@ interface Props {
     topoCfg: any[];
     setTopoProtoCfg: (list: any[]) => void;
     setTopoTopoCfg: (list: any[]) => void;
+    tunTapVirtualAdapterNames?: string[];
 }
-export declare function TopologySection({ ethProtoCfg, topoCfg, setTopoProtoCfg, setTopoTopoCfg }: Props): React.JSX.Element;
+export declare function TopologySection({ ethProtoCfg, topoCfg, setTopoProtoCfg, setTopoTopoCfg, tunTapVirtualAdapterNames }: Props): React.JSX.Element;
 export {};

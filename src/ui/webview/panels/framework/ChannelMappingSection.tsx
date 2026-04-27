@@ -5,9 +5,10 @@ import { CardRow, AddBtn, SUB_TITLE } from './shared';
 interface Props {
   ctEcuEntries: [string, string[] | string][];
   setCtEcuEntries: (entries: [string, string[] | string][]) => void;
+  logicalChannelNames: string[];
 }
 
-export function ChannelMappingSection({ ctEcuEntries, setCtEcuEntries }: Props) {
+export function ChannelMappingSection({ ctEcuEntries, setCtEcuEntries, logicalChannelNames }: Props) {
   return (
     <div id="fw-channelToEcusMapping" style={{ ...T.card, marginBottom: '10px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -19,8 +20,13 @@ export function ChannelMappingSection({ ctEcuEntries, setCtEcuEntries }: Props) 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={T.label}>Channel Name</label>
-              <input style={T.input} placeholder="e.g. CAN_1" value={ch}
-                onChange={e => { const l = [...ctEcuEntries] as [string, string[] | string][]; l[idx] = [e.target.value, ecus]; setCtEcuEntries(l); }} />
+              <select style={T.input} value={ch}
+                onChange={e => { const l = [...ctEcuEntries] as [string, string[] | string][]; l[idx] = [e.target.value, ecus]; setCtEcuEntries(l); }}>
+                <option value="">-- select channel --</option>
+                {logicalChannelNames.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label style={T.label}>ECUs (comma-separated)</label>
