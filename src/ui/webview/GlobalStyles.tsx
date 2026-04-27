@@ -211,6 +211,10 @@ input:focus, select:focus, textarea:focus {
 
 /* ── Responsive layout ───────────────────────────────────────────────── */
 
+.ccm-panel-area {
+  --ccm-panel-pad: 24px;
+}
+
 /* Narrow: hide YAML preview pane (<= 1050px) */
 @media (max-width: 1050px) {
   .ccm-preview-pane { display: none !important; }
@@ -226,7 +230,7 @@ input:focus, select:focus, textarea:focus {
   .ccm-nav-stats    { display: none !important; }
   .ccm-nav-config-chip { display: none !important; }
   .ccm-grid2        { grid-template-columns: 1fr !important; }
-  .ccm-panel-area   { padding: 14px !important; }
+  .ccm-panel-area   { --ccm-panel-pad: 14px; }
   .ccm-user-name    { display: none !important; }
   .ccm-header       { padding: 0 12px !important; }
 }
@@ -240,7 +244,7 @@ input:focus, select:focus, textarea:focus {
     gap: 6px !important;
   }
   .ccm-header-right { flex-shrink: 1 !important; }
-  .ccm-panel-area   { padding: 8px !important; }
+  .ccm-panel-area   { --ccm-panel-pad: 8px; }
   .ccm-logout-btn   { display: none !important; }
 }
 `;

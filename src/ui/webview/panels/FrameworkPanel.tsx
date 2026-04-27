@@ -33,7 +33,8 @@ function portListToStringInit(v: any): string {
 export default function FrameworkPanel() {
   const { state, dispatch, send, notify } = useApp();
   const fw = state.frameworkData;
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<FrameworkData>(() => ({ ...fw }));
   const [dirty, setDirty] = useState(false);
   const [ecuInput, setEcuInput] = useState(() =>
@@ -48,11 +49,27 @@ export default function FrameworkPanel() {
     SomeIpSD: portListToStringInit(initAppPorts.SomeIpSD),
   }));
 
+  function scrollToSection(sectionId: string, behavior: ScrollBehavior = 'smooth') {
+    const root = panelRef.current;
+    const scroller = root?.closest('.ccm-panel-area') as HTMLDivElement | null;
+    const target = root?.querySelector<HTMLElement>(`#${sectionId}`);
+    if (!scroller || !target) return;
+
+    const navHeight = navRef.current?.getBoundingClientRect().height ?? 0;
+    const offset = navHeight + 12;
+    const nextTop =
+      scroller.scrollTop +
+      target.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top -
+      offset;
+
+    scroller.scrollTo({ top: Math.max(0, nextTop), behavior });
+  }
+
   useEffect(() => {
     const section = state.frameworkSection;
     if (!section) return;
-    const el = scrollRef.current?.querySelector(`#${SECTION_IDS[section]}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToSection(SECTION_IDS[section]);
   }, [state.frameworkSection]);
 
   // Live-sync local data into global state so the YAML preview stays in sync
@@ -134,7 +151,7 @@ export default function FrameworkPanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div ref={panelRef} style={{ display: 'flex', flexDirection: 'column' }}>
 
       {/* -- Header (not sticky) -------------------------------------------- */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexShrink: 0 }}>
@@ -155,15 +172,17 @@ export default function FrameworkPanel() {
       </div>
 
       {/* -- Sticky Section nav pills --------------------------------------- */}
-      <div style={{
+      <div ref={navRef} style={{
+        position: 'sticky',
+        top: 'calc(-1 * var(--ccm-panel-pad, 24px))',
+        zIndex: 5,
         display: 'flex',
         gap: '6px',
         flexWrap: 'wrap',
-        marginTop: '14px', // space above nav bar
-        marginBottom: '18px', // space below nav bar
-        flexShrink: 0,
-        paddingTop: '6px', // extra space inside nav bar (top)
-        paddingBottom: '6px', // extra space inside nav bar (bottom)
+        margin: '0 calc(-1 * var(--ccm-panel-pad, 24px)) 18px',
+        padding: '0 var(--ccm-panel-pad, 24px) 14px',
+        background: 'var(--vscode-editor-background)',
+        borderBottom: '1px solid var(--vscode-panel-border, rgba(128,128,128,0.16))',
       }}>
         {([
           { id: 'fw-connectedEcus', label: 'General' },
@@ -176,14 +195,14 @@ export default function FrameworkPanel() {
           { id: 'fw-channelToEcusMapping', label: 'ECU Mapping' },
         ] as { id: string; label: string }[]).map(s => (
           <button key={s.id} style={NAV_PILL}
-            onClick={() => scrollRef.current?.querySelector(`#${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            onClick={() => scrollToSection(s.id)}>
             {s.label}
           </button>
         ))}
       </div>
 
-      {/* -- Scrollable content ----------------------------------------------- */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
+      {/* -- Content ---------------------------------------------------------- */}
+      <div style={{ paddingRight: '4px' }}>
 
         <GeneralSection data={data} ecuInput={ecuInput} setEcuInput={setEcuInput} setD={setD} tracerCount={data.tracers?.length ?? 0} />
 

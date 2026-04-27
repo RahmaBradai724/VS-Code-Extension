@@ -225,7 +225,7 @@ const S: Record<string, React.CSSProperties> = {
   splitRow: { flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 },
   previewPane: { width: '300px', flexShrink: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   workArea: { flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 },
-  panelArea: { flex: 1, overflow: 'auto', padding: '24px', minWidth: 0 },
+  panelArea: { flex: 1, overflow: 'auto', padding: 'var(--ccm-panel-pad, 24px)', minWidth: 0 },
   noConfig: {
     display: 'flex',
     flexDirection: 'column',

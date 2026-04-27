@@ -74,7 +74,7 @@ function getDataSource() {
                 logicalChannels_1.FlexRayChannel, logicalChannels_1.SerialChannel, logicalChannels_1.CANChannel, logicalChannels_1.IOInputChannel, logicalChannels_1.IOOutputChannel,
                 logicalChannels_1.LINChannel, logicalChannels_1.IOSerialChannel, logicalChannels_1.BridgeChannel, logicalChannels_1.EthernetChannel, logicalChannels_1.PSChannel,
                 hardwareChannels_1.LINCard, hardwareChannels_1.SerialPort, hardwareChannels_1.HIDRelay, hardwareChannels_1.RelayBoard, hardwareChannels_1.EthernetAdapter, hardwareChannels_1.AnalogDevice,
-                hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad, hardwareChannels_1.BTSRevo,
+                hardwareChannels_1.CANInterface, hardwareChannels_1.CIBInterface, hardwareChannels_1.TEAnalog, hardwareChannels_1.CMInterface, hardwareChannels_1.HHLoad, hardwareChannels_1.BTSRevo, hardwareChannels_1.TunTapBridge,
                 frameworkConfig_1.PCAPTracer, frameworkConfig_1.ASCIITracer, frameworkConfig_1.FrameworkConfig,
                 frameworkConfig_1.EthernetConfig, frameworkConfig_1.PublisherConfig,
                 frameworkConfig_1.NpduConfig, frameworkConfig_1.SomeIPConfig, frameworkConfig_1.AppLayerPortsConfig, frameworkConfig_1.EthernetTopology, frameworkConfig_1.ChannelEcuMapping,
