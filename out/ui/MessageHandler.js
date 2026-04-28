@@ -41,7 +41,7 @@ const models_1 = require("../models");
 const channelManager_1 = require("../services/channelManager");
 const mappingManager_1 = require("../services/mappingManager");
 const configGenerator_1 = require("../services/configGenerator");
-const MtfAgent_1 = require("../ai/MtfAgent");
+const RoutedMtfAgent_1 = require("../ai/RoutedMtfAgent");
 const KnowledgeBase_1 = require("../ai/mtf/KnowledgeBase");
 const OllamaClient_1 = require("../ai/mtf/OllamaClient");
 const databaseService_1 = require("../services/databaseService");
@@ -693,26 +693,66 @@ class MessageHandler {
                 const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
                 this.kb = KnowledgeBase_1.KnowledgeBase.load(resourcesDir);
             }
-            const agent = new MtfAgent_1.MtfAgent(this.kb, this.ollama);
-            const { sources } = await agent.ask(question, (token) => {
+            const agent = new RoutedMtfAgent_1.RoutedMtfAgent(this.kb, this.ollama);
+            const workspaceContext = this._buildAgentWorkspaceContext();
+            const { sources } = await agent.ask(question, workspaceContext, (token) => {
                 webview.postMessage({ command: 'agentChunk', token });
             });
             webview.postMessage({
                 command: 'agentDone',
                 sources: sources.map(r => ({
-                    section: r.chunk.section,
-                    subsection: r.chunk.subsection,
-                    title: r.chunk.title,
-                    source_url: r.chunk.source_url,
+                    section: r.section,
+                    subsection: r.subsection,
+                    title: r.title,
+                    source_url: r.source_url,
                     score: r.score,
                     vectorScore: r.vectorScore,
                     fromGraph: r.fromGraph,
+                    sourceType: r.sourceType,
+                    summary: r.summary,
                 })),
             });
         }
         catch (e) {
             webview.postMessage({ command: 'agentError', message: e.message });
         }
+    }
+    _buildAgentWorkspaceContext() {
+        if (!this.currentConfig) {
+            return undefined;
+        }
+        const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
+        const localValidation = this.aiValidator.validate(this.currentConfig, mappings);
+        const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
+        let generatedYaml;
+        let generationError;
+        try {
+            generatedYaml = generator.generate();
+        }
+        catch (error) {
+            generationError = error?.message || 'Unknown YAML generation error.';
+        }
+        const generationValidationErrors = generator.preGenerationValidate();
+        const validationErrors = [...new Set([
+                ...generationValidationErrors,
+                ...localValidation.errors,
+            ])];
+        return {
+            configurationName: this.currentConfig.name,
+            logicalChannels: this.currentConfig.logicalChannels.map((channel) => {
+                const idLabel = channel.channelId != null && channel.channelId !== ''
+                    ? `Id=${channel.channelId}`
+                    : 'Id=missing';
+                return `${channel.name} (${channel.category || channel.subclass || channel.type}; ${idLabel})`;
+            }),
+            hardwareChannels: this.currentConfig.hardwareChannels.map((channel) => `${channel.name} (${channel.category || channel.subclass || channel.type})`),
+            mappings: mappings.map((mapping) => `${mapping.logicalChannelName} -> ${mapping.hardwareChannelName || mapping.hardwareChannelId}`),
+            generatedYaml,
+            validationErrors,
+            validationWarnings: localValidation.warnings,
+            validationSuggestions: localValidation.suggestions,
+            generationError,
+        };
     }
 }
 exports.MessageHandler = MessageHandler;

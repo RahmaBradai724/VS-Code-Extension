@@ -1,11 +1,11 @@
 /**
- * AgentPanel — Chat UI for the local MTF documentation RAG agent.
+ * AgentPanel - Chat UI for the local MTF support and error-analysis agent.
  *
- * Messages flow:
- *   User types question → `agentAsk` postMessage → backend MtfAgent.ask()
- *   Backend streams `agentChunk` tokens → reducer appends to agentStreamingText
- *   Backend sends `agentDone` with sources → reducer finalises assistant message
- *   Backend sends `agentError` on failure  → reducer shows error message
+ * Message flow:
+ *   User types question -> `agentAsk` postMessage -> backend RoutedMtfAgent.ask()
+ *   Backend streams `agentChunk` tokens -> reducer appends to agentStreamingText
+ *   Backend sends `agentDone` with sources -> reducer finalizes assistant message
+ *   Backend sends `agentError` on failure -> reducer shows error message
  */
 
 import React, { useEffect, useRef, useState, KeyboardEvent } from 'react';
@@ -15,28 +15,22 @@ import { Icons } from '../components/icons';
 import { Bubble } from './agent/Bubble';
 import { StreamingDots } from './agent/StreamingDots';
 
-// ── AgentPanel ────────────────────────────────────────────────────────────────
-
 export default function AgentPanel() {
   const { state, dispatch, send } = useApp();
   const [question, setQuestion] = useState('');
-  const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);   // null = checking
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Check Ollama availability on mount
   useEffect(() => {
     send('agentCheckOllama');
   }, [send]);
 
-  // Auto-scroll on new content
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [state.agentMessages, state.agentStreamingText]);
 
-  // Focus input when idle
   useEffect(() => {
     if (!state.agentLoading) {
       inputRef.current?.focus();
@@ -44,33 +38,30 @@ export default function AgentPanel() {
   }, [state.agentLoading]);
 
   function handleSend() {
-    const q = question.trim();
-    if (!q || state.agentLoading) { return; }
-    dispatch({ type: 'AGENT_USER_MSG', content: q });
-    send('agentAsk', { question: q });
+    const trimmed = question.trim();
+    if (!trimmed || state.agentLoading) { return; }
+    dispatch({ type: 'AGENT_USER_MSG', content: trimmed });
+    send('agentAsk', { question: trimmed });
     setQuestion('');
   }
 
-  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       handleSend();
     }
   }
 
-  // Suggestion chips for common MTF questions
-  const SUGGESTIONS = [
-    'What is the Channel Id field?',
-    'How do I configure a CAN channel?',
-    'What PCAP tracer options are available?',
-    'How are mappings defined for BTS-Revo?',
-    'What publisher types exist in FrameworkConfig?',
+  const suggestions = [
+    'What does the Id field mean in Channels?',
+    'How do I configure a PCAP tracer in FrameworkConfig?',
+    'Why can my current configuration not generate YAML?',
+    'Explain this YAML error and tell me how to fix it.',
+    'What fields are required for a CM mapping?',
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-
-      {/* ── Header ── */}
       <div style={{
         padding: '12px 18px',
         borderBottom: `1px solid ${tokens.border}`,
@@ -81,23 +72,11 @@ export default function AgentPanel() {
       }}>
         <span style={{ color: tokens.accent, display: 'flex' }}><Icons.agent /></span>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>MTF Documentation Agent</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>MTF Support Agent</div>
           <div style={{ fontSize: 11, color: tokens.fgMuted }}>
-            Ask anything about the MTF Configuration File (powered by Ollama — fully local)
+            Documentation search, YAML analysis, and configuration guidance with local workspace context.
           </div>
         </div>
-        {ollamaOk === false && (
-          <span style={{
-            marginLeft: 'auto',
-            fontSize: 11,
-            color: '#e06c75',
-            padding: '3px 8px',
-            border: '1px solid #e06c75',
-            borderRadius: 4,
-          }}>
-            Ollama not running
-          </span>
-        )}
         {state.agentMessages.length > 0 && (
           <button
             onClick={() => dispatch({ type: 'AGENT_CLEAR' })}
@@ -118,7 +97,6 @@ export default function AgentPanel() {
         )}
       </div>
 
-      {/* ── Message list ── */}
       <div
         ref={scrollRef}
         style={{
@@ -127,21 +105,22 @@ export default function AgentPanel() {
           padding: '18px 18px 8px',
         }}
       >
-        {/* Welcome / suggestions when empty */}
         {state.agentMessages.length === 0 && !state.agentLoading && (
           <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🤖</div>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
-              MTF Documentation Agent
+              MTF Support Agent
             </div>
             <div style={{ fontSize: 12, color: tokens.fgMuted, marginBottom: 24 }}>
-              Ask me anything about the MTF Configuration File.
+              Ask about fields, sections, validation errors, or the YAML generated from the current configuration.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-              {SUGGESTIONS.map((s, i) => (
+              {suggestions.map((suggestion, index) => (
                 <button
-                  key={i}
-                  onClick={() => { setQuestion(s); inputRef.current?.focus(); }}
+                  key={index}
+                  onClick={() => {
+                    setQuestion(suggestion);
+                    inputRef.current?.focus();
+                  }}
                   style={{
                     background: tokens.bgAlt,
                     border: `1px solid ${tokens.border}`,
@@ -152,19 +131,17 @@ export default function AgentPanel() {
                     cursor: 'pointer',
                   }}
                 >
-                  {s}
+                  {suggestion}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Conversation bubbles */}
-        {state.agentMessages.map((msg, i) => (
-          <Bubble key={i} msg={msg} />
+        {state.agentMessages.map((message, index) => (
+          <Bubble key={index} msg={message} />
         ))}
 
-        {/* Streaming indicator */}
         {state.agentLoading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
             <div style={{
@@ -180,15 +157,12 @@ export default function AgentPanel() {
               boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
               minHeight: 42,
             }}>
-              {state.agentStreamingText || (
-                <StreamingDots />
-              )}
+              {state.agentStreamingText || <StreamingDots />}
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Input area ── */}
       <div style={{
         borderTop: `1px solid ${tokens.border}`,
         padding: '12px 18px',
@@ -201,9 +175,11 @@ export default function AgentPanel() {
           ref={inputRef}
           rows={2}
           value={question}
-          onChange={e => setQuestion(e.target.value)}
+          onChange={event => setQuestion(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={state.agentLoading ? 'Thinking…' : 'Ask about the MTF Configuration File… (Enter to send)'}
+          placeholder={state.agentLoading
+            ? 'Thinking...'
+            : 'Ask about a field, a section, or a YAML/configuration error...'}
           disabled={state.agentLoading}
           style={{
             flex: 1,

@@ -111,9 +111,11 @@ export interface AgentSource {
     subsection: string;
     title: string;
     source_url: string;
-    score: number;
-    vectorScore: number;
-    fromGraph: boolean;
+    score?: number;
+    vectorScore?: number;
+    fromGraph?: boolean;
+    sourceType?: 'documentation' | 'workspace';
+    summary?: string;
 }
 export interface AgentMessage {
     role: 'user' | 'assistant';

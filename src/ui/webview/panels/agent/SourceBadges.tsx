@@ -10,13 +10,13 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
   const [open, setOpen] = useState(false);
   if (!sources.length) { return null; }
 
-  const directCount = sources.filter(s => !s.fromGraph).length;
-  const graphCount  = sources.length - directCount;
+  const directCount = sources.filter(source => !source.fromGraph).length;
+  const graphCount = sources.length - directCount;
 
   return (
     <div style={{ marginTop: 6 }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(value => !value)}
         style={{
           background: 'none',
           border: `1px solid ${tokens.border}`,
@@ -30,7 +30,7 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
           gap: 4,
         }}
       >
-        {open ? '▾' : '▸'}
+        {open ? 'v' : '>'}
         {' '}{directCount} source{directCount !== 1 ? 's' : ''}
         {graphCount > 0 && (
           <span style={{ color: tokens.info, opacity: 0.8 }}>
@@ -41,9 +41,9 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
 
       {open && (
         <ul style={{ margin: '6px 0 0 0', padding: 0, listStyle: 'none' }}>
-          {sources.map((s, i) => (
+          {sources.map((source, index) => (
             <li
-              key={i}
+              key={index}
               style={{
                 fontSize: 11,
                 marginBottom: 5,
@@ -54,9 +54,9 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                {s.source_url ? (
+                {source.source_url ? (
                   <a
-                    href={s.source_url}
+                    href={source.source_url}
                     target="_blank"
                     rel="noreferrer"
                     style={{
@@ -68,41 +68,66 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
                       whiteSpace: 'nowrap',
                       maxWidth: 260,
                     }}
-                    title={s.title}
+                    title={source.title}
                   >
-                    {s.title || s.section}
+                    {source.title || source.section}
                   </a>
                 ) : (
                   <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
-                    {s.title || s.section}
+                    {source.title || source.section}
                   </strong>
                 )}
-                {s.fromGraph && (
+
+                {source.fromGraph && (
                   <span style={{
                     flexShrink: 0,
                     fontSize: 10,
                     background: 'rgba(96,165,250,0.12)',
                     color: tokens.info,
-                    border: `1px solid rgba(96,165,250,0.4)`,
+                    border: '1px solid rgba(96,165,250,0.4)',
                     borderRadius: 3,
                     padding: '1px 4px',
                   }}>
                     related
                   </span>
                 )}
+
+                {source.sourceType === 'workspace' && (
+                  <span style={{
+                    flexShrink: 0,
+                    fontSize: 10,
+                    background: 'rgba(34,197,94,0.12)',
+                    color: '#6ee7b7',
+                    border: '1px solid rgba(34,197,94,0.35)',
+                    borderRadius: 3,
+                    padding: '1px 4px',
+                  }}>
+                    workspace
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', color: tokens.fgMuted, gap: 4 }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {s.section}{s.subsection ? ` › ${s.subsection}` : ''}
+                  {source.section}{source.subsection ? ` > ${source.subsection}` : ''}
                 </span>
-                <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                  {Math.round(s.score * 100)}%
-                  <span style={{ opacity: 0.55, marginLeft: 3 }}>
-                    (vec {Math.round(s.vectorScore * 100)}%)
+                {typeof source.score === 'number' && (
+                  <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                    {Math.round(source.score * 100)}%
+                    {typeof source.vectorScore === 'number' && (
+                      <span style={{ opacity: 0.55, marginLeft: 3 }}>
+                        (vec {Math.round(source.vectorScore * 100)}%)
+                      </span>
+                    )}
                   </span>
-                </span>
+                )}
               </div>
+
+              {source.summary && (
+                <div style={{ marginTop: 4, fontSize: 11, color: tokens.fgMuted, lineHeight: 1.45 }}>
+                  {source.summary}
+                </div>
+              )}
             </li>
           ))}
         </ul>

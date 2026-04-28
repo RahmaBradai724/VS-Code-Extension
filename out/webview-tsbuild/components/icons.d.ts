@@ -17,6 +17,7 @@ export declare const Icons: {
     info: (size?: number) => React.JSX.Element;
     upload: () => React.JSX.Element;
     expand: () => React.JSX.Element;
+    scrollToggle: (direction: "up" | "down", size?: number) => React.JSX.Element;
     sparkle: () => React.JSX.Element;
     tracers: () => React.JSX.Element;
     gear: () => React.JSX.Element;

@@ -7,7 +7,7 @@ import { MappingManager } from '../services/mappingManager';
 import { StorageService } from '../services/storageService';
 import { ConfigGenerator } from '../services/configGenerator';
 import { AIValidator } from '../ai/aiValidator';
-import { MtfAgent } from '../ai/MtfAgent';
+import { RoutedMtfAgent, AgentWorkspaceContext } from '../ai/RoutedMtfAgent';
 import { KnowledgeBase } from '../ai/mtf/KnowledgeBase';
 import { OllamaClient } from '../ai/mtf/OllamaClient';
 import { saveConfigurationToDb } from '../services/databaseService';
@@ -646,10 +646,12 @@ export class MessageHandler {
         const resourcesDir = path.join(this.extensionUri.fsPath, 'resources');
         this.kb = KnowledgeBase.load(resourcesDir);
       }
-      const agent = new MtfAgent(this.kb, this.ollama);
+      const agent = new RoutedMtfAgent(this.kb, this.ollama);
+      const workspaceContext = this._buildAgentWorkspaceContext();
 
       const { sources } = await agent.ask(
         question,
+        workspaceContext,
         (token: string) => {
           webview.postMessage({ command: 'agentChunk', token });
         },
@@ -658,17 +660,63 @@ export class MessageHandler {
       webview.postMessage({
         command: 'agentDone',
         sources: sources.map(r => ({
-          section:     r.chunk.section,
-          subsection:  r.chunk.subsection,
-          title:       r.chunk.title,
-          source_url:  r.chunk.source_url,
+          section:     r.section,
+          subsection:  r.subsection,
+          title:       r.title,
+          source_url:  r.source_url,
           score:       r.score,
           vectorScore: r.vectorScore,
           fromGraph:   r.fromGraph,
+          sourceType:  r.sourceType,
+          summary:     r.summary,
         })),
       });
     } catch (e: any) {
       webview.postMessage({ command: 'agentError', message: e.message });
     }
+  }
+
+  private _buildAgentWorkspaceContext(): AgentWorkspaceContext | undefined {
+    if (!this.currentConfig) { return undefined; }
+
+    const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
+    const localValidation = this.aiValidator.validate(this.currentConfig, mappings);
+    const generator = new ConfigGenerator(this.currentConfig, this.mappingManager);
+
+    let generatedYaml: string | undefined;
+    let generationError: string | undefined;
+
+    try {
+      generatedYaml = generator.generate();
+    } catch (error: any) {
+      generationError = error?.message || 'Unknown YAML generation error.';
+    }
+
+    const generationValidationErrors = generator.preGenerationValidate();
+    const validationErrors = [...new Set([
+      ...generationValidationErrors,
+      ...localValidation.errors,
+    ])];
+
+    return {
+      configurationName: this.currentConfig.name,
+      logicalChannels: this.currentConfig.logicalChannels.map((channel: any) => {
+        const idLabel = channel.channelId != null && channel.channelId !== ''
+          ? `Id=${channel.channelId}`
+          : 'Id=missing';
+        return `${channel.name} (${channel.category || channel.subclass || channel.type}; ${idLabel})`;
+      }),
+      hardwareChannels: this.currentConfig.hardwareChannels.map((channel: any) =>
+        `${channel.name} (${channel.category || channel.subclass || channel.type})`,
+      ),
+      mappings: mappings.map((mapping: any) =>
+        `${mapping.logicalChannelName} -> ${mapping.hardwareChannelName || mapping.hardwareChannelId}`,
+      ),
+      generatedYaml,
+      validationErrors,
+      validationWarnings: localValidation.warnings,
+      validationSuggestions: localValidation.suggestions,
+      generationError,
+    };
   }
 }
