@@ -75,10 +75,10 @@ export function App() {
       frame = requestAnimationFrame(() => {
         const maxScrollTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
         const canScroll = maxScrollTop > 24;
-        const hasScrolled = scroller.scrollTop > 24;
+        const isNearBottom = maxScrollTop - scroller.scrollTop <= 24;
 
         setShowScrollToggle(canScroll);
-        setScrollDirection(hasScrolled ? 'up' : 'down');
+        setScrollDirection(isNearBottom ? 'up' : 'down');
       });
     };
 
@@ -107,7 +107,7 @@ export function App() {
     const maxScrollTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
     if (scrollDirection === 'down') {
       scroller.scrollTo({
-        top: Math.min(scroller.scrollTop + scroller.clientHeight * 0.9, maxScrollTop),
+        top: maxScrollTop,
         behavior: 'smooth',
       });
       return;
@@ -322,11 +322,9 @@ const S: Record<string, React.CSSProperties> = {
   },
   scrollToggleWrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    right: '20px',
     bottom: '20px',
     display: 'flex',
-    justifyContent: 'center',
     pointerEvents: 'none',
     zIndex: 2,
   },

@@ -101249,6 +101249,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RoutedMtfAgent = void 0;
 const yaml = __importStar(__webpack_require__(11));
 const DOC_TOP_K = 6;
+const EXACT_FIELD_TOP_K = 3;
 const MAX_DOC_CONTEXT_CHARS = 4200;
 const MAX_YAML_CONTEXT_CHARS = 2200;
 const MAX_LIST_ITEMS = 8;
@@ -101286,6 +101287,22 @@ const ERROR_PATTERNS = [
     /duplicate\b/,
     /line \d+/,
 ];
+const EXACT_FIELD_ALIASES = [
+    { canonical: 'AppLayerPorts', patterns: [/\bapplayerports\b/i, /\bapp\s+layer\s+ports?\b/i] },
+    { canonical: 'NPduConfig', patterns: [/\bnpduconfig\b/i, /\bnpdu\s+config\b/i] },
+    { canonical: 'SomeIPConfig', patterns: [/\bsomeipconfig\b/i, /\bsome\s*ip\s+config\b/i] },
+    { canonical: 'EthernetConfig', patterns: [/\bethernetconfig\b/i, /\bethernet\s+config(?:uration)?\b/i] },
+    { canonical: 'EthernetTopology', patterns: [/\bethernettopology\b/i, /\bethernet\s+topology\b/i] },
+    { canonical: 'ChannelToEcusMapping', patterns: [/\bchanneltoecusmapping\b/i, /\bchannel\s+to\s+ecus\s+mapping\b/i] },
+    { canonical: 'ConnectedEcus', patterns: [/\bconnectedecus\b/i, /\bconnected\s+ecus\b/i] },
+    { canonical: 'PublisherConfig', patterns: [/\bpublisherconfig\b/i, /\bpublisher\s+config\b/i] },
+    { canonical: 'Diagnostics', patterns: [/\bdiagnostics\b/i] },
+    { canonical: 'SomeIpSD', patterns: [/\bsomeipsd\b/i, /\bsome\s*ip\s*sd\b/i] },
+    { canonical: 'UDPNM', patterns: [/\budpnm\b/i, /\budp\s*nm\b/i] },
+    { canonical: 'SomeIp', patterns: [/\bsomeip\b/i, /\bsome\s*ip\b/i] },
+    { canonical: 'NPdu', patterns: [/\bnpdu\b/i] },
+    { canonical: 'DLT', patterns: [/\bdlt\b/i] },
+];
 class RoutedMtfAgent {
     constructor(kb, ollama) {
         this.kb = kb;
@@ -101294,12 +101311,14 @@ class RoutedMtfAgent {
     async ask(question, workspace, onChunk, signal) {
         const questionYaml = extractQuestionYaml(question);
         const intent = classifyIntent(question, workspace, questionYaml);
+        const exactFieldNames = extractExactFieldNames(question);
+        const exactFieldQuestion = isExactFieldQuestion(question, questionYaml, exactFieldNames);
         const retrievalQuery = buildRetrievalQuery(question, workspace, questionYaml);
-        const docResults = await this.retrieveRelevantDocs(retrievalQuery);
+        const docResults = await this.retrieveRelevantDocs(retrievalQuery, exactFieldQuestion);
         const messages = [
             {
                 role: 'system',
-                content: buildSystemPrompt(intent, docResults, workspace, questionYaml),
+                content: buildSystemPrompt(intent, docResults, workspace, questionYaml, exactFieldNames),
             },
             { role: 'user', content: question },
         ];
@@ -101310,15 +101329,16 @@ class RoutedMtfAgent {
         ];
         return { answer, sources, intent };
     }
-    async retrieveRelevantDocs(query) {
+    async retrieveRelevantDocs(query, exactFieldQuestion) {
         const merged = new Map();
-        const keywordResults = this.kb.keywordSearch(query, DOC_TOP_K);
+        const topK = exactFieldQuestion ? EXACT_FIELD_TOP_K : DOC_TOP_K;
+        const keywordResults = this.kb.keywordSearch(query, topK);
         for (const result of keywordResults) {
             merged.set(result.chunk.chunk_id, result);
         }
         try {
             const embedding = await this.ollama.embed(query);
-            const hybridResults = this.kb.search(embedding, query, DOC_TOP_K);
+            const hybridResults = this.kb.search(embedding, query, topK);
             for (const result of hybridResults) {
                 const existing = merged.get(result.chunk.chunk_id);
                 if (!existing || result.score > existing.score) {
@@ -101329,9 +101349,12 @@ class RoutedMtfAgent {
         catch {
             // Keyword retrieval is the fallback when embeddings are unavailable.
         }
-        return [...merged.values()]
-            .sort((a, b) => b.score - a.score)
-            .slice(0, DOC_TOP_K + 2);
+        const sorted = [...merged.values()].sort((a, b) => b.score - a.score);
+        if (exactFieldQuestion) {
+            const directHits = sorted.filter(result => !result.fromGraph);
+            return (directHits.length ? directHits : sorted).slice(0, topK);
+        }
+        return sorted.slice(0, DOC_TOP_K + 2);
     }
 }
 exports.RoutedMtfAgent = RoutedMtfAgent;
@@ -101392,22 +101415,30 @@ function buildRetrievalQuery(question, workspace, questionYaml) {
     }
     return parts.filter(Boolean).join('\n');
 }
-function buildSystemPrompt(intent, docResults, workspace, questionYaml) {
+function buildSystemPrompt(intent, docResults, workspace, questionYaml, exactFieldNames) {
     const docContext = buildDocumentationContext(docResults);
     const diagnosticsContext = buildDiagnosticsContext(workspace, questionYaml);
+    const fieldFocus = exactFieldNames.length
+        ? `Field focus: ${exactFieldNames.join(', ')}`
+        : 'Field focus: none';
     return `You are an expert assistant for the MTF (Modular Test Framework) configuration workflow.
 
 Intent: ${intent}
+${fieldFocus}
 
 Core rules:
 - Use the documentation context and diagnostics context only.
 - Quote field names exactly as written in the docs, for example \`Id\`, \`Type\`, \`HWChannel\`, \`FrameworkConfig\`.
+- Preserve protocol names, casing, and YAML structure exactly as shown in the retrieved documentation.
+- For syntax or structure questions, describe only the forms explicitly shown in the documentation context.
+- Do not invent alternate YAML forms, defaults, IP-address formats, acronym expansions, or semantic explanations that are not stated in the documentation context.
+- Do not infer the meaning of a YAML example beyond what the documentation context explicitly explains.
 - If the documentation context does not support a claim, say so clearly.
 - Never invent a validation error. Only mention an error if it appears in the diagnostics context.
 - Keep the answer practical and easy to follow.
 
 Response style:
-- For support questions: explain the field or section, then give a short YAML example when useful.
+- For support questions: explain the field or section, then give a short YAML example only when it matches the retrieved documentation context.
 - For error analysis: use this structure exactly: Diagnosis, Why it happens, How to fix, Example.
 - For mixed questions: start with Diagnosis if there is a real error, then explain the relevant documentation.
 
@@ -101603,6 +101634,29 @@ function extractKeyCandidates(text) {
         .map(match => match.replace(/^[ \t]*/, '').replace(/:.*/, ''))
         .filter(Boolean);
     return [...new Set(keys)].slice(0, 40);
+}
+function extractExactFieldNames(question) {
+    const matches = [];
+    for (const field of EXACT_FIELD_ALIASES) {
+        if (field.patterns.some(pattern => pattern.test(question))) {
+            matches.push(field.canonical);
+        }
+    }
+    return [...new Set(matches)];
+}
+function isExactFieldQuestion(question, questionYaml, exactFieldNames) {
+    if (!exactFieldNames.length || questionYaml.yamlText || questionYaml.parseError) {
+        return false;
+    }
+    const lowered = question.toLowerCase();
+    if (ERROR_PATTERNS.some(pattern => pattern.test(lowered))) {
+        return false;
+    }
+    const words = lowered
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    return words.length <= 10 || /\b(what|explain|syntax|field|section|meaning|example|please)\b/.test(lowered);
 }
 function formatList(items) {
     if (!items.length) {

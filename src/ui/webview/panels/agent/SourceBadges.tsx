@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AgentSource } from '../../types';
 import { tokens } from '../../theme';
+import { Icons } from '../../components/icons';
 
 interface SourceBadgesProps {
   sources: AgentSource[];
@@ -27,16 +28,24 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 4,
+          width: '100%',
         }}
       >
-        {open ? 'v' : '>'}
-        {' '}{directCount} source{directCount !== 1 ? 's' : ''}
-        {graphCount > 0 && (
-          <span style={{ color: tokens.info, opacity: 0.8 }}>
-            +{graphCount} related
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span>
+            {directCount} source{directCount !== 1 ? 's' : ''}
           </span>
-        )}
+          {graphCount > 0 && (
+            <span style={{ color: tokens.info, opacity: 0.8 }}>
+              +{graphCount} related
+            </span>
+          )}
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+          {open ? <Icons.chevronDown /> : <Icons.chevronRight />}
+        </span>
       </button>
 
       {open && (
