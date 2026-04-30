@@ -13,6 +13,10 @@ import { useApp } from '../hooks/useApp';
 import { tokens } from '../theme';
 import { Icons } from '../components/icons';
 import { Bubble } from './agent/Bubble';
+
+// Fallback avatars as emoji data URLs (for VS Code webview compatibility)
+const agentAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="100%25" height="100%25" rx="20" fill="%23e0e7ef"/><text x="50%25" y="56%25" font-size="22" text-anchor="middle" fill="%23596d8b" font-family="Segoe UI,Arial,sans-serif">🤖</text></svg>';
+const userAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="100%25" height="100%25" rx="20" fill="%23f3e8ff"/><text x="50%25" y="56%25" font-size="22" text-anchor="middle" fill="%238b5cf6" font-family="Segoe UI,Arial,sans-serif">🧑</text></svg>';
 import { StreamingDots } from './agent/StreamingDots';
 
 export default function AgentPanel() {
@@ -61,19 +65,21 @@ export default function AgentPanel() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', background: `linear-gradient(135deg, ${tokens.bg} 80%, ${tokens.bgAlt} 100%)` }}>
       <div style={{
-        padding: '12px 18px',
+        padding: '18px 24px 14px 24px',
         borderBottom: `1px solid ${tokens.border}`,
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 16,
         flexShrink: 0,
+        background: tokens.bgAlt,
+        boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
       }}>
-        <span style={{ color: tokens.accent, display: 'flex' }}><Icons.agent /></span>
+        <img src={agentAvatar} alt="Agent" style={{ width: 38, height: 38, borderRadius: '50%', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)' }} />
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>MTF Support Agent</div>
-          <div style={{ fontSize: 11, color: tokens.fgMuted }}>
+          <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: 0.2 }}>MTF Support Agent</div>
+          <div style={{ fontSize: 12, color: tokens.fgMuted, marginTop: 2 }}>
             Documentation search, YAML analysis, and configuration guidance with local workspace context.
           </div>
         </div>
@@ -83,13 +89,15 @@ export default function AgentPanel() {
             title="Clear conversation"
             style={{
               marginLeft: 'auto',
-              background: 'none',
+              background: tokens.bg,
               border: `1px solid ${tokens.border}`,
-              borderRadius: 4,
+              borderRadius: 6,
               color: tokens.fgMuted,
-              padding: '2px 8px',
+              padding: '4px 14px',
               cursor: 'pointer',
-              fontSize: 11,
+              fontSize: 12,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+              transition: 'background 0.2s',
             }}
           >
             Clear
@@ -102,7 +110,9 @@ export default function AgentPanel() {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '18px 18px 8px',
+          padding: '24px 18px 12px',
+          background: 'transparent',
+          transition: 'background 0.3s',
         }}
       >
         {state.agentMessages.length === 0 && !state.agentLoading && (
@@ -139,7 +149,7 @@ export default function AgentPanel() {
         )}
 
         {state.agentMessages.map((message, index) => (
-          <Bubble key={index} msg={message} />
+          <Bubble key={index} msg={message} userAvatar={userAvatar} agentAvatar={agentAvatar} />
         ))}
 
         {state.agentLoading && (
@@ -165,11 +175,13 @@ export default function AgentPanel() {
 
       <div style={{
         borderTop: `1px solid ${tokens.border}`,
-        padding: '12px 18px',
+        padding: '16px 24px',
         flexShrink: 0,
         display: 'flex',
-        gap: 8,
+        gap: 10,
         alignItems: 'flex-end',
+        background: tokens.bgAlt,
+        boxShadow: '0 -2px 8px 0 rgba(0,0,0,0.03)',
       }}>
         <textarea
           ref={inputRef}
@@ -186,30 +198,35 @@ export default function AgentPanel() {
             resize: 'none',
             background: tokens.bgInput,
             color: tokens.fgInput,
-            border: `1px solid ${tokens.borderInput}`,
-            borderRadius: 6,
-            padding: '8px 10px',
-            fontSize: 13,
+            border: `1.5px solid ${tokens.borderInput}`,
+            borderRadius: 10,
+            padding: '12px 14px',
+            fontSize: 14,
             fontFamily: 'inherit',
             outline: 'none',
             opacity: state.agentLoading ? 0.6 : 1,
+            boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
+            transition: 'border 0.2s',
           }}
         />
         <button
           onClick={handleSend}
           disabled={!question.trim() || state.agentLoading}
           style={{
-            background: tokens.accent,
-            color: tokens.accentFg,
+            background: question.trim() && !state.agentLoading ? tokens.accent : tokens.bg,
+            color: question.trim() && !state.agentLoading ? tokens.accentFg : tokens.fgMuted,
             border: 'none',
-            borderRadius: 6,
-            padding: '8px 16px',
-            fontSize: 13,
+            borderRadius: 10,
+            padding: '10px 22px',
+            fontSize: 15,
             cursor: question.trim() && !state.agentLoading ? 'pointer' : 'not-allowed',
             opacity: question.trim() && !state.agentLoading ? 1 : 0.5,
             flexShrink: 0,
             alignSelf: 'flex-end',
-            height: 34,
+            height: 40,
+            fontWeight: 600,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+            transition: 'background 0.2s',
           }}
         >
           Send
