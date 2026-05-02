@@ -5,6 +5,14 @@ interface AIResult {
   errors?: string[];
   warnings?: string[];
   suggestions?: string[];
+  diagnostics?: Array<{
+    code: string;
+    severity: 'error' | 'warning' | 'suggestion';
+    source: 'configuration' | 'mapping' | 'yaml' | 'generation';
+    message: string;
+    path?: string;
+    fix?: string;
+  }>;
 }
 
 interface Props {
@@ -12,9 +20,29 @@ interface Props {
 }
 
 export function AIResultCard({ aiResult }: Props) {
+  const detailedDiagnostics = aiResult.diagnostics ?? [];
+
   return (
     <div style={T.card}>
-      <p style={T.cardTitle}>AI Validation Results</p>
+      <p style={T.cardTitle}>Validation & Analysis Results</p>
+
+      {detailedDiagnostics.length > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#93c5fd', marginBottom: '6px' }}>
+            Structured Diagnostics ({detailedDiagnostics.length})
+          </p>
+          {detailedDiagnostics.slice(0, 6).map((diagnostic, index) => (
+            <div key={`${diagnostic.code}-${index}`} style={{ fontSize: '12px', padding: '9px 14px', borderRadius: '8px', background: 'rgba(147,197,253,0.08)', marginBottom: '6px', color: '#dbeafe', borderLeft: '3px solid #60a5fa', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 600, marginBottom: '2px' }}>
+                [{diagnostic.severity}] {diagnostic.code}
+              </div>
+              <div>{diagnostic.message}</div>
+              {diagnostic.path && <div style={{ opacity: 0.8 }}>Path: {diagnostic.path}</div>}
+              {diagnostic.fix && <div style={{ opacity: 0.9 }}>Fix: {diagnostic.fix}</div>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {aiResult.errors && aiResult.errors.length > 0 && (
         <div style={{ marginBottom: '12px' }}>

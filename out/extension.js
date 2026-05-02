@@ -1691,8 +1691,7 @@ class WebviewProvider {
     constructor(extensionUri, context) {
         const storageService = new storageService_1.StorageService(context);
         const tokenStorage = new TokenStorage_1.TokenStorage(context);
-        const apiKey = vscode.workspace.getConfiguration('channelConfig').get('geminiApiKey') || '';
-        const aiValidator = new aiValidator_1.AIValidator(apiKey);
+        const aiValidator = new aiValidator_1.AIValidator();
         this.handler = new MessageHandler_1.MessageHandler(storageService, tokenStorage, aiValidator, extensionUri);
         this._panel = vscode.window.createWebviewPanel(WebviewProvider.viewType, 'Channel Config Manager', vscode.ViewColumn.One, {
             enableScripts: true,
@@ -1847,109 +1846,19 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AIValidator = void 0;
 const LocalValidator_1 = __webpack_require__(7);
 /**
- * AIValidator enriches local validation results with suggestions from the Gemini API.
- * SRP: Gemini API integration only — local rule checks are delegated to LocalValidator.
+ * AIValidator now wraps local validation only.
  */
 class AIValidator {
-    constructor(apiKey, localValidator = new LocalValidator_1.LocalValidator()) {
-        this.apiKey = apiKey;
+    constructor(localValidator = new LocalValidator_1.LocalValidator()) {
         this.localValidator = localValidator;
     }
     /** Run local checks only (no API call). */
     validate(config, mappings) {
         return this.localValidator.validate(config, mappings);
     }
-    /** Run local checks first, then enrich with Gemini suggestions if an API key is present. */
-    async runAIValidation(config, mappings, yamlContent) {
-        const localResult = this.localValidator.validate(config, mappings);
-        if (!this.apiKey) {
-            return {
-                ...localResult,
-                warnings: [...localResult.warnings, 'AI validation skipped: no API key configured.'],
-            };
-        }
-        try {
-            const prompt = this._buildPrompt(config, mappings, yamlContent);
-            const response = await this._callGeminiAPI(prompt);
-            const aiResult = this._parseGeminiResponse(response);
-            return {
-                isValid: localResult.isValid && aiResult.isValid,
-                errors: [...localResult.errors, ...aiResult.errors],
-                warnings: [...localResult.warnings, ...aiResult.warnings],
-                suggestions: aiResult.suggestions,
-            };
-        }
-        catch (err) {
-            return {
-                ...localResult,
-                warnings: [...localResult.warnings, `AI validation failed: ${err.message}`],
-            };
-        }
-    }
-    // ─── Gemini helpers ───────────────────────────────────────────────────
-    _buildPrompt(config, mappings, yamlContent) {
-        return `You are an expert in hardware/software channel configuration for automotive and embedded systems.
-Analyze the following config.yaml and respond ONLY in JSON format.
-
-Config YAML:
-\`\`\`yaml
-${yamlContent}
-\`\`\`
-
-Summary:
-- Logical channels: ${config.logicalChannels.map(c => `${c.name} (${c.category || c.subclass || c.type})`).join(', ')}
-- Hardware channels: ${config.hardwareChannels.map(c => `${c.name} (${c.category || c.subclass || c.type})`).join(', ')}
-- Mappings: ${mappings.map(m => `${m.logicalChannelName} -> ${m.hardwareChannelName}`).join(', ')}
-
-Analyze the configuration for:
-1. Suspicious or impossible mappings (protocol mismatches)
-2. Suboptimal configurations
-3. Best practice violations
-4. Missing optional but recommended fields
-5. Any other anomalies
-
-Respond in this exact JSON format:
-{
-  "isValid": true/false,
-  "errors": ["list of critical errors"],
-  "warnings": ["list of warnings"],
-  "suggestions": ["list of improvement suggestions"]
-}`;
-    }
-    async _callGeminiAPI(prompt) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.apiKey}`;
-        const body = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
-        };
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-        if (!response.ok) {
-            throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
-    _parseGeminiResponse(responseText) {
-        try {
-            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
-                throw new Error('No JSON found in AI response.');
-            }
-            const parsed = JSON.parse(jsonMatch[0]);
-            return {
-                isValid: parsed.isValid ?? true,
-                errors: Array.isArray(parsed.errors) ? parsed.errors : [],
-                warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
-                suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
-            };
-        }
-        catch {
-            return { isValid: true, errors: [], warnings: ['Could not parse AI response.'], suggestions: [] };
-        }
+    /** Preserves the existing command path while using local validation only. */
+    async runAIValidation(config, mappings, _yamlContent) {
+        return this.localValidator.validate(config, mappings);
     }
 }
 exports.AIValidator = AIValidator;
@@ -1968,61 +1877,157 @@ exports.LocalValidator = void 0;
  * SRP: pure validation logic only — no API calls, no vscode dependency.
  */
 class LocalValidator {
+    createDiagnostic(diagnostic) {
+        return diagnostic;
+    }
+    channelPath(kind, name, id, field) {
+        const key = name || id || 'unknown';
+        return field ? `${kind}["${key}"].${field}` : `${kind}["${key}"]`;
+    }
+    mappingPath(mapping) {
+        const logical = mapping.logicalChannelName || mapping.logicalChannelId;
+        const hardware = mapping.hardwareChannelName || mapping.hardwareChannelId;
+        return `mappings["${logical}->${hardware}"]`;
+    }
+    toValidationResult(diagnostics) {
+        const errors = diagnostics
+            .filter(diagnostic => diagnostic.severity === 'error')
+            .map(diagnostic => diagnostic.message);
+        const warnings = diagnostics
+            .filter(diagnostic => diagnostic.severity === 'warning')
+            .map(diagnostic => diagnostic.message);
+        const fixSuggestions = diagnostics
+            .filter(diagnostic => diagnostic.fix)
+            .map(diagnostic => diagnostic.path ? `${diagnostic.path}: ${diagnostic.fix}` : diagnostic.fix);
+        const explicitSuggestions = diagnostics
+            .filter(diagnostic => diagnostic.severity === 'suggestion')
+            .map(diagnostic => diagnostic.message);
+        return {
+            isValid: errors.length === 0,
+            errors,
+            warnings,
+            suggestions: [...new Set([...explicitSuggestions, ...fixSuggestions])],
+            diagnostics,
+        };
+    }
     detectDuplicateMappings(mappings) {
-        const errors = [];
+        const diagnostics = [];
         const seen = new Set();
         for (const mapping of mappings) {
             const key = `${mapping.logicalChannelId}:${mapping.hardwareChannelId}`;
             if (seen.has(key)) {
-                errors.push(`Duplicate mapping: "${mapping.logicalChannelName}" → "${mapping.hardwareChannelName || mapping.hardwareChannelId}".`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'mapping.duplicate',
+                    severity: 'error',
+                    source: 'mapping',
+                    message: `Duplicate mapping: "${mapping.logicalChannelName}" → "${mapping.hardwareChannelName || mapping.hardwareChannelId}".`,
+                    path: this.mappingPath(mapping),
+                    fix: 'Remove the duplicate mapping entry so each logical-to-hardware link appears only once.',
+                }));
             }
             seen.add(key);
         }
-        return errors;
+        return diagnostics;
     }
     detectUnusedHardware(config, mappings) {
-        const warnings = [];
+        const diagnostics = [];
         const usedHwIds = new Set(mappings.map(m => m.hardwareChannelId));
         for (const hw of config.hardwareChannels) {
             if (!usedHwIds.has(hw.id)) {
-                warnings.push(`Hardware channel "${hw.name}" (${hw.category || hw.subclass || hw.type}) is defined but not mapped to any logical channel.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'hardware.unmapped',
+                    severity: 'warning',
+                    source: 'configuration',
+                    message: `Hardware channel "${hw.name}" (${hw.category || hw.subclass || hw.type}) is defined but not mapped to any logical channel.`,
+                    path: this.channelPath('hardwareChannels', hw.name, hw.id),
+                    fix: 'Map this hardware channel to a logical channel or remove it if it is unused.',
+                }));
             }
         }
-        return warnings;
+        return diagnostics;
     }
     detectUnmappedLogical(config, mappings) {
-        const warnings = [];
+        const diagnostics = [];
         const usedLogicalIds = new Set(mappings.map(m => m.logicalChannelId));
         for (const lc of config.logicalChannels) {
             if (!usedLogicalIds.has(lc.id)) {
-                warnings.push(`Logical channel "${lc.name}" (${lc.category || lc.subclass || lc.type}) is defined but has no mapping.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.unmapped',
+                    severity: 'warning',
+                    source: 'configuration',
+                    message: `Logical channel "${lc.name}" (${lc.category || lc.subclass || lc.type}) is defined but has no mapping.`,
+                    path: this.channelPath('logicalChannels', lc.name, lc.id),
+                    fix: 'Create a mapping for this logical channel or remove it if it should not be generated.',
+                }));
             }
         }
-        return warnings;
+        return diagnostics;
     }
     detectMissingElements(config) {
-        const errors = [];
+        const diagnostics = [];
         if (!config.name) {
-            errors.push('Configuration is missing a name.');
+            diagnostics.push(this.createDiagnostic({
+                code: 'configuration.name.missing',
+                severity: 'error',
+                source: 'configuration',
+                message: 'Configuration is missing a name.',
+                path: 'configuration.name',
+                fix: 'Set a non-empty configuration name before generating YAML.',
+            }));
         }
         if (config.logicalChannels.length === 0) {
-            errors.push('No logical channels defined.');
+            diagnostics.push(this.createDiagnostic({
+                code: 'logical.none',
+                severity: 'error',
+                source: 'configuration',
+                message: 'No logical channels defined.',
+                path: 'logicalChannels',
+                fix: 'Add at least one logical channel before generating YAML.',
+            }));
         }
         if (config.hardwareChannels.length === 0) {
-            errors.push('No hardware channels defined.');
+            diagnostics.push(this.createDiagnostic({
+                code: 'hardware.none',
+                severity: 'error',
+                source: 'configuration',
+                message: 'No hardware channels defined.',
+                path: 'hardwareChannels',
+                fix: 'Add at least one hardware channel before generating YAML.',
+            }));
         }
         for (const lc of config.logicalChannels) {
             if (!lc.name) {
-                errors.push(`A logical channel is missing a name (id: ${lc.id}).`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.name.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `A logical channel is missing a name (id: ${lc.id}).`,
+                    path: this.channelPath('logicalChannels', lc.name, lc.id, 'name'),
+                    fix: 'Set a stable logical channel name so mappings and YAML keys can reference it.',
+                }));
             }
             const rawId = lc.channelId;
             if (rawId === undefined || rawId === null || rawId === '') {
-                errors.push(`Logical channel "${lc.name}" is missing an Id (must be a unique positive integer).`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.id.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Logical channel "${lc.name}" is missing an Id (must be a unique positive integer).`,
+                    path: this.channelPath('logicalChannels', lc.name, lc.id, 'channelId'),
+                    fix: 'Assign a unique positive integer to the channel Id field.',
+                }));
             }
             else {
                 const id = Number(rawId);
                 if (!Number.isInteger(id) || id <= 0) {
-                    errors.push(`Logical channel "${lc.name}" has an invalid Id "${rawId}". Id must be a positive integer.`);
+                    diagnostics.push(this.createDiagnostic({
+                        code: 'logical.id.invalid',
+                        severity: 'error',
+                        source: 'configuration',
+                        message: `Logical channel "${lc.name}" has an invalid Id "${rawId}". Id must be a positive integer.`,
+                        path: this.channelPath('logicalChannels', lc.name, lc.id, 'channelId'),
+                        fix: 'Replace the Id with a positive integer value such as 1, 2, or 3.',
+                    }));
                 }
             }
         }
@@ -2038,65 +2043,119 @@ class LocalValidator {
         }
         for (const [id, names] of idCounts) {
             if (names.length > 1) {
-                errors.push(`Duplicate Id ${id} used by channels: ${names.join(', ')}. Each channel must have a unique Id.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.id.duplicate',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Duplicate Id ${id} used by channels: ${names.join(', ')}. Each channel must have a unique Id.`,
+                    path: 'logicalChannels[*].channelId',
+                    fix: 'Assign a different Id to each listed logical channel.',
+                    evidence: names.join(', '),
+                }));
             }
         }
         for (const hw of config.hardwareChannels) {
             if (!hw.name) {
-                errors.push(`A hardware channel is missing a name (id: ${hw.id}).`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'hardware.name.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `A hardware channel is missing a name (id: ${hw.id}).`,
+                    path: this.channelPath('hardwareChannels', hw.name, hw.id, 'name'),
+                    fix: 'Set a hardware channel name so mappings and YAML blocks can reference it.',
+                }));
             }
         }
-        return errors;
+        return diagnostics;
     }
     detectNameFormatErrors(config) {
-        const errors = [];
+        const diagnostics = [];
         const NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
         for (const lc of config.logicalChannels) {
             if (lc.name && !NAME_RE.test(lc.name)) {
-                errors.push(`Logical channel name "${lc.name}" is invalid. ` +
-                    'Names must not start with a digit and may only contain letters, digits, underscores, or hyphens (no spaces).');
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.name.invalid_format',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Logical channel name "${lc.name}" is invalid. Names must not start with a digit and may only contain letters, digits, underscores, or hyphens (no spaces).`,
+                    path: this.channelPath('logicalChannels', lc.name, lc.id, 'name'),
+                    fix: 'Rename the channel to use only letters, digits, underscores, or hyphens and do not start with a digit.',
+                }));
             }
             for (const alias of (lc.alias ?? [])) {
                 if (!NAME_RE.test(alias)) {
-                    errors.push(`Alias "${alias}" on channel "${lc.name}" is invalid. ` +
-                        'Aliases follow the same naming rules as channel names.');
+                    diagnostics.push(this.createDiagnostic({
+                        code: 'logical.alias.invalid_format',
+                        severity: 'error',
+                        source: 'configuration',
+                        message: `Alias "${alias}" on channel "${lc.name}" is invalid. Aliases follow the same naming rules as channel names.`,
+                        path: this.channelPath('logicalChannels', lc.name, lc.id, 'alias'),
+                        fix: 'Rename the alias to follow the channel naming rules.',
+                        evidence: alias,
+                    }));
                 }
             }
         }
-        return errors;
+        return diagnostics;
     }
     detectInvalidChannelTypes(config) {
-        const errors = [];
+        const diagnostics = [];
         for (const lc of config.logicalChannels) {
             if (!lc.category) {
-                errors.push(`Logical channel "${lc.name}" has no category assigned.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.category.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Logical channel "${lc.name}" has no category assigned.`,
+                    path: this.channelPath('logicalChannels', lc.name, lc.id, 'category'),
+                    fix: 'Select a logical channel category before generating YAML.',
+                }));
             }
             if (!lc.subclass) {
-                errors.push(`Logical channel "${lc.name}" has no subclass assigned.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'logical.subclass.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Logical channel "${lc.name}" has no subclass assigned.`,
+                    path: this.channelPath('logicalChannels', lc.name, lc.id, 'subclass'),
+                    fix: 'Select a logical channel subtype so the generator knows how to serialize it.',
+                }));
             }
         }
         for (const hw of config.hardwareChannels) {
             if (!hw.category) {
-                errors.push(`Hardware channel "${hw.name}" has no category assigned.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'hardware.category.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Hardware channel "${hw.name}" has no category assigned.`,
+                    path: this.channelPath('hardwareChannels', hw.name, hw.id, 'category'),
+                    fix: 'Select a hardware channel category before generating YAML.',
+                }));
             }
             if (!hw.subclass) {
-                errors.push(`Hardware channel "${hw.name}" has no subclass assigned.`);
+                diagnostics.push(this.createDiagnostic({
+                    code: 'hardware.subclass.missing',
+                    severity: 'error',
+                    source: 'configuration',
+                    message: `Hardware channel "${hw.name}" has no subclass assigned.`,
+                    path: this.channelPath('hardwareChannels', hw.name, hw.id, 'subclass'),
+                    fix: 'Select a hardware channel subtype so the generator knows how to serialize it.',
+                }));
             }
         }
-        return errors;
+        return diagnostics;
     }
     validate(config, mappings) {
-        const errors = [
+        const diagnostics = [
             ...this.detectDuplicateMappings(mappings),
             ...this.detectMissingElements(config),
             ...this.detectNameFormatErrors(config),
             ...this.detectInvalidChannelTypes(config),
-        ];
-        const warnings = [
             ...this.detectUnusedHardware(config, mappings),
             ...this.detectUnmappedLogical(config, mappings),
         ];
-        return { isValid: errors.length === 0, errors, warnings, suggestions: [] };
+        return this.toValidationResult(diagnostics);
     }
 }
 exports.LocalValidator = LocalValidator;
@@ -2197,8 +2256,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MessageHandler = void 0;
 const vscode = __importStar(__webpack_require__(2));
 const yaml = __importStar(__webpack_require__(11));
-const path = __importStar(__webpack_require__(36));
-const models_1 = __webpack_require__(37);
+const net_1 = __webpack_require__(36);
+const path = __importStar(__webpack_require__(37));
+const models_1 = __webpack_require__(38);
 const channelManager_1 = __webpack_require__(660);
 const mappingManager_1 = __webpack_require__(665);
 const configGenerator_1 = __webpack_require__(669);
@@ -2206,7 +2266,7 @@ const RoutedMtfAgent_1 = __webpack_require__(672);
 const KnowledgeBase_1 = __webpack_require__(673);
 const OllamaClient_1 = __webpack_require__(674);
 const databaseService_1 = __webpack_require__(675);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 const channelFactories_1 = __webpack_require__(754);
 const AuthService_1 = __webpack_require__(679);
 const UserRepository_1 = __webpack_require__(677);
@@ -2586,19 +2646,18 @@ class MessageHandler {
             webview.postMessage({ command: 'error', message: 'No configuration loaded.' });
             return;
         }
-        try {
-            const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
-            const yamlContent = generator.generate();
-            const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
-            const result = await this.aiValidator.runAIValidation(this.currentConfig, mappings, yamlContent);
-            webview.postMessage({ command: 'aiValidationResult', data: result });
-        }
-        catch {
-            // Fall back to local validation
-            const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
-            const result = this.aiValidator.validate(this.currentConfig, mappings);
-            webview.postMessage({ command: 'aiValidationResult', data: result });
-        }
+        const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
+        const yamlContent = (() => {
+            try {
+                return generator.generate();
+            }
+            catch {
+                return '';
+            }
+        })();
+        const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
+        const result = await this.aiValidator.runAIValidation(this.currentConfig, mappings, yamlContent);
+        webview.postMessage({ command: 'aiValidationResult', data: result });
     }
     // ── Misc handlers ───────────────────────────────────────────────────────
     async _applyYamlEdit(message, webview) {
@@ -2855,12 +2914,13 @@ class MessageHandler {
                 this.kb = KnowledgeBase_1.KnowledgeBase.load(resourcesDir);
             }
             const agent = new RoutedMtfAgent_1.RoutedMtfAgent(this.kb, this.ollama);
-            const workspaceContext = this._buildAgentWorkspaceContext();
-            const { sources } = await agent.ask(question, workspaceContext, (token) => {
+            const workspaceContext = await this._buildAgentWorkspaceContext();
+            const { sources, meta } = await agent.ask(question, workspaceContext, (token) => {
                 webview.postMessage({ command: 'agentChunk', token });
             });
             webview.postMessage({
                 command: 'agentDone',
+                meta,
                 sources: sources.map(r => ({
                     section: r.section,
                     subsection: r.subsection,
@@ -2878,9 +2938,13 @@ class MessageHandler {
             webview.postMessage({ command: 'agentError', message: e.message });
         }
     }
-    _buildAgentWorkspaceContext() {
-        if (!this.currentConfig) {
+    async _buildAgentWorkspaceContext() {
+        const activeYamlContext = await this._readAgentYamlContext();
+        if (!this.currentConfig && !activeYamlContext) {
             return undefined;
+        }
+        if (!this.currentConfig) {
+            return activeYamlContext;
         }
         const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
         const localValidation = this.aiValidator.validate(this.currentConfig, mappings);
@@ -2894,6 +2958,7 @@ class MessageHandler {
             generationError = error?.message || 'Unknown YAML generation error.';
         }
         const generationValidationErrors = generator.preGenerationValidate();
+        const generationDiagnostics = this._buildGenerationDiagnostics(generationValidationErrors);
         const validationErrors = [...new Set([
                 ...generationValidationErrors,
                 ...localValidation.errors,
@@ -2912,8 +2977,493 @@ class MessageHandler {
             validationErrors,
             validationWarnings: localValidation.warnings,
             validationSuggestions: localValidation.suggestions,
+            validationDiagnostics: [...localValidation.diagnostics, ...generationDiagnostics],
             generationError,
+            ...activeYamlContext,
         };
+    }
+    async _readAgentYamlContext() {
+        const yamlDocument = await this._resolveAgentYamlDocument();
+        if (!yamlDocument) {
+            return undefined;
+        }
+        const analysis = this._analyzeYamlDocument(yamlDocument.text);
+        return {
+            activeYamlPath: vscode.workspace.asRelativePath(yamlDocument.uri, false),
+            activeYamlSource: yamlDocument.source,
+            activeYamlText: yamlDocument.text,
+            activeYamlParseError: analysis.parseError,
+            activeYamlTopLevelKeys: analysis.topLevelKeys,
+            activeYamlNestedKeys: analysis.nestedKeys,
+            activeYamlStructuralFindings: analysis.structuralFindings,
+            activeYamlDiagnostics: analysis.diagnostics,
+        };
+    }
+    async _resolveAgentYamlDocument() {
+        const activeDocument = vscode.window.activeTextEditor?.document;
+        if (activeDocument && this._isAgentYamlDocument(activeDocument)) {
+            return {
+                uri: activeDocument.uri,
+                text: activeDocument.getText(),
+                source: 'active_editor',
+            };
+        }
+        const mtfFiles = await vscode.workspace.findFiles('**/MTF.yaml', '**/node_modules/**', 1);
+        if (!mtfFiles.length) {
+            return undefined;
+        }
+        const document = await vscode.workspace.openTextDocument(mtfFiles[0]);
+        return {
+            uri: document.uri,
+            text: document.getText(),
+            source: 'workspace_file',
+        };
+    }
+    _isAgentYamlDocument(document) {
+        if (document.uri.scheme !== 'file') {
+            return false;
+        }
+        const lowerPath = document.uri.fsPath.toLowerCase();
+        return document.languageId === 'yaml' || lowerPath.endsWith('.yaml') || lowerPath.endsWith('.yml');
+    }
+    _analyzeYamlDocument(text) {
+        try {
+            const parsed = yaml.load(text);
+            const { topLevelKeys, nestedKeys } = this._collectYamlKeys(parsed);
+            const diagnostics = this._buildYamlStructuralDiagnostics(parsed);
+            return {
+                topLevelKeys,
+                nestedKeys,
+                structuralFindings: diagnostics.map(diagnostic => diagnostic.message),
+                diagnostics,
+            };
+        }
+        catch (error) {
+            const fallbackKeys = this._extractYamlKeyCandidates(text);
+            const parseError = error?.message || 'Unable to parse the active YAML file.';
+            return {
+                parseError,
+                topLevelKeys: fallbackKeys,
+                nestedKeys: fallbackKeys,
+                structuralFindings: [],
+                diagnostics: [{
+                        code: 'yaml.parse_error',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: parseError,
+                        path: 'yaml',
+                        fix: 'Fix the YAML syntax error first so the file can be parsed before deeper validation.',
+                    }],
+            };
+        }
+    }
+    _collectYamlKeys(parsed) {
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return { topLevelKeys: [], nestedKeys: [] };
+        }
+        const root = parsed;
+        const topLevelKeys = Object.keys(root);
+        const nestedKeySet = new Set();
+        this._visitYamlNode(root, nestedKeySet);
+        return {
+            topLevelKeys,
+            nestedKeys: [...nestedKeySet].slice(0, 40),
+        };
+    }
+    _visitYamlNode(node, nestedKeySet) {
+        if (Array.isArray(node)) {
+            for (const item of node) {
+                this._visitYamlNode(item, nestedKeySet);
+            }
+            return;
+        }
+        if (!node || typeof node !== 'object') {
+            return;
+        }
+        for (const [key, value] of Object.entries(node)) {
+            nestedKeySet.add(key);
+            this._visitYamlNode(value, nestedKeySet);
+        }
+    }
+    _extractYamlKeyCandidates(text) {
+        const matches = text.match(/^[ \t]*([A-Za-z_][A-Za-z0-9_-]*)\s*:/gm) ?? [];
+        const keys = matches
+            .map(match => match.replace(/^[ \t]*/, '').replace(/:.*/, ''))
+            .filter(Boolean);
+        return [...new Set(keys)].slice(0, 40);
+    }
+    _buildYamlStructuralDiagnostics(parsed) {
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return [{
+                    code: 'yaml.root.invalid_type',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: 'The YAML root must be a mapping of top-level sections.',
+                    path: 'yaml',
+                    fix: 'Start the file with top-level keys such as Channels, Mappings, and FrameworkConfig.',
+                }];
+        }
+        const root = parsed;
+        const diagnostics = [];
+        const channels = this._getYamlMapping(root.Channels);
+        const channelNames = new Set(Object.keys(channels));
+        const frameworkConfig = this._getYamlMapping(root.FrameworkConfig);
+        const tracers = this._getYamlMapping(frameworkConfig.Tracing);
+        const tracerNames = new Set(Object.keys(tracers));
+        const canonicalKeys = new Map([
+            ['channels', 'Channels'],
+            ['mappings', 'Mappings'],
+            ['frameworkconfig', 'FrameworkConfig'],
+        ]);
+        for (const [key, canonical] of canonicalKeys) {
+            const hasCanonical = Object.prototype.hasOwnProperty.call(root, canonical);
+            const actualKey = Object.keys(root).find(candidate => candidate.toLowerCase() === key);
+            if (actualKey && actualKey !== canonical && !hasCanonical) {
+                diagnostics.push({
+                    code: 'yaml.top_level.casing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Rename top-level key '${actualKey}' to '${canonical}' to match the expected MTF casing.`,
+                    path: actualKey,
+                    fix: `Replace '${actualKey}:' with '${canonical}:'.`,
+                });
+            }
+        }
+        if (root.Channels !== undefined && (typeof root.Channels !== 'object' || root.Channels === null || Array.isArray(root.Channels))) {
+            diagnostics.push({
+                code: 'yaml.channels.invalid_type',
+                severity: 'error',
+                source: 'yaml',
+                message: "'Channels' should be a mapping where each channel name contains its fields.",
+                path: 'Channels',
+                fix: 'Change Channels to an object mapping like Channels: { CAN1: { Id: 1 } }.',
+            });
+        }
+        if (root.Mappings !== undefined && (typeof root.Mappings !== 'object' || root.Mappings === null)) {
+            diagnostics.push({
+                code: 'yaml.mappings.invalid_type',
+                severity: 'error',
+                source: 'yaml',
+                message: "'Mappings' should be a mapping of mapping groups and entries.",
+                path: 'Mappings',
+                fix: 'Change Mappings to an object whose keys group mapping entries.',
+            });
+        }
+        if (root.FrameworkConfig !== undefined && (typeof root.FrameworkConfig !== 'object' || root.FrameworkConfig === null || Array.isArray(root.FrameworkConfig))) {
+            diagnostics.push({
+                code: 'yaml.framework.invalid_type',
+                severity: 'error',
+                source: 'yaml',
+                message: "'FrameworkConfig' should be an object that contains framework sections such as 'PublisherConfig'.",
+                path: 'FrameworkConfig',
+                fix: 'Wrap framework values under an object like FrameworkConfig: { PublisherConfig: ... }.',
+            });
+        }
+        const NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
+        for (const [channelName, channelValue] of Object.entries(channels)) {
+            if (!NAME_RE.test(channelName)) {
+                diagnostics.push({
+                    code: 'yaml.channel.name.invalid_format',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel name '${channelName}' is invalid. Channel names must start with a letter or underscore and contain no spaces.`,
+                    path: `Channels.${channelName}`,
+                    fix: 'Rename the channel to use only letters, digits, underscores, or hyphens.',
+                });
+            }
+            const channel = this._getYamlMapping(channelValue);
+            if (!channel.Type) {
+                diagnostics.push({
+                    code: 'yaml.channel.type.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel '${channelName}' is missing the required 'Type' field.`,
+                    path: `Channels.${channelName}.Type`,
+                    fix: 'Add the documented channel type, such as CAN, LIN, ETHERNET, or FR.',
+                });
+            }
+            if (channel.Id === undefined) {
+                diagnostics.push({
+                    code: 'yaml.channel.id.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel '${channelName}' is missing the required 'Id' field.`,
+                    path: `Channels.${channelName}.Id`,
+                    fix: 'Assign a unique positive integer Id to the channel.',
+                });
+            }
+            if (channel.TracerName && tracerNames.size > 0 && !tracerNames.has(String(channel.TracerName))) {
+                diagnostics.push({
+                    code: 'yaml.channel.tracer.unknown',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel '${channelName}' references tracer '${channel.TracerName}', which is not defined under FrameworkConfig.Tracing.`,
+                    path: `Channels.${channelName}.TracerName`,
+                    fix: 'Define the tracer under FrameworkConfig.Tracing or update TracerName to an existing tracer key.',
+                });
+            }
+        }
+        for (const [tracerName, tracerValue] of Object.entries(tracers)) {
+            const tracer = this._getYamlMapping(tracerValue);
+            if (!tracer.Type) {
+                diagnostics.push({
+                    code: 'yaml.tracing.type.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Tracer '${tracerName}' is missing the required 'Type' field.`,
+                    path: `FrameworkConfig.Tracing.${tracerName}.Type`,
+                    fix: 'Set the tracer Type to a documented value such as ASCII or PCAP.',
+                });
+            }
+            const extension = tracer.LoggerConfiguration?.FileConfig?.Extension;
+            if (tracer.Type === 'ASCII' && typeof extension === 'string' && extension && extension !== '.asc') {
+                diagnostics.push({
+                    code: 'yaml.tracing.ascii.extension_suspicious',
+                    severity: 'warning',
+                    source: 'yaml',
+                    message: `ASCII tracer '${tracerName}' uses extension '${extension}'. The documentation example uses '.asc'.`,
+                    path: `FrameworkConfig.Tracing.${tracerName}.LoggerConfiguration.FileConfig.Extension`,
+                    fix: 'Use .asc unless you have documentation supporting a different ASCII trace extension.',
+                });
+            }
+            if (tracer.Type === 'PCAP' && !tracer.LoggingType) {
+                diagnostics.push({
+                    code: 'yaml.tracing.pcap.logging_type_missing',
+                    severity: 'warning',
+                    source: 'yaml',
+                    message: `PCAP tracer '${tracerName}' does not define 'LoggingType'.`,
+                    path: `FrameworkConfig.Tracing.${tracerName}.LoggingType`,
+                    fix: 'Set LoggingType to a documented value such as MultipleAdapterMode, PerformanceMode, or StandardMode if supported in your version.',
+                });
+            }
+        }
+        const mappings = this._getYamlMapping(root.Mappings);
+        const cmDevices = this._getYamlMapping(this._getYamlMapping(mappings.CM).Devices);
+        for (const [deviceLabel, deviceValue] of Object.entries(cmDevices)) {
+            const device = this._getYamlMapping(deviceValue);
+            const basePath = `Mappings.CM.Devices.${deviceLabel}`;
+            if (device.Id === undefined) {
+                diagnostics.push({
+                    code: 'yaml.cm.id.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `CM device '${deviceLabel}' is missing the required 'Id' field.`,
+                    path: `${basePath}.Id`,
+                    fix: 'Set Id to the last byte of the CM IP address as documented.',
+                });
+            }
+            if (!device.Type) {
+                diagnostics.push({
+                    code: 'yaml.cm.type.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `CM device '${deviceLabel}' is missing the required 'Type' field.`,
+                    path: `${basePath}.Type`,
+                    fix: 'Set Type to a documented CM type such as CAN_Combo or LIN_Combo.',
+                });
+            }
+            const buses = this._getYamlMapping(device.Buses ?? device.Busses);
+            if (Object.keys(buses).length === 0) {
+                diagnostics.push({
+                    code: 'yaml.cm.buses.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `CM device '${deviceLabel}' is missing the required 'Buses' mapping.`,
+                    path: `${basePath}.Buses`,
+                    fix: 'Add a Buses section that maps each logical channel name to a HWChannel.',
+                });
+            }
+            for (const [busName, busValue] of Object.entries(buses)) {
+                const bus = this._getYamlMapping(busValue);
+                if (channelNames.size > 0 && !channelNames.has(busName)) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.unknown_channel',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' does not match any logical channel defined under Channels.`,
+                        path: `${basePath}.Buses.${busName}`,
+                        fix: 'Use the exact logical channel name from the Channels section.',
+                    });
+                }
+                if (bus.HWChannel === undefined) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.hwchannel.missing',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' is missing the required 'HWChannel' field.`,
+                        path: `${basePath}.Buses.${busName}.HWChannel`,
+                        fix: 'Set HWChannel to the numeric channel ID configured in the CM web interface.',
+                    });
+                }
+                else if (!this._isNumericScalar(bus.HWChannel)) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.hwchannel.invalid',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' uses non-numeric HWChannel '${bus.HWChannel}'.`,
+                        path: `${basePath}.Buses.${busName}.HWChannel`,
+                        fix: 'Use the numeric CM channel ID shown in the CM web interface.',
+                    });
+                }
+                if (bus.OperationMode && !['Normal', 'Spy', 'TxOnly', 'RxOnly'].includes(String(bus.OperationMode))) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.operation_mode.invalid',
+                        severity: 'warning',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' uses unsupported OperationMode '${bus.OperationMode}'.`,
+                        path: `${basePath}.Buses.${busName}.OperationMode`,
+                        fix: 'Use one of the documented values: Normal, Spy, TxOnly, or RxOnly.',
+                    });
+                }
+            }
+        }
+        const pcapMappings = this._getYamlMapping(mappings.PCAP);
+        for (const [adapterLabel, adapterValue] of Object.entries(pcapMappings)) {
+            const adapter = this._getYamlMapping(this._getYamlMapping(adapterValue).Adapter);
+            const basePath = `Mappings.PCAP.${adapterLabel}.Adapter`;
+            if (!adapter.Name) {
+                diagnostics.push({
+                    code: 'yaml.pcap.name.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `PCAP adapter '${adapterLabel}' is missing the required 'Name' field.`,
+                    path: `${basePath}.Name`,
+                    fix: 'Set Name to the logical Ethernet channel assigned to this adapter.',
+                });
+            }
+            else if (channelNames.size > 0 && !channelNames.has(String(adapter.Name))) {
+                diagnostics.push({
+                    code: 'yaml.pcap.name.unknown_channel',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `PCAP adapter '${adapterLabel}' references logical channel '${adapter.Name}', which is not defined under Channels.`,
+                    path: `${basePath}.Name`,
+                    fix: 'Use the exact Ethernet channel name from the Channels section.',
+                });
+            }
+            if (!adapter.FriendlyName && !adapter.Interface) {
+                diagnostics.push({
+                    code: 'yaml.pcap.adapter_locator.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `PCAP adapter '${adapterLabel}' is missing both 'FriendlyName' and 'Interface'.`,
+                    path: basePath,
+                    fix: 'Provide FriendlyName or Interface so MTF can identify the network adapter.',
+                });
+            }
+        }
+        const publisherGroups = frameworkConfig.PublisherConfig?.ChannelsGroups;
+        if (Array.isArray(publisherGroups)) {
+            publisherGroups.forEach((group, groupIndex) => {
+                if (!Array.isArray(group)) {
+                    return;
+                }
+                group.forEach((channelName, channelIndex) => {
+                    if (channelNames.size > 0 && typeof channelName === 'string' && !channelNames.has(channelName)) {
+                        diagnostics.push({
+                            code: 'yaml.publisher.channel_group.unknown_channel',
+                            severity: 'error',
+                            source: 'yaml',
+                            message: `PublisherConfig.ChannelsGroups references unknown channel '${channelName}'.`,
+                            path: `FrameworkConfig.PublisherConfig.ChannelsGroups.${groupIndex}.${channelIndex}`,
+                            fix: 'Use only channel names defined under Channels.',
+                        });
+                    }
+                });
+            });
+        }
+        const channelToEcus = this._getYamlMapping(frameworkConfig.EthernetConfig?.ChannelToEcusMapping);
+        for (const channelName of Object.keys(channelToEcus)) {
+            if (channelNames.size > 0 && !channelNames.has(channelName)) {
+                diagnostics.push({
+                    code: 'yaml.channel_to_ecus.unknown_channel',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `ChannelToEcusMapping references unknown channel '${channelName}'.`,
+                    path: `FrameworkConfig.EthernetConfig.ChannelToEcusMapping.${channelName}`,
+                    fix: 'Use only channel names defined under Channels.',
+                });
+            }
+        }
+        const topologyConfig = frameworkConfig.EthernetConfig?.EthernetTopology?.TopologyConfig;
+        if (Array.isArray(topologyConfig)) {
+            topologyConfig.forEach((entry, entryIndex) => {
+                const topologyEntry = this._getYamlMapping(entry);
+                const entryPath = `FrameworkConfig.EthernetConfig.EthernetTopology.TopologyConfig.${entryIndex}`;
+                const srcMacAdr = topologyEntry.SrcMacAdr;
+                if (typeof srcMacAdr === 'string' && srcMacAdr && !this._isValidMacAddress(srcMacAdr)) {
+                    diagnostics.push({
+                        code: 'yaml.ethernet_topology.src_mac.invalid',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `Topology entry '${topologyEntry.EcuName || entryIndex}' uses invalid SrcMacAdr '${srcMacAdr}'.`,
+                        path: `${entryPath}.SrcMacAdr`,
+                        fix: 'Use a MAC address with six hexadecimal byte pairs, for example AA:BB:CC:DD:EE:FF.',
+                    });
+                }
+                const srcIpList = Array.isArray(topologyEntry.SrcIpList) ? topologyEntry.SrcIpList : [];
+                srcIpList.forEach((ip, ipIndex) => {
+                    if (typeof ip === 'string' && !this._isValidIpAddress(ip)) {
+                        diagnostics.push({
+                            code: 'yaml.ethernet_topology.src_ip.invalid',
+                            severity: 'error',
+                            source: 'yaml',
+                            message: `Topology entry '${topologyEntry.EcuName || entryIndex}' uses invalid source IP '${ip}'.`,
+                            path: `${entryPath}.SrcIpList.${ipIndex}`,
+                            fix: 'Use a valid IPv4 or IPv6 address.',
+                        });
+                    }
+                });
+                const dstIpMappings = Array.isArray(topologyEntry.Vlans?.DstIpVlanMapping)
+                    ? topologyEntry.Vlans.DstIpVlanMapping
+                    : [];
+                dstIpMappings.forEach((mapping, mappingIndex) => {
+                    const dstIp = this._getYamlMapping(mapping).DstIp;
+                    if (typeof dstIp === 'string' && !this._isValidIpAddress(dstIp)) {
+                        diagnostics.push({
+                            code: 'yaml.ethernet_topology.dst_ip.invalid',
+                            severity: 'error',
+                            source: 'yaml',
+                            message: `Topology entry '${topologyEntry.EcuName || entryIndex}' uses invalid destination IP '${dstIp}'.`,
+                            path: `${entryPath}.Vlans.DstIpVlanMapping.${mappingIndex}.DstIp`,
+                            fix: 'Use a valid IPv4 or IPv6 address.',
+                        });
+                    }
+                });
+            });
+        }
+        return diagnostics;
+    }
+    _getYamlMapping(value) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return {};
+        }
+        return value;
+    }
+    _isNumericScalar(value) {
+        if (typeof value === 'number') {
+            return Number.isFinite(value);
+        }
+        if (typeof value === 'string') {
+            return /^\d+$/.test(value.trim());
+        }
+        return false;
+    }
+    _isValidMacAddress(value) {
+        return /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(value);
+    }
+    _isValidIpAddress(value) {
+        return (0, net_1.isIP)(value) !== 0;
+    }
+    _buildGenerationDiagnostics(errors) {
+        return errors.map((message, index) => ({
+            code: `generation.blocker.${index + 1}`,
+            severity: 'error',
+            source: 'generation',
+            message,
+            path: 'generation',
+            fix: 'Resolve this generator precondition before asking the agent to produce a corrected YAML block.',
+        }));
     }
 }
 exports.MessageHandler = MessageHandler;
@@ -7013,17 +7563,24 @@ module.exports.dump = dump;
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("path");
+module.exports = require("net");
 
 /***/ }),
 /* 37 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("path");
+
+/***/ }),
+/* 38 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.User = exports.Configuration = exports.Mapping = exports.FrameworkConfig = exports.EthernetConfig = exports.PublisherConfig = exports.ASCIITracer = exports.PCAPTracer = exports.Tracer = exports.TunTapBridge = exports.HHLoad = exports.CMInterface = exports.TEAnalog = exports.CIBInterface = exports.CANInterface = exports.AnalogDevice = exports.EthernetAdapter = exports.RelayBoard = exports.HIDRelay = exports.SerialPort = exports.LINCard = exports.PSChannel = exports.EthernetChannel = exports.BridgeChannel = exports.IOSerialChannel = exports.LINChannel = exports.IOOutputChannel = exports.IOInputChannel = exports.CANChannel = exports.SerialChannel = exports.FlexRayChannel = exports.HardwareChannel = exports.LogicalChannel = exports.Channel = exports.Category = exports.TimestampPrecision = exports.PublisherMode = exports.CaptureType = exports.HardwareChannelSubclass = exports.LogicalChannelSubclass = exports.HardwareChannelCategory = exports.LogicalChannelCategory = exports.ChannelType = void 0;
-var enums_1 = __webpack_require__(38);
+var enums_1 = __webpack_require__(39);
 Object.defineProperty(exports, "ChannelType", ({ enumerable: true, get: function () { return enums_1.ChannelType; } }));
 Object.defineProperty(exports, "LogicalChannelCategory", ({ enumerable: true, get: function () { return enums_1.LogicalChannelCategory; } }));
 Object.defineProperty(exports, "HardwareChannelCategory", ({ enumerable: true, get: function () { return enums_1.HardwareChannelCategory; } }));
@@ -7032,9 +7589,9 @@ Object.defineProperty(exports, "HardwareChannelSubclass", ({ enumerable: true, g
 Object.defineProperty(exports, "CaptureType", ({ enumerable: true, get: function () { return enums_1.CaptureType; } }));
 Object.defineProperty(exports, "PublisherMode", ({ enumerable: true, get: function () { return enums_1.PublisherMode; } }));
 Object.defineProperty(exports, "TimestampPrecision", ({ enumerable: true, get: function () { return enums_1.TimestampPrecision; } }));
-var category_1 = __webpack_require__(39);
+var category_1 = __webpack_require__(40);
 Object.defineProperty(exports, "Category", ({ enumerable: true, get: function () { return category_1.Category; } }));
-var channel_1 = __webpack_require__(40);
+var channel_1 = __webpack_require__(41);
 Object.defineProperty(exports, "Channel", ({ enumerable: true, get: function () { return channel_1.Channel; } }));
 Object.defineProperty(exports, "LogicalChannel", ({ enumerable: true, get: function () { return channel_1.LogicalChannel; } }));
 Object.defineProperty(exports, "HardwareChannel", ({ enumerable: true, get: function () { return channel_1.HardwareChannel; } }));
@@ -7078,7 +7635,7 @@ Object.defineProperty(exports, "User", ({ enumerable: true, get: function () { r
 
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -7172,7 +7729,7 @@ var TimestampPrecision;
 
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -7188,14 +7745,14 @@ exports.Category = Category;
 
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HardwareChannel = exports.LogicalChannel = exports.Channel = void 0;
-var ChannelBase_1 = __webpack_require__(41);
+var ChannelBase_1 = __webpack_require__(42);
 Object.defineProperty(exports, "Channel", ({ enumerable: true, get: function () { return ChannelBase_1.Channel; } }));
 var LogicalChannel_1 = __webpack_require__(613);
 Object.defineProperty(exports, "LogicalChannel", ({ enumerable: true, get: function () { return LogicalChannel_1.LogicalChannel; } }));
@@ -7204,7 +7761,7 @@ Object.defineProperty(exports, "HardwareChannel", ({ enumerable: true, get: func
 
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -7220,8 +7777,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Channel = void 0;
-const typeorm_1 = __webpack_require__(42);
-const enums_1 = __webpack_require__(38);
+const typeorm_1 = __webpack_require__(43);
+const enums_1 = __webpack_require__(39);
 /**
  * Abstract base class for all channels.
  */
@@ -7264,21 +7821,21 @@ __decorate([
 
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TreeRepositoryUtils = exports.InstanceChecker = exports.EntitySchemaOptions = exports.EntitySchemaEmbeddedColumnOptions = exports.EntitySchema = exports.LegacyOracleNamingStrategy = exports.DefaultNamingStrategy = exports.MigrationExecutor = exports.Migration = exports.MongoEntityManager = exports.QueryResult = exports.DeleteResult = exports.UpdateResult = exports.InsertResult = exports.NotBrackets = exports.Brackets = exports.RelationQueryBuilder = exports.UpdateQueryBuilder = exports.InsertQueryBuilder = exports.DeleteQueryBuilder = exports.SelectQueryBuilder = exports.QueryBuilder = exports.ConnectionManager = exports.Connection = exports.DataSource = exports.ConnectionOptionsReader = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 /*!
  */
 __webpack_require__(1);
 // -------------------------------------------------------------------------
 // Commonly Used exports
 // -------------------------------------------------------------------------
-tslib_1.__exportStar(__webpack_require__(44), exports);
+tslib_1.__exportStar(__webpack_require__(45), exports);
 tslib_1.__exportStar(__webpack_require__(463), exports);
 tslib_1.__exportStar(__webpack_require__(501), exports);
 tslib_1.__exportStar(__webpack_require__(502), exports);
@@ -7467,7 +8024,7 @@ Object.defineProperty(exports, "TreeRepositoryUtils", ({ enumerable: true, get: 
 
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -7911,7 +8468,7 @@ function __rewriteRelativeImportExtension(path, preserveJsx) {
 
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -7931,8 +8488,8 @@ exports.getTreeRepository = getTreeRepository;
 exports.getCustomRepository = getCustomRepository;
 exports.getMongoRepository = getMongoRepository;
 exports.createQueryBuilder = createQueryBuilder;
-const MetadataArgsStorage_1 = __webpack_require__(45);
-const PlatformTools_1 = __webpack_require__(47);
+const MetadataArgsStorage_1 = __webpack_require__(46);
+const PlatformTools_1 = __webpack_require__(48);
 const ConnectionOptionsReader_1 = __webpack_require__(137);
 const ConnectionManager_1 = __webpack_require__(278);
 const container_1 = __webpack_require__(463);
@@ -8100,14 +8657,14 @@ function createQueryBuilder(entityClass, alias, connectionName = "default") {
 
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MetadataArgsStorage = void 0;
-const MetadataUtils_1 = __webpack_require__(46);
+const MetadataUtils_1 = __webpack_require__(47);
 /**
  * Storage all metadatas args of all available types: tables, columns, subscribers, relations, etc.
  * Each metadata args represents some specifications of what it represents.
@@ -8343,7 +8900,7 @@ exports.MetadataArgsStorage = MetadataArgsStorage;
 
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -8394,25 +8951,25 @@ exports.MetadataUtils = MetadataUtils;
 
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PlatformTools = exports.Writable = exports.Readable = exports.ReadStream = exports.EventEmitter = void 0;
-const tslib_1 = __webpack_require__(43);
-const ansis_1 = tslib_1.__importDefault(__webpack_require__(48));
-const dotenv_1 = tslib_1.__importDefault(__webpack_require__(49));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(50));
-const path_1 = tslib_1.__importDefault(__webpack_require__(36));
-const sql_highlight_1 = __webpack_require__(53);
-const formatter_1 = __webpack_require__(56);
-var events_1 = __webpack_require__(70);
+const tslib_1 = __webpack_require__(44);
+const ansis_1 = tslib_1.__importDefault(__webpack_require__(49));
+const dotenv_1 = tslib_1.__importDefault(__webpack_require__(50));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(51));
+const path_1 = tslib_1.__importDefault(__webpack_require__(37));
+const sql_highlight_1 = __webpack_require__(54);
+const formatter_1 = __webpack_require__(57);
+var events_1 = __webpack_require__(71);
 Object.defineProperty(exports, "EventEmitter", ({ enumerable: true, get: function () { return events_1.EventEmitter; } }));
-var fs_2 = __webpack_require__(50);
+var fs_2 = __webpack_require__(51);
 Object.defineProperty(exports, "ReadStream", ({ enumerable: true, get: function () { return fs_2.ReadStream; } }));
-var stream_1 = __webpack_require__(71);
+var stream_1 = __webpack_require__(72);
 Object.defineProperty(exports, "Readable", ({ enumerable: true, get: function () { return stream_1.Readable; } }));
 Object.defineProperty(exports, "Writable", ({ enumerable: true, get: function () { return stream_1.Writable; } }));
 /**
@@ -8431,7 +8988,7 @@ class PlatformTools {
      */
     static readPackageVersion(name) {
         try {
-            return __webpack_require__(72)(`${name}/package.json`).version;
+            return __webpack_require__(73)(`${name}/package.json`).version;
         }
         catch (err) {
             throw new TypeError(`Failed to read package.json for "${name}": ${err.message}`);
@@ -8452,36 +9009,36 @@ class PlatformTools {
                  * spanner
                  */
                 case "spanner":
-                    return __webpack_require__(73);
+                    return __webpack_require__(74);
                 /**
                  * mongodb
                  */
                 case "mongodb":
-                    return __webpack_require__(74);
+                    return __webpack_require__(75);
                 /**
                  * hana
                  */
                 case "@sap/hana-client":
-                    return __webpack_require__(75);
-                case "@sap/hana-client/extension/Stream":
                     return __webpack_require__(76);
+                case "@sap/hana-client/extension/Stream":
+                    return __webpack_require__(77);
                 /**
                  * mysql
                  */
                 case "mysql":
-                    return __webpack_require__(77);
-                case "mysql2":
                     return __webpack_require__(78);
+                case "mysql2":
+                    return __webpack_require__(79);
                 /**
                  * oracle
                  */
                 case "oracledb":
-                    return __webpack_require__(79);
+                    return __webpack_require__(80);
                 /**
                  * postgres
                  */
                 case "pg":
-                    return __webpack_require__(80);
+                    return __webpack_require__(81);
                 case "pg-native":
                     return __webpack_require__(125);
                 case "pg-query-stream":
@@ -8654,21 +9211,21 @@ PlatformTools.type = "node";
 
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ ((module) => {
 
 let e,t,r,{defineProperty:l,setPrototypeOf:n,create:o,keys:s}=Object,i="",{round:c,max:a}=Math,p=e=>{let t=/([a-f\d]{3,6})/i.exec(e)?.[1],r=t?.length,l=parseInt(6^r?3^r?"0":t[0]+t[0]+t[1]+t[1]+t[2]+t[2]:t,16);return[l>>16&255,l>>8&255,255&l]},u=(e,t,r)=>e^t||t^r?16+36*c(e/51)+6*c(t/51)+c(r/51):8>e?16:e>248?231:c(24*(e-8)/247)+232,d=e=>{let t,r,l,n,o;return 8>e?30+e:16>e?e-8+90:(232>e?(o=(e-=16)%36,t=(e/36|0)/5,r=(o/6|0)/5,l=o%6/5):t=r=l=(10*(e-232)+8)/255,n=2*a(t,r,l),n?30+(c(l)<<2|c(r)<<1|c(t))+(2^n?0:60):30)},f=(()=>{let r=e=>o.some((t=>e.test(t))),l=globalThis,n=l.process??{},o=n.argv??[],i=n.env??{},c=-1;try{e=","+s(i).join(",")}catch(e){i={},c=0}let a="FORCE_COLOR",p={false:0,0:0,1:1,2:2,3:3}[i[a]]??-1,u=a in i&&p||r(/^--color=?(true|always)?$/);return u&&(c=p),~c||(c=((r,l,n)=>(t=r.TERM,{"24bit":3,truecolor:3,ansi256:2,ansi:1}[r.COLORTERM]||(r.CI?/,GITHUB/.test(e)?3:1:l&&"dumb"!==t?n?3:/-256/.test(t)?2:1:0)))(i,!!i.PM2_HOME||i.NEXT_RUNTIME?.includes("edge")||!!n.stdout?.isTTY,"win32"===n.platform)),!p||i.NO_COLOR||r(/^--(no-color|color=(false|never))$/)?0:l.window?.chrome||u&&!c?3:c})(),g={open:i,close:i},h=39,b=49,O={},m=({p:e},{open:t,close:l})=>{let o=(e,...r)=>{if(!e){if(t&&t===l)return t;if((e??i)===i)return i}let n,s=e.raw?String.raw({raw:e},...r):i+e,c=o.p,a=c.o,p=c.c;if(s.includes(""))for(;c;c=c.p){let{open:e,close:t}=c,r=t.length,l=i,o=0;if(r)for(;~(n=s.indexOf(t,o));o=n+r)l+=s.slice(o,n)+e;s=l+s.slice(o)}return a+(s.includes("\n")?s.replace(/(\r?\n)/g,p+"$1"+a):s)+p},s=t,c=l;return e&&(s=e.o+t,c=l+e.c),n(o,r),o.p={open:t,close:l,o:s,c,p:e},o.open=s,o.close=c,o};const w=new function e(t=f){let s={Ansis:e,level:t,isSupported:()=>a,strip:e=>e.replace(/[][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,i),extend(e){for(let t in e){let r=e[t],l=(typeof r)[0];"s"===l?(c(t,T(...p(r))),c(_(t),v(...p(r)))):c(t,r,"f"===l)}return r=o({},O),n(s,r),s}},c=(e,t,r)=>{O[e]={get(){let n=r?(...e)=>m(this,t(...e)):m(this,t);return l(this,e,{value:n}),n}}},a=t>0,w=(e,t)=>a?{open:`[${e}m`,close:`[${t}m`}:g,y=e=>t=>e(...p(t)),R=(e,t)=>(r,l,n)=>w(`${e}8;2;${r};${l};${n}`,t),$=(e,t)=>(r,l,n)=>w(((e,t,r)=>d(u(e,t,r)))(r,l,n)+e,t),x=e=>(t,r,l)=>e(u(t,r,l)),T=R(3,h),v=R(4,b),C=e=>w("38;5;"+e,h),E=e=>w("48;5;"+e,b);2===t?(T=x(C),v=x(E)):1===t&&(T=$(0,h),v=$(10,b),C=e=>w(d(e),h),E=e=>w(d(e)+10,b));let M,I={fg:C,bg:E,rgb:T,bgRgb:v,hex:y(T),bgHex:y(v),visible:g,reset:w(0,0),bold:w(1,22),dim:w(2,22),italic:w(3,23),underline:w(4,24),inverse:w(7,27),hidden:w(8,28),strikethrough:w(9,29)},_=e=>"bg"+e[0].toUpperCase()+e.slice(1),k="Bright";return"black,red,green,yellow,blue,magenta,cyan,white,gray".split(",").map(((e,t)=>{M=_(e),8>t?(I[e+k]=w(90+t,h),I[M+k]=w(100+t,b)):t=60,I[e]=w(30+t,h),I[M]=w(40+t,b)})),s.extend(I)};module.exports=w,w.default=w;
 
 
 /***/ }),
-/* 49 */
+/* 50 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const fs = __webpack_require__(50)
-const path = __webpack_require__(36)
-const os = __webpack_require__(51)
+const fs = __webpack_require__(51)
+const path = __webpack_require__(37)
+const os = __webpack_require__(52)
 const crypto = __webpack_require__(9)
-const packageJson = __webpack_require__(52)
+const packageJson = __webpack_require__(53)
 
 const version = packageJson.version
 
@@ -9053,32 +9610,32 @@ module.exports = DotenvModule
 
 
 /***/ }),
-/* 50 */
+/* 51 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("fs");
 
 /***/ }),
-/* 51 */
+/* 52 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = /*#__PURE__*/JSON.parse('{"name":"dotenv","version":"16.6.1","description":"Loads environment variables from .env file","main":"lib/main.js","types":"lib/main.d.ts","exports":{".":{"types":"./lib/main.d.ts","require":"./lib/main.js","default":"./lib/main.js"},"./config":"./config.js","./config.js":"./config.js","./lib/env-options":"./lib/env-options.js","./lib/env-options.js":"./lib/env-options.js","./lib/cli-options":"./lib/cli-options.js","./lib/cli-options.js":"./lib/cli-options.js","./package.json":"./package.json"},"scripts":{"dts-check":"tsc --project tests/types/tsconfig.json","lint":"standard","pretest":"npm run lint && npm run dts-check","test":"tap run --allow-empty-coverage --disable-coverage --timeout=60000","test:coverage":"tap run --show-full-coverage --timeout=60000 --coverage-report=text --coverage-report=lcov","prerelease":"npm test","release":"standard-version"},"repository":{"type":"git","url":"git://github.com/motdotla/dotenv.git"},"homepage":"https://github.com/motdotla/dotenv#readme","funding":"https://dotenvx.com","keywords":["dotenv","env",".env","environment","variables","config","settings"],"readmeFilename":"README.md","license":"BSD-2-Clause","devDependencies":{"@types/node":"^18.11.3","decache":"^4.6.2","sinon":"^14.0.1","standard":"^17.0.0","standard-version":"^9.5.0","tap":"^19.2.0","typescript":"^4.8.4"},"engines":{"node":">=12"},"browser":{"fs":false}}');
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const keywords = __webpack_require__(54);
-const escapeHtml = __webpack_require__(55);
+const keywords = __webpack_require__(55);
+const escapeHtml = __webpack_require__(56);
 
 const DEFAULT_OPTIONS = {
   html: false,
@@ -9165,7 +9722,7 @@ module.exports = {
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((module) => {
 
 module.exports = [
@@ -9317,7 +9874,7 @@ module.exports = [
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((module) => {
 
 /*
@@ -9382,7 +9939,7 @@ module.exports = escapeHtml;
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -9392,10 +9949,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 exports.__esModule = true;
 exports.tokenize = exports.format = void 0;
-var Db2Formatter_1 = __importDefault(__webpack_require__(57));
-var N1qlFormatter_1 = __importDefault(__webpack_require__(67));
-var PlSqlFormatter_1 = __importDefault(__webpack_require__(68));
-var StandardSqlFormatter_1 = __importDefault(__webpack_require__(69));
+var Db2Formatter_1 = __importDefault(__webpack_require__(58));
+var N1qlFormatter_1 = __importDefault(__webpack_require__(68));
+var PlSqlFormatter_1 = __importDefault(__webpack_require__(69));
+var StandardSqlFormatter_1 = __importDefault(__webpack_require__(70));
 var format = function (query, cfg) {
     if (cfg === void 0) { cfg = {}; }
     switch (cfg.language) {
@@ -9423,7 +9980,7 @@ exports["default"] = {
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -9447,7 +10004,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var abstract_1 = __importDefault(__webpack_require__(58));
+var abstract_1 = __importDefault(__webpack_require__(59));
 var Db2Formatter = (function (_super) {
     __extends(Db2Formatter, _super);
     function Db2Formatter() {
@@ -10015,7 +10572,7 @@ var reservedNewlineWords = [
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -10024,8 +10581,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var Tokenizer_1 = __importDefault(__webpack_require__(59));
-var Formatter_1 = __importDefault(__webpack_require__(62));
+var Tokenizer_1 = __importDefault(__webpack_require__(60));
+var Formatter_1 = __importDefault(__webpack_require__(63));
 var AbstractFormatter = (function () {
     function AbstractFormatter(cfg) {
         this.cfg = cfg;
@@ -10045,7 +10602,7 @@ exports["default"] = AbstractFormatter;
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -10054,8 +10611,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var escapeRegExp_1 = __importDefault(__webpack_require__(60));
-var types_1 = __webpack_require__(61);
+var escapeRegExp_1 = __importDefault(__webpack_require__(61));
+var types_1 = __webpack_require__(62);
 var Tokenizer = (function () {
     function Tokenizer(cfg) {
         this.WHITESPACE_REGEX = /^(\s+)/u;
@@ -10324,7 +10881,7 @@ exports["default"] = Tokenizer;
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -10341,7 +10898,7 @@ exports["default"] = escapeRegExp;
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -10370,7 +10927,7 @@ var TokenTypes;
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -10379,10 +10936,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var types_1 = __webpack_require__(61);
-var Indentation_1 = __importDefault(__webpack_require__(63));
-var InlineBlock_1 = __importDefault(__webpack_require__(65));
-var Params_1 = __importDefault(__webpack_require__(66));
+var types_1 = __webpack_require__(62);
+var Indentation_1 = __importDefault(__webpack_require__(64));
+var InlineBlock_1 = __importDefault(__webpack_require__(66));
+var Params_1 = __importDefault(__webpack_require__(67));
 var spaceChars = [' ', '\t'];
 var trimSpacesEnd = function (str) {
     var end = str.length - 1;
@@ -10611,7 +11168,7 @@ exports["default"] = Formatter;
 
 
 /***/ }),
-/* 63 */
+/* 64 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -10620,7 +11177,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var last_1 = __importDefault(__webpack_require__(64));
+var last_1 = __importDefault(__webpack_require__(65));
 var INDENT_TYPE_TOP_LEVEL = 'top-level';
 var INDENT_TYPE_BLOCK_LEVEL = 'block-level';
 var Indentation = (function () {
@@ -10660,7 +11217,7 @@ exports["default"] = Indentation;
 
 
 /***/ }),
-/* 64 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -10674,13 +11231,13 @@ exports["default"] = last;
 
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 exports.__esModule = true;
-var types_1 = __webpack_require__(61);
+var types_1 = __webpack_require__(62);
 var INLINE_MAX_LENGTH = 50;
 var InlineBlock = (function () {
     function InlineBlock() {
@@ -10741,7 +11298,7 @@ exports["default"] = InlineBlock;
 
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -10769,7 +11326,7 @@ exports["default"] = Params;
 
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -10793,7 +11350,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var abstract_1 = __importDefault(__webpack_require__(58));
+var abstract_1 = __importDefault(__webpack_require__(59));
 var N1qlFormatter = (function (_super) {
     __extends(N1qlFormatter, _super);
     function N1qlFormatter() {
@@ -11033,7 +11590,7 @@ var reservedNewlineWords = [
 
 
 /***/ }),
-/* 68 */
+/* 69 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -11057,8 +11614,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var abstract_1 = __importDefault(__webpack_require__(58));
-var types_1 = __webpack_require__(61);
+var abstract_1 = __importDefault(__webpack_require__(59));
+var types_1 = __webpack_require__(62);
 var PlSqlFormatter = (function (_super) {
     __extends(PlSqlFormatter, _super);
     function PlSqlFormatter() {
@@ -11499,7 +12056,7 @@ var reservedNewlineWords = [
 
 
 /***/ }),
-/* 69 */
+/* 70 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -11523,7 +12080,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-var abstract_1 = __importDefault(__webpack_require__(58));
+var abstract_1 = __importDefault(__webpack_require__(59));
 var StandardSqlFormatter = (function (_super) {
     __extends(StandardSqlFormatter, _super);
     function StandardSqlFormatter() {
@@ -11875,21 +12432,21 @@ var reservedNewlineWords = [
 
 
 /***/ }),
-/* 70 */
+/* 71 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("events");
 
 /***/ }),
-/* 71 */
+/* 72 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("stream");
 
 /***/ }),
-/* 72 */
+/* 73 */
 /***/ ((module) => {
 
 function webpackEmptyContext(req) {
@@ -11899,74 +12456,74 @@ function webpackEmptyContext(req) {
 }
 webpackEmptyContext.keys = () => ([]);
 webpackEmptyContext.resolve = webpackEmptyContext;
-webpackEmptyContext.id = 72;
+webpackEmptyContext.id = 73;
 module.exports = webpackEmptyContext;
-
-/***/ }),
-/* 73 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("@google-cloud/spanner");
 
 /***/ }),
 /* 74 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("mongodb");
+module.exports = require("@google-cloud/spanner");
 
 /***/ }),
 /* 75 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("@sap/hana-client");
+module.exports = require("mongodb");
 
 /***/ }),
 /* 76 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("@sap/hana-client/extension/Stream");
+module.exports = require("@sap/hana-client");
 
 /***/ }),
 /* 77 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("mysql");
+module.exports = require("@sap/hana-client/extension/Stream");
 
 /***/ }),
 /* 78 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("mysql2");
+module.exports = require("mysql");
 
 /***/ }),
 /* 79 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = require("oracledb");
+module.exports = require("mysql2");
 
 /***/ }),
 /* 80 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("oracledb");
+
+/***/ }),
+/* 81 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const Client = __webpack_require__(81)
-const defaults = __webpack_require__(83)
-const Connection = __webpack_require__(107)
-const Result = __webpack_require__(106)
-const utils = __webpack_require__(82)
+const Client = __webpack_require__(82)
+const defaults = __webpack_require__(84)
+const Connection = __webpack_require__(108)
+const Result = __webpack_require__(107)
+const utils = __webpack_require__(83)
 const Pool = __webpack_require__(122)
-const TypeOverrides = __webpack_require__(101)
-const { DatabaseError } = __webpack_require__(108)
-const { escapeIdentifier, escapeLiteral } = __webpack_require__(82)
+const TypeOverrides = __webpack_require__(102)
+const { DatabaseError } = __webpack_require__(109)
+const { escapeIdentifier, escapeLiteral } = __webpack_require__(83)
 
 const poolFactory = (Client) => {
   return class BoundPool extends Pool {
@@ -11983,7 +12540,7 @@ const PG = function (clientConstructor) {
   this.Pool = poolFactory(this.Client)
   this._pools = []
   this.Connection = Connection
-  this.types = __webpack_require__(84)
+  this.types = __webpack_require__(85)
   this.DatabaseError = DatabaseError
   this.TypeOverrides = TypeOverrides
   this.escapeIdentifier = escapeIdentifier
@@ -12032,20 +12589,20 @@ Object.defineProperty(module.exports, "native", ({
 
 
 /***/ }),
-/* 81 */
+/* 82 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const EventEmitter = (__webpack_require__(70).EventEmitter)
-const utils = __webpack_require__(82)
-const nodeUtils = __webpack_require__(95)
-const sasl = __webpack_require__(96)
-const TypeOverrides = __webpack_require__(101)
+const EventEmitter = (__webpack_require__(71).EventEmitter)
+const utils = __webpack_require__(83)
+const nodeUtils = __webpack_require__(96)
+const sasl = __webpack_require__(97)
+const TypeOverrides = __webpack_require__(102)
 
-const ConnectionParameters = __webpack_require__(102)
-const Query = __webpack_require__(105)
-const defaults = __webpack_require__(83)
-const Connection = __webpack_require__(107)
-const crypto = __webpack_require__(97)
+const ConnectionParameters = __webpack_require__(103)
+const Query = __webpack_require__(106)
+const defaults = __webpack_require__(84)
+const Connection = __webpack_require__(108)
+const crypto = __webpack_require__(98)
 
 const activeQueryDeprecationNotice = nodeUtils.deprecate(
   () => {},
@@ -12781,15 +13338,15 @@ module.exports = Client
 
 
 /***/ }),
-/* 82 */
+/* 83 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const defaults = __webpack_require__(83)
+const defaults = __webpack_require__(84)
 
-const util = __webpack_require__(95)
+const util = __webpack_require__(96)
 const { isDate } = util.types || util // Node 8 doesn't have `util.types`
 
 function escapeElement(elementRepresentation) {
@@ -13005,7 +13562,7 @@ module.exports = {
 
 
 /***/ }),
-/* 83 */
+/* 84 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
@@ -13090,7 +13647,7 @@ module.exports = {
   keepalives_idle: 0,
 }
 
-const pgTypes = __webpack_require__(84)
+const pgTypes = __webpack_require__(85)
 // save default parsers
 const parseBigInteger = pgTypes.getTypeParser(20, 'text')
 const parseBigIntegerArray = pgTypes.getTypeParser(1016, 'text')
@@ -13103,13 +13660,13 @@ module.exports.__defineSetter__('parseInt8', function (val) {
 
 
 /***/ }),
-/* 84 */
+/* 85 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
-var textParsers = __webpack_require__(85);
-var binaryParsers = __webpack_require__(92);
-var arrayParser = __webpack_require__(87);
-var builtinTypes = __webpack_require__(94);
+var textParsers = __webpack_require__(86);
+var binaryParsers = __webpack_require__(93);
+var arrayParser = __webpack_require__(88);
+var builtinTypes = __webpack_require__(95);
 
 exports.getTypeParser = getTypeParser;
 exports.setTypeParser = setTypeParser;
@@ -13156,14 +13713,14 @@ binaryParsers.init(function(oid, converter) {
 
 
 /***/ }),
-/* 85 */
+/* 86 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var array = __webpack_require__(86)
-var arrayParser = __webpack_require__(87);
-var parseDate = __webpack_require__(88);
-var parseInterval = __webpack_require__(89);
-var parseByteA = __webpack_require__(91);
+var array = __webpack_require__(87)
+var arrayParser = __webpack_require__(88);
+var parseDate = __webpack_require__(89);
+var parseInterval = __webpack_require__(90);
+var parseByteA = __webpack_require__(92);
 
 function allowNull (fn) {
   return function nullAllowed (value) {
@@ -13377,7 +13934,7 @@ module.exports = {
 
 
 /***/ }),
-/* 86 */
+/* 87 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -13481,10 +14038,10 @@ function identity (value) {
 
 
 /***/ }),
-/* 87 */
+/* 88 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var array = __webpack_require__(86);
+var array = __webpack_require__(87);
 
 module.exports = {
   create: function (source, transform) {
@@ -13498,7 +14055,7 @@ module.exports = {
 
 
 /***/ }),
-/* 88 */
+/* 89 */
 /***/ ((module) => {
 
 "use strict";
@@ -13621,13 +14178,13 @@ function is0To99 (num) {
 
 
 /***/ }),
-/* 89 */
+/* 90 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-var extend = __webpack_require__(90)
+var extend = __webpack_require__(91)
 
 module.exports = PostgresInterval
 
@@ -13753,7 +14310,7 @@ function parse (interval) {
 
 
 /***/ }),
-/* 90 */
+/* 91 */
 /***/ ((module) => {
 
 module.exports = extend
@@ -13776,7 +14333,7 @@ function extend(target) {
 
 
 /***/ }),
-/* 91 */
+/* 92 */
 /***/ ((module) => {
 
 "use strict";
@@ -13816,10 +14373,10 @@ module.exports = function parseBytea (input) {
 
 
 /***/ }),
-/* 92 */
+/* 93 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var parseInt64 = __webpack_require__(93);
+var parseInt64 = __webpack_require__(94);
 
 var parseBits = function(data, bits, offset, invert, callback) {
   offset = offset || 0;
@@ -14079,7 +14636,7 @@ module.exports = {
 
 
 /***/ }),
-/* 93 */
+/* 94 */
 /***/ ((module) => {
 
 "use strict";
@@ -14186,7 +14743,7 @@ module.exports = readInt8;
 
 
 /***/ }),
-/* 94 */
+/* 95 */
 /***/ ((module) => {
 
 /**
@@ -14265,20 +14822,20 @@ module.exports = {
 
 
 /***/ }),
-/* 95 */
+/* 96 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("util");
 
 /***/ }),
-/* 96 */
+/* 97 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
-const crypto = __webpack_require__(97)
-const { signatureAlgorithmHashFromCertificate } = __webpack_require__(100)
+const crypto = __webpack_require__(98)
+const { signatureAlgorithmHashFromCertificate } = __webpack_require__(101)
 
 function startSession(mechanisms, stream) {
   const candidates = ['SCRAM-SHA-256']
@@ -14491,7 +15048,7 @@ module.exports = {
 
 
 /***/ }),
-/* 97 */
+/* 98 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
@@ -14500,14 +15057,14 @@ module.exports = {
 const useLegacyCrypto = parseInt(process.versions && process.versions.node && process.versions.node.split('.')[0]) < 15
 if (useLegacyCrypto) {
   // We are on an old version of Node.js that requires legacy crypto utilities.
-  module.exports = __webpack_require__(98)
-} else {
   module.exports = __webpack_require__(99)
+} else {
+  module.exports = __webpack_require__(100)
 }
 
 
 /***/ }),
-/* 98 */
+/* 99 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
@@ -14557,7 +15114,7 @@ module.exports = {
 
 
 /***/ }),
-/* 99 */
+/* 100 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const nodeCrypto = __webpack_require__(9)
@@ -14652,7 +15209,7 @@ async function deriveKey(password, salt, iterations) {
 
 
 /***/ }),
-/* 100 */
+/* 101 */
 /***/ ((module) => {
 
 function x509Error(msg, cert) {
@@ -14780,13 +15337,13 @@ module.exports = { signatureAlgorithmHashFromCertificate }
 
 
 /***/ }),
-/* 101 */
+/* 102 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const types = __webpack_require__(84)
+const types = __webpack_require__(85)
 
 function TypeOverrides(userTypes) {
   this._types = userTypes || types
@@ -14822,17 +15379,17 @@ module.exports = TypeOverrides
 
 
 /***/ }),
-/* 102 */
+/* 103 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const dns = __webpack_require__(103)
+const dns = __webpack_require__(104)
 
-const defaults = __webpack_require__(83)
+const defaults = __webpack_require__(84)
 
-const parse = (__webpack_require__(104).parse) // parses a connection string
+const parse = (__webpack_require__(105).parse) // parses a connection string
 
 const val = function (key, config, envVar) {
   if (config[key]) {
@@ -15000,14 +15557,14 @@ module.exports = ConnectionParameters
 
 
 /***/ }),
-/* 103 */
+/* 104 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("dns");
 
 /***/ }),
-/* 104 */
+/* 105 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
@@ -15092,7 +15649,7 @@ function parse(str, options = {}) {
   }
 
   // Only try to load fs if we expect to read from the disk
-  const fs = config.sslcert || config.sslkey || config.sslrootcert ? __webpack_require__(50) : null
+  const fs = config.sslcert || config.sslkey || config.sslrootcert ? __webpack_require__(51) : null
 
   if (config.sslcert) {
     config.ssl.cert = fs.readFileSync(config.sslcert).toString()
@@ -15245,16 +15802,16 @@ parse.parseIntoClientConfig = parseIntoClientConfig
 
 
 /***/ }),
-/* 105 */
+/* 106 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const { EventEmitter } = __webpack_require__(70)
+const { EventEmitter } = __webpack_require__(71)
 
-const Result = __webpack_require__(106)
-const utils = __webpack_require__(82)
+const Result = __webpack_require__(107)
+const utils = __webpack_require__(83)
 
 class Query extends EventEmitter {
   constructor(config, values, callback) {
@@ -15504,13 +16061,13 @@ module.exports = Query
 
 
 /***/ }),
-/* 106 */
+/* 107 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const types = __webpack_require__(84)
+const types = __webpack_require__(85)
 
 const matchRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/
 
@@ -15620,16 +16177,16 @@ module.exports = Result
 
 
 /***/ }),
-/* 107 */
+/* 108 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 "use strict";
 
 
-const EventEmitter = (__webpack_require__(70).EventEmitter)
+const EventEmitter = (__webpack_require__(71).EventEmitter)
 
-const { parse, serialize } = __webpack_require__(108)
-const { getStream, getSecureStream } = __webpack_require__(114)
+const { parse, serialize } = __webpack_require__(109)
+const { getStream, getSecureStream } = __webpack_require__(115)
 
 const flushBuffer = serialize.flush()
 const syncBuffer = serialize.sync()
@@ -15716,7 +16273,7 @@ class Connection extends EventEmitter {
         }
       }
 
-      const net = __webpack_require__(115)
+      const net = __webpack_require__(36)
       if (net.isIP && net.isIP(host) === 0) {
         options.servername = host
       }
@@ -15848,18 +16405,18 @@ module.exports = Connection
 
 
 /***/ }),
-/* 108 */
+/* 109 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DatabaseError = exports.serialize = exports.parse = void 0;
-const messages_1 = __webpack_require__(109);
+const messages_1 = __webpack_require__(110);
 Object.defineProperty(exports, "DatabaseError", ({ enumerable: true, get: function () { return messages_1.DatabaseError; } }));
-const serializer_1 = __webpack_require__(110);
+const serializer_1 = __webpack_require__(111);
 Object.defineProperty(exports, "serialize", ({ enumerable: true, get: function () { return serializer_1.serialize; } }));
-const parser_1 = __webpack_require__(112);
+const parser_1 = __webpack_require__(113);
 function parse(stream, callback) {
     const parser = new parser_1.Parser();
     stream.on('data', (buffer) => parser.parse(buffer, callback));
@@ -15869,7 +16426,7 @@ exports.parse = parse;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 109 */
+/* 110 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -16035,14 +16592,14 @@ exports.NoticeMessage = NoticeMessage;
 //# sourceMappingURL=messages.js.map
 
 /***/ }),
-/* 110 */
+/* 111 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.serialize = void 0;
-const buffer_writer_1 = __webpack_require__(111);
+const buffer_writer_1 = __webpack_require__(112);
 const writer = new buffer_writer_1.Writer();
 const startup = (opts) => {
     // protocol version
@@ -16230,7 +16787,7 @@ exports.serialize = serialize;
 //# sourceMappingURL=serializer.js.map
 
 /***/ }),
-/* 111 */
+/* 112 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -16317,15 +16874,15 @@ exports.Writer = Writer;
 //# sourceMappingURL=buffer-writer.js.map
 
 /***/ }),
-/* 112 */
+/* 113 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Parser = void 0;
-const messages_1 = __webpack_require__(109);
-const buffer_reader_1 = __webpack_require__(113);
+const messages_1 = __webpack_require__(110);
+const buffer_reader_1 = __webpack_require__(114);
 // every message is prefixed with a single bye
 const CODE_LENGTH = 1;
 // every message has an int32 length which includes itself but does
@@ -16647,7 +17204,7 @@ const parseErrorMessage = (reader, name) => {
 //# sourceMappingURL=parser.js.map
 
 /***/ }),
-/* 113 */
+/* 114 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -16708,7 +17265,7 @@ exports.BufferReader = BufferReader;
 //# sourceMappingURL=buffer-reader.js.map
 
 /***/ }),
-/* 114 */
+/* 115 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 const { getStream, getSecureStream } = getStreamFuncs()
@@ -16732,7 +17289,7 @@ module.exports = {
  */
 function getNodejsStreamFuncs() {
   function getStream(ssl) {
-    const net = __webpack_require__(115)
+    const net = __webpack_require__(36)
     return new net.Socket()
   }
 
@@ -16797,13 +17354,6 @@ function getStreamFuncs() {
 
 
 /***/ }),
-/* 115 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("net");
-
-/***/ }),
 /* 116 */
 /***/ ((module) => {
 
@@ -16829,8 +17379,8 @@ exports["default"] = {};
 "use strict";
 
 
-var path = __webpack_require__(36)
-  , fs = __webpack_require__(50)
+var path = __webpack_require__(37)
+  , fs = __webpack_require__(51)
   , helper = __webpack_require__(119)
 ;
 
@@ -16859,10 +17409,10 @@ module.exports.warnTo = helper.warnTo;
 "use strict";
 
 
-var path = __webpack_require__(36)
-  , Stream = (__webpack_require__(71).Stream)
+var path = __webpack_require__(37)
+  , Stream = (__webpack_require__(72).Stream)
   , split = __webpack_require__(120)
-  , util = __webpack_require__(95)
+  , util = __webpack_require__(96)
   , defaultPort = 5432
   , isWin = (process.platform === 'win32')
   , warnStream = process.stderr
@@ -17115,7 +17665,7 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 
-const { Transform } = __webpack_require__(71)
+const { Transform } = __webpack_require__(72)
 const { StringDecoder } = __webpack_require__(121)
 const kLast = Symbol('last')
 const kDecoder = Symbol('decoder')
@@ -17253,7 +17803,7 @@ module.exports = require("string_decoder");
 
 "use strict";
 
-const EventEmitter = (__webpack_require__(70).EventEmitter)
+const EventEmitter = (__webpack_require__(71).EventEmitter)
 
 const NOOP = function () {}
 
@@ -17346,7 +17896,7 @@ class Pool extends EventEmitter {
     this.options.allowExitOnIdle = this.options.allowExitOnIdle || false
     this.options.maxLifetimeSeconds = this.options.maxLifetimeSeconds || 0
     this.log = this.options.log || function () {}
-    this.Client = this.options.Client || Client || (__webpack_require__(80).Client)
+    this.Client = this.options.Client || Client || (__webpack_require__(81).Client)
     this.Promise = this.options.Promise || global.Promise
 
     if (typeof this.options.idleTimeoutMillis === 'undefined') {
@@ -17784,7 +18334,7 @@ module.exports = __webpack_require__(124)
 /* 124 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const nodeUtils = __webpack_require__(95)
+const nodeUtils = __webpack_require__(96)
 // eslint-disable-next-line
 var Native
 // eslint-disable-next-line no-useless-catch
@@ -17794,10 +18344,10 @@ try {
 } catch (e) {
   throw e
 }
-const TypeOverrides = __webpack_require__(101)
-const EventEmitter = (__webpack_require__(70).EventEmitter)
-const util = __webpack_require__(95)
-const ConnectionParameters = __webpack_require__(102)
+const TypeOverrides = __webpack_require__(102)
+const EventEmitter = (__webpack_require__(71).EventEmitter)
+const util = __webpack_require__(96)
+const ConnectionParameters = __webpack_require__(103)
 
 const NativeQuery = __webpack_require__(126)
 
@@ -18123,9 +18673,9 @@ module.exports = require("pg-native");
 "use strict";
 
 
-const EventEmitter = (__webpack_require__(70).EventEmitter)
-const util = __webpack_require__(95)
-const utils = __webpack_require__(82)
+const EventEmitter = (__webpack_require__(71).EventEmitter)
+const util = __webpack_require__(96)
+const utils = __webpack_require__(83)
 
 const NativeQuery = (module.exports = function (config, values, callback) {
   EventEmitter.call(this)
@@ -18373,11 +18923,11 @@ module.exports = webpackEmptyContext;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConnectionOptionsReader = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const app_root_path_1 = tslib_1.__importDefault(__webpack_require__(138));
-const path_1 = tslib_1.__importDefault(__webpack_require__(36));
+const path_1 = tslib_1.__importDefault(__webpack_require__(37));
 const error_1 = __webpack_require__(143);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const ImportUtils_1 = __webpack_require__(207);
 const PathUtils_1 = __webpack_require__(211);
 const ConnectionOptionsEnvReader_1 = __webpack_require__(275);
@@ -18588,7 +19138,7 @@ module.exports = lib(__dirname);
 
 
 module.exports = function(dirname) {
-	var path = __webpack_require__(36);
+	var path = __webpack_require__(37);
 	var resolve = __webpack_require__(140);
 	var appRootPath = resolve(dirname);
 
@@ -18624,7 +19174,7 @@ module.exports = function(dirname) {
 
 
 // Dependencies
-var path = __webpack_require__(36);
+var path = __webpack_require__(37);
 
 // Load global paths
 var globalPaths = (__webpack_require__(141).globalPaths);
@@ -18779,7 +19329,7 @@ module.exports = webpackEmptyContext;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 tslib_1.__exportStar(__webpack_require__(144), exports);
 tslib_1.__exportStar(__webpack_require__(146), exports);
 tslib_1.__exportStar(__webpack_require__(147), exports);
@@ -20497,9 +21047,9 @@ exports.ForbiddenTransactionModeOverrideError = ForbiddenTransactionModeOverride
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.importOrRequireFile = importOrRequireFile;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const promises_1 = tslib_1.__importDefault(__webpack_require__(208));
-const path_1 = tslib_1.__importDefault(__webpack_require__(36));
+const path_1 = tslib_1.__importDefault(__webpack_require__(37));
 const url_1 = __webpack_require__(209);
 async function importOrRequireFile(filePath) {
     const tryToImport = async () => {
@@ -20672,7 +21222,7 @@ exports.titleCase = titleCase;
 exports.abbreviate = abbreviate;
 exports.shorten = shorten;
 exports.hash = hash;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const sha_js_1 = tslib_1.__importDefault(__webpack_require__(213));
 /**
  * Converts string into camelCase.
@@ -20921,7 +21471,7 @@ module.exports = Sha;
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 try {
-  var util = __webpack_require__(95);
+  var util = __webpack_require__(96);
   /* istanbul ignore next */
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
@@ -23711,7 +24261,7 @@ module.exports = Sha512;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConnectionOptionsEnvReader = void 0;
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const OrmUtils_1 = __webpack_require__(276);
 /**
  * Reads connection options from environment variables.
@@ -37569,7 +38119,7 @@ const error_1 = __webpack_require__(143);
 const AbstractRepository_1 = __webpack_require__(361);
 const EntityPersistExecutor_1 = __webpack_require__(362);
 const ObjectUtils_1 = __webpack_require__(160);
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const InstanceChecker_1 = __webpack_require__(161);
 const SqlTagUtils_1 = __webpack_require__(355);
 const OrmUtils_1 = __webpack_require__(276);
@@ -39114,7 +39664,7 @@ exports.Repository = Repository;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.buildSqlTag = buildSqlTag;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const dedent_1 = tslib_1.__importDefault(__webpack_require__(356));
 function buildSqlTag({ driver, strings, expressions, }) {
     let query = "";
@@ -39831,7 +40381,7 @@ exports.PlainObjectToDatabaseEntityTransformer = PlainObjectToDatabaseEntityTran
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AbstractRepository = void 0;
 const CustomRepositoryDoesNotHaveEntityError_1 = __webpack_require__(170);
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const CustomRepositoryNotFoundError_1 = __webpack_require__(156);
 /**
  * Provides abstract class for custom repositories that do not inherit from original orm Repository.
@@ -41272,7 +41822,7 @@ exports.SubjectChangedColumnsComputer = SubjectChangedColumnsComputer;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DateUtils = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const dayjs_1 = tslib_1.__importDefault(__webpack_require__(367));
 /**
  * Provides utilities to transform hydrated and persisted data.
@@ -43978,7 +44528,7 @@ exports.MongoEntityManager = void 0;
 const EntityManager_1 = __webpack_require__(352);
 const DocumentToEntityTransformer_1 = __webpack_require__(380);
 const FindOptionsUtils_1 = __webpack_require__(332);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const InsertResult_1 = __webpack_require__(320);
 const UpdateResult_1 = __webpack_require__(334);
 const DeleteResult_1 = __webpack_require__(296);
@@ -45018,7 +45568,7 @@ exports.CockroachDriver = void 0;
 const error_1 = __webpack_require__(143);
 const ConnectionIsNotSetError_1 = __webpack_require__(150);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const ApplyValueTransformers_1 = __webpack_require__(293);
 const DateUtils_1 = __webpack_require__(366);
@@ -50638,7 +51188,7 @@ exports.MongoDriver = void 0;
 const ConnectionIsNotSetError_1 = __webpack_require__(150);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const MongoQueryRunner_1 = __webpack_require__(395);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const MongoSchemaBuilder_1 = __webpack_require__(396);
 const ObjectUtils_1 = __webpack_require__(160);
 const ApplyValueTransformers_1 = __webpack_require__(293);
@@ -51837,7 +52387,7 @@ const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const DriverUtils_1 = __webpack_require__(287);
 const SqlServerQueryRunner_1 = __webpack_require__(398);
 const DateUtils_1 = __webpack_require__(366);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const MssqlParameter_1 = __webpack_require__(348);
 const TableColumn_1 = __webpack_require__(340);
@@ -55331,7 +55881,7 @@ const ConnectionIsNotSetError_1 = __webpack_require__(150);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const OracleQueryRunner_1 = __webpack_require__(401);
 const DateUtils_1 = __webpack_require__(366);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const DriverUtils_1 = __webpack_require__(287);
 const OrmUtils_1 = __webpack_require__(276);
@@ -58094,12 +58644,12 @@ exports.OracleQueryRunner = OracleQueryRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SqliteDriver = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const promises_1 = tslib_1.__importDefault(__webpack_require__(208));
-const path_1 = tslib_1.__importDefault(__webpack_require__(36));
+const path_1 = tslib_1.__importDefault(__webpack_require__(37));
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const SqliteQueryRunner_1 = __webpack_require__(403);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const AbstractSqliteDriver_1 = __webpack_require__(405);
 const PathUtils_1 = __webpack_require__(211);
 /**
@@ -61947,7 +62497,7 @@ const AbstractSqliteDriver_1 = __webpack_require__(405);
 const SqljsQueryRunner_1 = __webpack_require__(413);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const DriverOptionNotSetError_1 = __webpack_require__(187);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const OrmUtils_1 = __webpack_require__(276);
 const error_1 = __webpack_require__(143);
 class SqljsDriver extends AbstractSqliteDriver_1.AbstractSqliteDriver {
@@ -62333,7 +62883,7 @@ exports.MysqlDriver = void 0;
 const error_1 = __webpack_require__(143);
 const ConnectionIsNotSetError_1 = __webpack_require__(150);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const ApplyValueTransformers_1 = __webpack_require__(293);
 const DateUtils_1 = __webpack_require__(366);
@@ -65645,7 +66195,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PostgresDriver = void 0;
 const ConnectionIsNotSetError_1 = __webpack_require__(150);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const ApplyValueTransformers_1 = __webpack_require__(293);
 const DateUtils_1 = __webpack_require__(366);
@@ -70103,7 +70653,7 @@ exports.ExpoLegacyQueryRunner = ExpoLegacyQueryRunner;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuroraMysqlDriver = void 0;
 const error_1 = __webpack_require__(143);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const ApplyValueTransformers_1 = __webpack_require__(293);
 const DateUtils_1 = __webpack_require__(366);
@@ -72650,7 +73200,7 @@ exports.AuroraMysqlQueryRunner = AuroraMysqlQueryRunner;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuroraPostgresDriver = void 0;
 const PostgresDriver_1 = __webpack_require__(416);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const AuroraPostgresQueryRunner_1 = __webpack_require__(426);
 const ApplyValueTransformers_1 = __webpack_require__(293);
 const DriverUtils_1 = __webpack_require__(287);
@@ -72916,7 +73466,7 @@ const node_util_1 = __webpack_require__(428);
 const ConnectionIsNotSetError_1 = __webpack_require__(150);
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const TypeORMError_1 = __webpack_require__(145);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const ApplyValueTransformers_1 = __webpack_require__(293);
 const DateUtils_1 = __webpack_require__(366);
@@ -75690,11 +76240,11 @@ exports.SapQueryRunner = SapQueryRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BetterSqlite3Driver = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const promises_1 = tslib_1.__importDefault(__webpack_require__(208));
-const path_1 = tslib_1.__importDefault(__webpack_require__(36));
+const path_1 = tslib_1.__importDefault(__webpack_require__(37));
 const error_1 = __webpack_require__(143);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const AbstractSqliteDriver_1 = __webpack_require__(405);
 const BetterSqlite3QueryRunner_1 = __webpack_require__(431);
 const PathUtils_1 = __webpack_require__(211);
@@ -76179,7 +76729,7 @@ exports.SpannerDriver = void 0;
 const DriverPackageNotInstalledError_1 = __webpack_require__(180);
 const SpannerQueryRunner_1 = __webpack_require__(435);
 const DateUtils_1 = __webpack_require__(366);
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const RdbmsSchemaBuilder_1 = __webpack_require__(384);
 const EntityMetadata_1 = __webpack_require__(372);
 const OrmUtils_1 = __webpack_require__(276);
@@ -78277,7 +78827,7 @@ exports.ConnectionMetadataBuilder = void 0;
 const DirectoryExportedClassesLoader_1 = __webpack_require__(437);
 const OrmUtils_1 = __webpack_require__(276);
 const container_1 = __webpack_require__(463);
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EntityMetadataBuilder_1 = __webpack_require__(464);
 const EntitySchemaTransformer_1 = __webpack_require__(480);
 const InstanceChecker_1 = __webpack_require__(161);
@@ -78356,9 +78906,9 @@ exports.ConnectionMetadataBuilder = ConnectionMetadataBuilder;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.importClassesFromDirectories = importClassesFromDirectories;
 exports.importJsonsFromDirectories = importJsonsFromDirectories;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const glob = tslib_1.__importStar(__webpack_require__(438));
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const ImportUtils_1 = __webpack_require__(207);
 const ObjectUtils_1 = __webpack_require__(160);
 const InstanceChecker_1 = __webpack_require__(161);
@@ -81083,7 +81633,7 @@ exports.PathScurry = exports.Path = exports.PathScurryDarwin = exports.PathScurr
 const lru_cache_1 = __webpack_require__(450);
 const node_path_1 = __webpack_require__(451);
 const node_url_1 = __webpack_require__(448);
-const fs_1 = __webpack_require__(50);
+const fs_1 = __webpack_require__(51);
 const actualFS = __importStar(__webpack_require__(452));
 const realpathSync = fs_1.realpathSync.native;
 // TODO: test perf of fs/promises realpath vs realpathCB,
@@ -86873,7 +87423,7 @@ const EmbeddedMetadata_1 = __webpack_require__(468);
 const RelationIdMetadata_1 = __webpack_require__(469);
 const RelationCountMetadata_1 = __webpack_require__(470);
 const EventListenerTypes_1 = __webpack_require__(471);
-const MetadataUtils_1 = __webpack_require__(46);
+const MetadataUtils_1 = __webpack_require__(47);
 const JunctionEntityMetadataBuilder_1 = __webpack_require__(472);
 const ClosureJunctionEntityMetadataBuilder_1 = __webpack_require__(474);
 const RelationJoinColumnBuilder_1 = __webpack_require__(475);
@@ -90314,7 +90864,7 @@ exports.ExclusionMetadata = ExclusionMetadata;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EntitySchemaTransformer = void 0;
-const MetadataArgsStorage_1 = __webpack_require__(45);
+const MetadataArgsStorage_1 = __webpack_require__(46);
 const EntitySchemaEmbeddedError_1 = __webpack_require__(481);
 /**
  * Transforms entity schema into metadata args storage.
@@ -90801,7 +91351,7 @@ exports.SimpleConsoleLogger = SimpleConsoleLogger;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AbstractLogger = void 0;
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 class AbstractLogger {
     // -------------------------------------------------------------------------
     // Constructor
@@ -91046,7 +91596,7 @@ exports.AbstractLogger = AbstractLogger;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AdvancedConsoleLogger = void 0;
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const AbstractLogger_1 = __webpack_require__(484);
 /**
  * Performs logging of the events in TypeORM.
@@ -91109,9 +91659,9 @@ exports.AdvancedConsoleLogger = AdvancedConsoleLogger;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FileLogger = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const app_root_path_1 = tslib_1.__importDefault(__webpack_require__(138));
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const AbstractLogger_1 = __webpack_require__(484);
 /**
  * Performs logging of the events in TypeORM.
@@ -92050,7 +92600,7 @@ function plural(ms, msAbs, n, name) {
  */
 
 const tty = __webpack_require__(493);
-const util = __webpack_require__(95);
+const util = __webpack_require__(96);
 
 /**
  * This is the Node.js implementation of `debug()`.
@@ -92323,7 +92873,7 @@ module.exports = require("tty");
 
 "use strict";
 
-const os = __webpack_require__(51);
+const os = __webpack_require__(52);
 const tty = __webpack_require__(493);
 const hasFlag = __webpack_require__(495);
 
@@ -92482,7 +93032,7 @@ module.exports = (flag, argv = process.argv) => {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FormattedConsoleLogger = void 0;
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const AbstractLogger_1 = __webpack_require__(484);
 /**
  * Performs logging of the events in TypeORM.
@@ -92597,7 +93147,7 @@ exports.QueryResultCacheFactory = QueryResultCacheFactory;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RedisQueryResultCache = void 0;
-const PlatformTools_1 = __webpack_require__(47);
+const PlatformTools_1 = __webpack_require__(48);
 const TypeORMError_1 = __webpack_require__(145);
 /**
  * Caches query result into Redis database.
@@ -93494,7 +94044,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Column = Column;
 const ColumnTypeUndefinedError_1 = __webpack_require__(201);
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Column decorator is used to mark a specific class property as a table column.
  * Only properties decorated with this decorator will be persisted to the database when entity be saved.
@@ -93578,7 +94128,7 @@ function Column(typeOrOptions, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateDateColumn = CreateDateColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * This column will store a creation date of the inserted object.
  * Creation date is generated and inserted only once,
@@ -93606,7 +94156,7 @@ function CreateDateColumn(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DeleteDateColumn = DeleteDateColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * This column will store a delete date of the soft-deleted object.
  * This date is being updated each time you soft-delete the object.
@@ -93633,7 +94183,7 @@ function DeleteDateColumn(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PrimaryGeneratedColumn = PrimaryGeneratedColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * Column decorator is used to mark a specific class property as a table column.
@@ -93699,7 +94249,7 @@ function PrimaryGeneratedColumn(strategyOrOptions, maybeOptions) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PrimaryColumn = PrimaryColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ColumnTypeUndefinedError_1 = __webpack_require__(201);
 const PrimaryColumnCannotBeNullableError_1 = __webpack_require__(166);
 /**
@@ -93769,7 +94319,7 @@ function PrimaryColumn(typeOrOptions, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateDateColumn = UpdateDateColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * This column will store an update date of the updated object.
  * This date is being updated each time you persist the object.
@@ -93796,7 +94346,7 @@ function UpdateDateColumn(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VersionColumn = VersionColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * This column will store a number - version of the entity.
  * Every time your entity will be persisted, this number will be increased by one -
@@ -93825,7 +94375,7 @@ function VersionColumn(options) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VirtualColumn = VirtualColumn;
 const error_1 = __webpack_require__(143);
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * VirtualColumn decorator is used to mark a specific class property as a Virtual column.
  */
@@ -93880,7 +94430,7 @@ function VirtualColumn(typeOrOptions, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ViewColumn = ViewColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * ViewColumn decorator is used to mark a specific class property as a view column.
  */
@@ -93906,7 +94456,7 @@ function ViewColumn(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ObjectIdColumn = ObjectIdColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Special type of column that is available only for MongoDB database.
  * Marks your entity's column to be an object id.
@@ -93940,7 +94490,7 @@ function ObjectIdColumn(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AfterInsert = AfterInsert;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied after this entity insertion.
@@ -93966,7 +94516,7 @@ function AfterInsert() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AfterLoad = AfterLoad;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied after entity is loaded.
@@ -93992,7 +94542,7 @@ function AfterLoad() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AfterRemove = AfterRemove;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied after this entity removal.
@@ -94018,7 +94568,7 @@ function AfterRemove() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AfterSoftRemove = AfterSoftRemove;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity soft removal.
@@ -94044,7 +94594,7 @@ function AfterSoftRemove() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AfterRecover = AfterRecover;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity soft removal.
@@ -94070,7 +94620,7 @@ function AfterRecover() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AfterUpdate = AfterUpdate;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied after this entity update.
@@ -94096,7 +94646,7 @@ function AfterUpdate() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BeforeInsert = BeforeInsert;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity insertion.
@@ -94122,7 +94672,7 @@ function BeforeInsert() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BeforeRemove = BeforeRemove;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity removal.
@@ -94148,7 +94698,7 @@ function BeforeRemove() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BeforeSoftRemove = BeforeSoftRemove;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity soft removal.
@@ -94174,7 +94724,7 @@ function BeforeSoftRemove() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BeforeRecover = BeforeRecover;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity soft removal.
@@ -94200,7 +94750,7 @@ function BeforeRecover() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BeforeUpdate = BeforeUpdate;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const EventListenerTypes_1 = __webpack_require__(471);
 /**
  * Calls a method on which this decorator is applied before this entity update.
@@ -94226,7 +94776,7 @@ function BeforeUpdate() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EventSubscriber = EventSubscriber;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Classes decorated with this decorator will listen to ORM events and their methods will be triggered when event
  * occurs. Those classes must implement EventSubscriberInterface interface.
@@ -94327,7 +94877,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JoinColumn = JoinColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * JoinColumn decorator used on one-to-one relations to specify owner side of relationship.
  * It also can be used on both one-to-one and many-to-one relations to specify custom column name
@@ -94361,7 +94911,7 @@ function JoinColumn(optionsOrOptionsArray) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JoinTable = JoinTable;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * JoinTable decorator is used in many-to-many relationship to specify owner side of relationship.
  * Its also used to set a custom junction table's name, column names and referenced columns.
@@ -94402,7 +94952,7 @@ function JoinTable(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ManyToMany = ManyToMany;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * Many-to-many is a type of relationship when Entity1 can have multiple instances of Entity2, and Entity2 can have
@@ -94455,7 +95005,7 @@ function ManyToMany(typeFunctionOrTarget, inverseSideOrOptions, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ManyToOne = ManyToOne;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * A many-to-one relation allows creating the type of relation where Entity1 can have a single instance of Entity2, but
@@ -94508,7 +95058,7 @@ function ManyToOne(typeFunctionOrTarget, inverseSideOrOptions, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OneToMany = OneToMany;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * A one-to-many relation allows creating the type of relation where Entity1 can have multiple instances of Entity2,
  * but Entity2 has only one Entity1. Entity2 is the owner of the relationship, and stores the id of Entity1 on its
@@ -94552,7 +95102,7 @@ function OneToMany(typeFunctionOrTarget, inverseSide, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OneToOne = OneToOne;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * One-to-one relation allows the creation of a direct relation between two entities. Entity1 has only one Entity2.
@@ -94604,7 +95154,7 @@ function OneToOne(typeFunctionOrTarget, inverseSideOrOptions, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RelationCount = RelationCount;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Holds a number of children in the closure table of the column.
  *
@@ -94634,7 +95184,7 @@ function RelationCount(relation, alias, queryBuilderFactory) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RelationId = RelationId;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Special decorator used to extract relation id into separate entity property.
  *
@@ -94663,7 +95213,7 @@ function RelationId(relation, alias, queryBuilderFactory) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Entity = Entity;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * This decorator is used to mark classes that will be an entity (table or document depend on database type).
@@ -94701,7 +95251,7 @@ function Entity(nameOrOptions, maybeOptions) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ChildEntity = ChildEntity;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Special type of the table used in the single-table inherited tables.
  */
@@ -94733,7 +95283,7 @@ function ChildEntity(discriminatorValue) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TableInheritance = TableInheritance;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Sets for entity to use table inheritance pattern.
  */
@@ -94762,7 +95312,7 @@ function TableInheritance(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ViewEntity = ViewEntity;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * This decorator is used to mark classes that will be an entity view.
@@ -94801,7 +95351,7 @@ function ViewEntity(nameOrOptions, maybeOptions) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TreeLevelColumn = TreeLevelColumn;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Creates a "level"/"length" column to the table that holds a closure table.
  */
@@ -94827,7 +95377,7 @@ function TreeLevelColumn() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TreeParent = TreeParent;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Marks an entity property as a parent of the tree.
  * "Tree parent" indicates who owns (is a parent) of this entity in tree structure.
@@ -94867,7 +95417,7 @@ function TreeParent(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TreeChildren = TreeChildren;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Marks an entity property as a children of the tree.
  * "Tree children" will contain all children (bind) of this entity.
@@ -94908,7 +95458,7 @@ function TreeChildren(options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Tree = Tree;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Marks entity to work like a tree.
  * Tree pattern that will be used for the tree entity should be specified.
@@ -94936,7 +95486,7 @@ function Tree(type, options) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Index = Index;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * Creates a database index.
@@ -94999,7 +95549,7 @@ function Index(nameOrFieldsOrOptions, maybeFieldsOrOptions, maybeOptions) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ForeignKey = ForeignKey;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * Creates a database foreign key. Can be used on entity property or on entity.
@@ -95050,7 +95600,7 @@ function ForeignKey(typeFunctionOrTarget, inverseSideOrColumnNamesOrOptions, ref
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Unique = Unique;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const ObjectUtils_1 = __webpack_require__(160);
 /**
  * Composite unique constraint must be set on entity classes and must specify entity's fields to be unique.
@@ -95107,7 +95657,7 @@ function Unique(nameOrFieldsOrOptions, maybeFieldsOrOptions, maybeOptions) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Check = Check;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const error_1 = __webpack_require__(143);
 /**
  * Creates a database check.
@@ -95141,7 +95691,7 @@ function Check(nameOrExpression, maybeExpression) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Exclusion = Exclusion;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 const error_1 = __webpack_require__(143);
 /**
  * Creates a database exclusion.
@@ -95175,7 +95725,7 @@ function Exclusion(nameOrExpression, maybeExpression) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Generated = Generated;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Marks a column to generate a value on entity insertion.
  * There are three types of generation strategy - increment, uuid and rowid (cockroachdb only).
@@ -95206,7 +95756,7 @@ function Generated(strategy = "increment") {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EntityRepository = EntityRepository;
-const globals_1 = __webpack_require__(44);
+const globals_1 = __webpack_require__(45);
 /**
  * Used to declare a class as a custom repository.
  * Custom repository can manage some specific entity or just be generic.
@@ -96187,7 +96737,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Timestamp = exports.serialize = exports.ObjectId = exports.MinKey = exports.MaxKey = exports.Long = exports.Int32 = exports.Double = exports.deserialize = exports.Decimal128 = exports.DBRef = exports.Code = exports.BSONType = exports.BSONSymbol = exports.BSONRegExp = exports.Binary = exports.BSON = void 0;
-const tslib_1 = __webpack_require__(43);
+const tslib_1 = __webpack_require__(44);
 const bson_typings_1 = __webpack_require__(602);
 Object.defineProperty(exports, "BSONRegExp", ({ enumerable: true, get: function () { return bson_typings_1.BSONRegExp; } }));
 Object.defineProperty(exports, "BSONSymbol", ({ enumerable: true, get: function () { return bson_typings_1.BSONSymbol; } }));
@@ -96441,9 +96991,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LogicalChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
-const ChannelBase_1 = __webpack_require__(41);
-const enums_1 = __webpack_require__(38);
+const typeorm_1 = __webpack_require__(43);
+const ChannelBase_1 = __webpack_require__(42);
+const enums_1 = __webpack_require__(39);
 class LogicalChannel extends ChannelBase_1.Channel {
     constructor(id, name, category, subclass) {
         super(id, name, enums_1.ChannelType.LOGICAL);
@@ -96495,9 +97045,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HardwareChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
-const ChannelBase_1 = __webpack_require__(41);
-const enums_1 = __webpack_require__(38);
+const typeorm_1 = __webpack_require__(43);
+const ChannelBase_1 = __webpack_require__(42);
+const enums_1 = __webpack_require__(39);
 class HardwareChannel extends ChannelBase_1.Channel {
     constructor(id, name, category, subclass) {
         super(id, name, enums_1.ChannelType.HARDWARE);
@@ -96597,9 +97147,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FlexRayChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let FlexRayChannel = class FlexRayChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.FLEXRAY, enums_1.LogicalChannelSubclass.FLEXRAY);
@@ -96639,9 +97189,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SerialChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let SerialChannel = class SerialChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.SERIAL, enums_1.LogicalChannelSubclass.SERIAL);
@@ -96681,9 +97231,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CANChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let CANChannel = class CANChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.CAN, enums_1.LogicalChannelSubclass.CAN);
@@ -96727,9 +97277,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IOInputChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let IOInputChannel = class IOInputChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOINPUT, enums_1.LogicalChannelSubclass.IOINPUT);
@@ -96773,9 +97323,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IOOutputChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let IOOutputChannel = class IOOutputChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOOUTPUT, enums_1.LogicalChannelSubclass.IOOUTPUT);
@@ -96819,9 +97369,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LINChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let LINChannel = class LINChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.LIN, enums_1.LogicalChannelSubclass.LIN);
@@ -96865,9 +97415,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.IOSerialChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let IOSerialChannel = class IOSerialChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.IOSERIAL, enums_1.LogicalChannelSubclass.IOSERIAL);
@@ -96907,9 +97457,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BridgeChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let BridgeChannel = class BridgeChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.BRIDGE, enums_1.LogicalChannelSubclass.BRIDGE);
@@ -96957,9 +97507,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PSChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let PSChannel = class PSChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.PS, enums_1.LogicalChannelSubclass.PS);
@@ -96999,9 +97549,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EthernetChannel = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const LogicalChannel_1 = __webpack_require__(613);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let EthernetChannel = class EthernetChannel extends LogicalChannel_1.LogicalChannel {
     constructor(id, name) {
         super(id, name, enums_1.LogicalChannelCategory.ETHERNET, enums_1.LogicalChannelSubclass.ETHERNET);
@@ -97110,9 +97660,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LINCard = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let LINCard = class LINCard extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.LIN_CARD);
@@ -97161,9 +97711,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SerialPort = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let SerialPort = class SerialPort extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.SERIAL_PORT, enums_1.HardwareChannelSubclass.SERIAL_PORT);
@@ -97261,9 +97811,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HIDRelay = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let HIDRelay = class HIDRelay extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.HID_RELAY, enums_1.HardwareChannelSubclass.HID_RELAY);
@@ -97322,9 +97872,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RelayBoard = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let RelayBoard = class RelayBoard extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.RELAY_BOARD, enums_1.HardwareChannelSubclass.RELAY_BOARD);
@@ -97389,9 +97939,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EthernetAdapter = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let EthernetAdapter = class EthernetAdapter extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.ETHERNET_ADAPTER, enums_1.HardwareChannelSubclass.ETHERNET_ADAPTER);
@@ -97535,9 +98085,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalogDevice = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let AnalogDevice = class AnalogDevice extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.ANALOG_DEVICE, enums_1.HardwareChannelSubclass.ANALOG_DEVICE);
@@ -97643,9 +98193,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TEAnalog = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let TEAnalog = class TEAnalog extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.TE_ANALOG, enums_1.HardwareChannelSubclass.TE_ANALOG);
@@ -97696,9 +98246,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CANInterface = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let CANInterface = class CANInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CAN_INTERFACE);
@@ -97747,9 +98297,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CIBInterface = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let CIBInterface = class CIBInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CIB_INTERFACE);
@@ -97802,9 +98352,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CMInterface = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let CMInterface = class CMInterface extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.CAN_INTERFACE, enums_1.HardwareChannelSubclass.CM_INTERFACE);
@@ -97857,9 +98407,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HHLoad = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let HHLoad = class HHLoad extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.HH_LOAD, enums_1.HardwareChannelSubclass.HH_LOAD);
@@ -97918,9 +98468,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BTSRevo = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let BTSRevo = class BTSRevo extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.BTS_REVO, enums_1.HardwareChannelSubclass.BTS_REVO);
@@ -97978,9 +98528,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GenesysPowerSupply = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let GenesysPowerSupply = class GenesysPowerSupply extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.GENESYS_PS, enums_1.HardwareChannelSubclass.GENESYS_PS);
@@ -98084,9 +98634,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MansonPowerSupply = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let MansonPowerSupply = class MansonPowerSupply extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.MANSON_PS, enums_1.HardwareChannelSubclass.MANSON_PS);
@@ -98170,9 +98720,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TunTapBridge = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const HardwareChannel_1 = __webpack_require__(614);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 let TunTapBridge = class TunTapBridge extends HardwareChannel_1.HardwareChannel {
     constructor(id, name) {
         super(id, name, enums_1.HardwareChannelCategory.TUNTAP_BRIDGE, enums_1.HardwareChannelSubclass.TUNTAP_BRIDGE);
@@ -98301,7 +98851,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PCAPTracer = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 /** Dedicated table for PCAP tracers. */
 let PCAPTracer = class PCAPTracer {
     constructor() {
@@ -98378,7 +98928,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ASCIITracer = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 /** Dedicated table for ASCII tracers. */
 let ASCIITracer = class ASCIITracer {
     constructor() {
@@ -98471,8 +99021,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PublisherConfig = void 0;
-const typeorm_1 = __webpack_require__(42);
-const enums_1 = __webpack_require__(38);
+const typeorm_1 = __webpack_require__(43);
+const enums_1 = __webpack_require__(39);
 let PublisherConfig = class PublisherConfig {
     constructor() {
         this.publisherType = enums_1.PublisherMode.SingleThreaded;
@@ -98529,7 +99079,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EthernetConfig = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const NpduConfig_1 = __webpack_require__(651);
 const SomeIPConfig_1 = __webpack_require__(652);
 const AppLayerPortsConfig_1 = __webpack_require__(653);
@@ -98635,7 +99185,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.NpduConfig = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 let NpduConfig = class NpduConfig {
     toYAML() {
         const out = {};
@@ -98711,7 +99261,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SomeIPConfig = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 let SomeIPConfig = class SomeIPConfig {
     toYAML() {
         const out = {};
@@ -98780,7 +99330,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppLayerPortsConfig = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 /** Stores MTF AppLayerPorts – each field is a single port number */
 let AppLayerPortsConfig = class AppLayerPortsConfig {
     toYAML() {
@@ -98864,7 +99414,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.EthernetTopology = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 let EthernetTopology = class EthernetTopology {
     toYAML() {
         const out = {};
@@ -98926,7 +99476,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ChannelEcuMapping = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 /** One row per channel in the EthernetConfig.ChannelToEcusMapping */
 let ChannelEcuMapping = class ChannelEcuMapping {
     constructor() {
@@ -98981,7 +99531,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FrameworkConfig = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const PublisherConfig_1 = __webpack_require__(649);
 const EthernetConfig_1 = __webpack_require__(650);
 const PCAPTracer_1 = __webpack_require__(647);
@@ -99071,8 +99621,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var Mapping_1;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Mapping = void 0;
-const typeorm_1 = __webpack_require__(42);
-const enums_1 = __webpack_require__(38);
+const typeorm_1 = __webpack_require__(43);
+const enums_1 = __webpack_require__(39);
 const configuration_1 = __webpack_require__(658);
 let Mapping = Mapping_1 = class Mapping {
     constructor(mappingId, configurationId, logicalChannelId, logicalChannelName, hardwareChannelId, frameworkConfigId) {
@@ -99284,7 +99834,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Configuration = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const frameworkConfig_1 = __webpack_require__(644);
 const mapping_1 = __webpack_require__(657);
 const user_1 = __webpack_require__(659);
@@ -99385,7 +99935,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var User_1;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.User = void 0;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 let User = User_1 = class User {
     constructor(name, email) {
         this.name = name;
@@ -99463,7 +100013,7 @@ Object.defineProperty(exports, "ChannelManager", ({ enumerable: true, get: funct
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ChannelManager = void 0;
-const models_1 = __webpack_require__(37);
+const models_1 = __webpack_require__(38);
 const LogicalChannelRepository_1 = __webpack_require__(662);
 const HardwareChannelRepository_1 = __webpack_require__(663);
 const MappingIndex_1 = __webpack_require__(664);
@@ -99734,7 +100284,7 @@ Object.defineProperty(exports, "MappingManager", ({ enumerable: true, get: funct
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MappingManager = void 0;
-const models_1 = __webpack_require__(37);
+const models_1 = __webpack_require__(38);
 const MappingValidator_1 = __webpack_require__(667);
 const CompatibilityRules_1 = __webpack_require__(668);
 /**
@@ -100022,7 +100572,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConfigGenerator = void 0;
 const yaml = __importStar(__webpack_require__(11));
 const ConfigValidator_1 = __webpack_require__(671);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 const CM_SUBCLASSES = [
     enums_1.HardwareChannelSubclass.CAN_INTERFACE,
     enums_1.HardwareChannelSubclass.CIB_INTERFACE,
@@ -101247,6 +101797,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RoutedMtfAgent = void 0;
+exports.guardAgentResponse = guardAgentResponse;
 const yaml = __importStar(__webpack_require__(11));
 const DOC_TOP_K = 6;
 const EXACT_FIELD_TOP_K = 3;
@@ -101267,12 +101818,16 @@ const SUPPORT_PATTERNS = [
     /meaning\b/,
 ];
 const ERROR_PATTERNS = [
+    /analy(?:s|z)e\b/,
     /error\b/,
     /invalid\b/,
     /failed\b/,
     /failing\b/,
     /issue\b/,
     /problem\b/,
+    /review\b/,
+    /recommend(?:ation)?\b/,
+    /solution\b/,
     /wrong\b/,
     /fix\b/,
     /why\b/,
@@ -101288,6 +101843,14 @@ const ERROR_PATTERNS = [
     /line \d+/,
 ];
 const EXACT_FIELD_ALIASES = [
+    { canonical: 'CM', patterns: [/\bcm\b/i, /\bcapture\s+module\b/i] },
+    { canonical: 'Id', patterns: [/\bid\b/i, /\bidentifier\b/i] },
+    { canonical: 'HWChannel', patterns: [/\bhwchannel\b/i, /\bhardware\s+channel\b/i] },
+    { canonical: 'LoggingName', patterns: [/\bloggingname\b/i, /\blogging\s+name\b/i] },
+    { canonical: 'LoggingBusIndex', patterns: [/\bloggingbusindex\b/i, /\blogging\s+bus\s+index\b/i, /\blogging\s+bus\b/i] },
+    { canonical: 'TracerName', patterns: [/\btracername\b/i, /\btracer\s+name\b/i] },
+    { canonical: 'OperationMode', patterns: [/\boperationmode\b/i, /\boperation\s+mode\b/i] },
+    { canonical: 'PCAP', patterns: [/\bpcap\b/i, /\bnetwork\s+adapter\b/i] },
     { canonical: 'AppLayerPorts', patterns: [/\bapplayerports\b/i, /\bapp\s+layer\s+ports?\b/i] },
     { canonical: 'NPduConfig', patterns: [/\bnpduconfig\b/i, /\bnpdu\s+config\b/i] },
     { canonical: 'SomeIPConfig', patterns: [/\bsomeipconfig\b/i, /\bsome\s*ip\s+config\b/i] },
@@ -101314,7 +101877,7 @@ class RoutedMtfAgent {
         const exactFieldNames = extractExactFieldNames(question);
         const exactFieldQuestion = isExactFieldQuestion(question, questionYaml, exactFieldNames);
         const retrievalQuery = buildRetrievalQuery(question, workspace, questionYaml);
-        const docResults = await this.retrieveRelevantDocs(retrievalQuery, exactFieldQuestion);
+        const docResults = await this.retrieveRelevantDocs(retrievalQuery, exactFieldQuestion, exactFieldNames);
         const messages = [
             {
                 role: 'system',
@@ -101322,26 +101885,46 @@ class RoutedMtfAgent {
             },
             { role: 'user', content: question },
         ];
-        const answer = await this.ollama.chat(messages, onChunk, signal);
         const sources = [
             ...buildWorkspaceSources(intent, workspace, questionYaml),
             ...docResults.map(toDocumentationSource),
         ];
-        return { answer, sources, intent };
+        const rawAnswer = await this.ollama.chat(messages, () => undefined, signal);
+        const guarded = guardAgentResponse({
+            answer: rawAnswer,
+            intent,
+            question,
+            workspace,
+            questionYaml,
+            docResults,
+            exactFieldNames,
+            sources,
+        });
+        streamAgentAnswer(guarded.answer, onChunk);
+        return { answer: guarded.answer, sources, intent, meta: guarded.meta };
     }
-    async retrieveRelevantDocs(query, exactFieldQuestion) {
+    async retrieveRelevantDocs(query, exactFieldQuestion, exactFieldNames) {
         const merged = new Map();
         const topK = exactFieldQuestion ? EXACT_FIELD_TOP_K : DOC_TOP_K;
         const keywordResults = this.kb.keywordSearch(query, topK);
         for (const result of keywordResults) {
             merged.set(result.chunk.chunk_id, result);
         }
+        if (exactFieldNames.length) {
+            const exactResults = this.kb.keywordSearch(exactFieldNames.join(' '), topK + 2);
+            for (const result of exactResults) {
+                const existing = merged.get(result.chunk.chunk_id);
+                if (!existing || scoreWithExactFieldBoost(result, exactFieldNames) > scoreWithExactFieldBoost(existing, exactFieldNames)) {
+                    merged.set(result.chunk.chunk_id, result);
+                }
+            }
+        }
         try {
             const embedding = await this.ollama.embed(query);
             const hybridResults = this.kb.search(embedding, query, topK);
             for (const result of hybridResults) {
                 const existing = merged.get(result.chunk.chunk_id);
-                if (!existing || result.score > existing.score) {
+                if (!existing || scoreWithExactFieldBoost(result, exactFieldNames) > scoreWithExactFieldBoost(existing, exactFieldNames)) {
                     merged.set(result.chunk.chunk_id, result);
                 }
             }
@@ -101349,7 +101932,7 @@ class RoutedMtfAgent {
         catch {
             // Keyword retrieval is the fallback when embeddings are unavailable.
         }
-        const sorted = [...merged.values()].sort((a, b) => b.score - a.score);
+        const sorted = [...merged.values()].sort((a, b) => scoreWithExactFieldBoost(b, exactFieldNames) - scoreWithExactFieldBoost(a, exactFieldNames));
         if (exactFieldQuestion) {
             const directHits = sorted.filter(result => !result.fromGraph);
             return (directHits.length ? directHits : sorted).slice(0, topK);
@@ -101362,6 +101945,7 @@ function classifyIntent(question, workspace, questionYaml) {
     const lowered = question.toLowerCase();
     let supportScore = 0;
     let errorScore = 0;
+    const referencesCurrentYaml = /\b(?:current|active|this|my)\s+ya?ml\b|\bcurrent\s+file\b|\bopen\s+file\b/.test(lowered);
     for (const pattern of SUPPORT_PATTERNS) {
         if (pattern.test(lowered)) {
             supportScore++;
@@ -101381,7 +101965,22 @@ function classifyIntent(question, workspace, questionYaml) {
     if ((workspace?.validationErrors?.length ?? 0) > 0) {
         errorScore += 2;
     }
+    if ((workspace?.validationDiagnostics?.length ?? 0) > 0) {
+        errorScore += 1;
+    }
     if (workspace?.generationError) {
+        errorScore += 2;
+    }
+    if (workspace?.activeYamlParseError) {
+        errorScore += 3;
+    }
+    if ((workspace?.activeYamlStructuralFindings?.length ?? 0) > 0) {
+        errorScore += 2;
+    }
+    if ((workspace?.activeYamlDiagnostics?.length ?? 0) > 0) {
+        errorScore += 1;
+    }
+    if (referencesCurrentYaml && workspace?.activeYamlText) {
         errorScore += 2;
     }
     const asksAboutDocs = /\b(field|section|keyword|documentation|meaning)\b/.test(lowered);
@@ -101401,11 +102000,29 @@ function buildRetrievalQuery(question, workspace, questionYaml) {
     if (workspace?.validationErrors?.length) {
         parts.push(workspace.validationErrors.slice(0, 4).join(' '));
     }
+    if (workspace?.validationDiagnostics?.length) {
+        parts.push(workspace.validationDiagnostics.slice(0, 5).map(formatDiagnosticForRetrieval).join(' '));
+    }
     if (workspace?.generationError) {
         parts.push(workspace.generationError);
     }
+    if (workspace?.activeYamlParseError) {
+        parts.push(workspace.activeYamlParseError);
+    }
+    if (workspace?.activeYamlStructuralFindings?.length) {
+        parts.push(workspace.activeYamlStructuralFindings.slice(0, 6).join(' '));
+    }
+    if (workspace?.activeYamlDiagnostics?.length) {
+        parts.push(workspace.activeYamlDiagnostics.slice(0, 5).map(formatDiagnosticForRetrieval).join(' '));
+    }
     if (questionYaml.parseError) {
         parts.push(questionYaml.parseError);
+    }
+    if (workspace?.activeYamlTopLevelKeys?.length) {
+        parts.push(workspace.activeYamlTopLevelKeys.join(' '));
+    }
+    if (workspace?.activeYamlNestedKeys?.length) {
+        parts.push(workspace.activeYamlNestedKeys.slice(0, 12).join(' '));
     }
     if (questionYaml.topLevelKeys.length) {
         parts.push(questionYaml.topLevelKeys.join(' '));
@@ -101414,6 +102031,24 @@ function buildRetrievalQuery(question, workspace, questionYaml) {
         parts.push(questionYaml.nestedKeys.slice(0, 12).join(' '));
     }
     return parts.filter(Boolean).join('\n');
+}
+function scoreWithExactFieldBoost(result, exactFieldNames) {
+    if (!exactFieldNames.length) {
+        return result.score;
+    }
+    const haystack = `${result.chunk.title}\n${result.chunk.content}`;
+    let boost = 0;
+    for (const fieldName of exactFieldNames) {
+        const pattern = new RegExp(`\\b${escapeRegExp(fieldName)}\\b`, 'i');
+        if (pattern.test(result.chunk.title)) {
+            boost += 0.25;
+            continue;
+        }
+        if (pattern.test(haystack)) {
+            boost += 0.15;
+        }
+    }
+    return result.score + boost;
 }
 function buildSystemPrompt(intent, docResults, workspace, questionYaml, exactFieldNames) {
     const docContext = buildDocumentationContext(docResults);
@@ -101430,17 +102065,31 @@ Core rules:
 - Use the documentation context and diagnostics context only.
 - Quote field names exactly as written in the docs, for example \`Id\`, \`Type\`, \`HWChannel\`, \`FrameworkConfig\`.
 - Preserve protocol names, casing, and YAML structure exactly as shown in the retrieved documentation.
+- When an active YAML file is present in the diagnostics context, treat it as the primary artifact under review.
 - For syntax or structure questions, describe only the forms explicitly shown in the documentation context.
 - Do not invent alternate YAML forms, defaults, IP-address formats, acronym expansions, or semantic explanations that are not stated in the documentation context.
 - Do not infer the meaning of a YAML example beyond what the documentation context explicitly explains.
 - If the documentation context does not support a claim, say so clearly.
 - Never invent a validation error. Only mention an error if it appears in the diagnostics context.
+- Treat structured diagnostics as the highest-priority evidence for what is broken and how to repair it.
+- Never claim a YAML parse error unless the diagnostics context explicitly contains a parse error for the active YAML or the user-provided YAML snippet.
+- If the diagnostics context says the YAML parsed successfully, do not contradict it.
+- Never expand an acronym such as \`CM\` unless the retrieved documentation explicitly spells out that expansion.
+- Never convert a documented numeric example into a channel-name reference, or the reverse, unless the documentation context explicitly shows that form.
+- Distinguish between workspace-model diagnostics and active-file diagnostics. Do not say the YAML file contains a problem unless that problem is attached to the active YAML or the pasted YAML snippet.
+- For each issue you mention, identify the affected YAML key, section, or block before giving the fix.
+- Prefer concrete edit instructions such as rename a key, add a missing section, move a field, or replace a wrong value.
+- When a diagnostic includes a fix, use that fix before proposing broader recommendations.
+- Only output a Recommended YAML block when at least one of these is true: a structured diagnostic includes a fix, a parse error points to a YAML issue, or the retrieved documentation contains an explicit YAML form for the fields you are editing.
+- If those conditions are not met, write \`Recommended YAML: I can't verify a safe YAML patch from the current diagnostics and documentation.\`
 - Keep the answer practical and easy to follow.
 
 Response style:
-- For support questions: explain the field or section, then give a short YAML example only when it matches the retrieved documentation context.
-- For error analysis: use this structure exactly: Diagnosis, Why it happens, How to fix, Example.
-- For mixed questions: start with Diagnosis if there is a real error, then explain the relevant documentation.
+- For support questions: explain the field or section, then give a short YAML example only when it matches the retrieved documentation context. If the docs mention the term but do not define it, say that explicitly.
+- For error analysis: use this structure exactly: Diagnosis, Why it happens, How to fix, Recommended YAML.
+- For mixed questions: start with Diagnosis if there is a real error, then explain the relevant documentation, then finish with Recommended YAML.
+- When active YAML is present, make the Recommended YAML section a targeted patch or corrected snippet for only the affected sections.
+- When you are uncertain, say \`I can't verify that from the current documentation and diagnostics.\` instead of guessing.
 
 Documentation context:
 ${docContext || 'No documentation chunks were retrieved.'}
@@ -101485,16 +102134,44 @@ function buildDiagnosticsContext(workspace, questionYaml) {
         const errors = workspace.validationErrors ?? [];
         const warnings = workspace.validationWarnings ?? [];
         const suggestions = workspace.validationSuggestions ?? [];
+        const validationDiagnostics = workspace.validationDiagnostics ?? [];
+        const activeYamlDiagnostics = workspace.activeYamlDiagnostics ?? [];
         parts.push(`Validation errors (${errors.length}): ${errors.length ? formatList(errors) : 'none'}`);
         parts.push(`Validation warnings (${warnings.length}): ${warnings.length ? formatList(warnings) : 'none'}`);
         if (suggestions.length) {
             parts.push(`Validation suggestions (${suggestions.length}): ${formatList(suggestions)}`);
+        }
+        if (validationDiagnostics.length) {
+            parts.push(`Structured validation diagnostics (${validationDiagnostics.length}):\n${formatDiagnostics(validationDiagnostics)}`);
         }
         if (workspace.generationError) {
             parts.push(`Generation error: ${workspace.generationError}`);
         }
         if (workspace.generatedYaml) {
             parts.push(`Generated YAML excerpt:\n${truncateText(workspace.generatedYaml, MAX_YAML_CONTEXT_CHARS)}`);
+        }
+        if (workspace.activeYamlText) {
+            const activeYamlLabel = workspace.activeYamlSource === 'active_editor'
+                ? 'Active YAML in editor'
+                : 'Workspace YAML file';
+            parts.push(`${activeYamlLabel}: ${workspace.activeYamlPath || 'unknown path'}`);
+            if (workspace.activeYamlParseError) {
+                parts.push(`Active YAML parse error: ${workspace.activeYamlParseError}`);
+            }
+            else {
+                parts.push('Active YAML parse status: parsed successfully (no parse error detected).');
+                parts.push(`Active YAML top-level keys: ${workspace.activeYamlTopLevelKeys?.length ? workspace.activeYamlTopLevelKeys.join(', ') : 'none detected'}`);
+            }
+            if (workspace.activeYamlNestedKeys?.length) {
+                parts.push(`Active YAML nested keys: ${workspace.activeYamlNestedKeys.slice(0, 20).join(', ')}`);
+            }
+            if (workspace.activeYamlStructuralFindings?.length) {
+                parts.push(`Active YAML findings (${workspace.activeYamlStructuralFindings.length}): ${formatList(workspace.activeYamlStructuralFindings)}`);
+            }
+            if (activeYamlDiagnostics.length) {
+                parts.push(`Active YAML diagnostics (${activeYamlDiagnostics.length}):\n${formatDiagnostics(activeYamlDiagnostics)}`);
+            }
+            parts.push(`Active YAML excerpt:\n${truncateText(workspace.activeYamlText, MAX_YAML_CONTEXT_CHARS)}`);
         }
     }
     else {
@@ -101506,6 +102183,7 @@ function buildDiagnosticsContext(workspace, questionYaml) {
             parts.push(`YAML parse error: ${questionYaml.parseError}`);
         }
         else {
+            parts.push('User-provided YAML parse status: parsed successfully (no parse error detected).');
             parts.push(`YAML top-level keys: ${questionYaml.topLevelKeys.length ? questionYaml.topLevelKeys.join(', ') : 'none detected'}`);
             if (questionYaml.nestedKeys.length) {
                 parts.push(`YAML nested keys: ${questionYaml.nestedKeys.slice(0, 20).join(', ')}`);
@@ -101521,6 +102199,7 @@ function buildWorkspaceSources(intent, workspace, questionYaml) {
             workspace.generationError ? 'YAML generation is blocked by validation errors.' : null,
             `Errors: ${workspace.validationErrors?.length ?? 0}`,
             `Warnings: ${workspace.validationWarnings?.length ?? 0}`,
+            workspace.validationDiagnostics?.length ? `Diagnostics: ${workspace.validationDiagnostics.length}` : null,
             workspace.generatedYaml ? 'Generated YAML was included in the analysis.' : null,
         ].filter(Boolean).join(' ');
         sources.push({
@@ -101528,6 +102207,23 @@ function buildWorkspaceSources(intent, workspace, questionYaml) {
             section: 'Workspace diagnostics',
             subsection: workspace.configurationName || 'Current configuration',
             title: 'Validation and generation context',
+            source_url: '',
+            summary,
+        });
+    }
+    if (workspace?.activeYamlText) {
+        const summary = workspace.activeYamlParseError
+            ? workspace.activeYamlParseError
+            : workspace.activeYamlDiagnostics?.length
+                ? workspace.activeYamlDiagnostics.slice(0, 2).map(diagnostic => diagnostic.message).join(' ')
+                : workspace.activeYamlStructuralFindings?.length
+                    ? workspace.activeYamlStructuralFindings.join(' ')
+                    : `Top-level keys: ${workspace.activeYamlTopLevelKeys?.join(', ') || 'none detected'}`;
+        sources.push({
+            sourceType: 'workspace',
+            section: 'Active YAML file',
+            subsection: workspace.activeYamlPath || (workspace.activeYamlSource === 'active_editor' ? 'Open editor' : 'Workspace file'),
+            title: 'Current YAML under analysis',
             source_url: '',
             summary,
         });
@@ -101547,14 +102243,231 @@ function buildWorkspaceSources(intent, workspace, questionYaml) {
     }
     return sources;
 }
+function streamAgentAnswer(answer, onChunk) {
+    const chunkSize = 48;
+    for (let index = 0; index < answer.length; index += chunkSize) {
+        onChunk(answer.slice(index, index + chunkSize));
+    }
+}
+function guardAgentResponse(input) {
+    const violations = collectSafetyViolations(input);
+    const meta = buildAgentResponseMeta(input, violations);
+    if (violations.length === 0) {
+        return { answer: input.answer.trim(), meta };
+    }
+    const answer = buildSafeFallbackAnswer(input, violations, meta);
+    return {
+        answer,
+        meta: {
+            ...meta,
+            confidence: meta.confidence === 'high' ? 'medium' : 'low',
+            notes: [...meta.notes, ...violations.map(violation => violation.note)],
+            patchSafety: violations.some(violation => violation.kind === 'unsupported_yaml_patch' || violation.kind === 'numeric_name_rewrite')
+                ? 'blocked'
+                : meta.patchSafety,
+        },
+    };
+}
+function collectSafetyViolations(input) {
+    const violations = [];
+    const normalizedAnswer = input.answer.toLowerCase();
+    const docsText = buildDocumentationEvidenceText(input.docResults);
+    const activeYamlText = input.workspace?.activeYamlText ?? input.questionYaml.yamlText ?? '';
+    if (!input.workspace?.activeYamlParseError &&
+        !input.questionYaml.parseError &&
+        /yaml parse error|parse error occurs|indentation issue|line\s+\d+\s*,\s*column\s+\d+/i.test(input.answer) &&
+        !/no parse error detected/i.test(normalizedAnswer)) {
+        violations.push({
+            kind: 'unsupported_parse_claim',
+            note: 'Blocked an unsupported YAML parse-error claim because the diagnostics reported no parse error.',
+        });
+    }
+    const hasYamlPatch = /```ya?ml[\s\S]*?```/i.test(input.answer) || /Recommended YAML\s*:/i.test(input.answer);
+    const canVerifyPatch = canVerifySafePatch(input, docsText);
+    if (hasYamlPatch && !canVerifyPatch) {
+        violations.push({
+            kind: 'unsupported_yaml_patch',
+            note: 'Blocked a YAML patch because it was not supported by diagnostics or explicit documentation examples.',
+        });
+    }
+    if (/\bcapture module\b/i.test(input.answer) &&
+        /\bcm\b/i.test(input.question) &&
+        !/\bcapture module\b/i.test(docsText)) {
+        violations.push({
+            kind: 'unsupported_acronym_expansion',
+            note: 'Blocked an acronym expansion that was not explicitly defined in the retrieved documentation.',
+        });
+    }
+    if (/HWChannel\s*:\s*[A-Za-z_][A-Za-z0-9_-]*/.test(input.answer) &&
+        /HWChannel\s*:\s*\d+/.test(activeYamlText) &&
+        /hwchannel/i.test(docsText) &&
+        /channel id/i.test(docsText)) {
+        violations.push({
+            kind: 'numeric_name_rewrite',
+            note: 'Blocked a rewrite that changed a numeric HWChannel identifier into a name without explicit documentation support.',
+        });
+    }
+    if (/Mappings\s*:[\s\S]*HardwareChannels\s*:/i.test(input.answer) && !/HardwareChannels\s*:/.test(docsText)) {
+        violations.push({
+            kind: 'invented_mapping_structure',
+            note: 'Blocked an invented mapping structure that does not appear in the retrieved documentation.',
+        });
+    }
+    return violations;
+}
+function canVerifySafePatch(input, docsText) {
+    if (input.workspace?.activeYamlParseError || input.questionYaml.parseError) {
+        return true;
+    }
+    const hasDiagnosticFix = [
+        ...(input.workspace?.validationDiagnostics ?? []),
+        ...(input.workspace?.activeYamlDiagnostics ?? []),
+    ].some(diagnostic => Boolean(diagnostic.fix));
+    if (hasDiagnosticFix) {
+        return true;
+    }
+    return documentationHasExplicitYamlForm(docsText, input.exactFieldNames);
+}
+function documentationHasExplicitYamlForm(docsText, exactFieldNames) {
+    if (!docsText) {
+        return false;
+    }
+    const hasYamlScaffold = /Channels\s*:|Mappings\s*:|FrameworkConfig\s*:|HWChannel\s*:|TracerName\s*:|LoggingBusIndex\s*:/i.test(docsText);
+    if (!hasYamlScaffold) {
+        return false;
+    }
+    if (!exactFieldNames.length) {
+        return true;
+    }
+    return exactFieldNames.some(fieldName => new RegExp(`\\b${escapeRegExp(fieldName)}\\b`, 'i').test(docsText));
+}
+function buildDocumentationEvidenceText(docResults) {
+    return docResults
+        .map(result => `${result.chunk.title}\n${result.chunk.content}`)
+        .join('\n');
+}
+function buildAgentResponseMeta(input, violations) {
+    const hasDiagnostics = Boolean((input.workspace?.validationDiagnostics?.length ?? 0) > 0 ||
+        (input.workspace?.activeYamlDiagnostics?.length ?? 0) > 0 ||
+        input.workspace?.activeYamlParseError ||
+        input.questionYaml.parseError);
+    const hasDocumentation = input.docResults.length > 0;
+    let verification = 'limited';
+    if (hasDiagnostics && hasDocumentation) {
+        verification = 'mixed';
+    }
+    else if (hasDiagnostics) {
+        verification = 'diagnostics';
+    }
+    else if (hasDocumentation) {
+        verification = 'documentation';
+    }
+    let confidence = 'low';
+    if (verification === 'mixed') {
+        confidence = 'high';
+    }
+    else if (verification === 'documentation' || verification === 'diagnostics') {
+        confidence = 'medium';
+    }
+    if (violations.length) {
+        confidence = 'low';
+    }
+    let patchSafety = 'not-needed';
+    if (/```ya?ml[\s\S]*?```/i.test(input.answer) || /Recommended YAML\s*:/i.test(input.answer)) {
+        patchSafety = violations.some(violation => violation.kind === 'unsupported_yaml_patch' || violation.kind === 'numeric_name_rewrite')
+            ? 'blocked'
+            : 'verified';
+    }
+    const notes = [
+        verification === 'mixed'
+            ? 'Verified from both diagnostics and documentation.'
+            : verification === 'diagnostics'
+                ? 'Verified primarily from deterministic diagnostics.'
+                : verification === 'documentation'
+                    ? 'Verified primarily from retrieved documentation.'
+                    : 'Verification is limited; the answer should remain conservative.',
+    ];
+    return { confidence, verification, patchSafety, notes };
+}
+function buildSafeFallbackAnswer(input, violations, meta) {
+    const diagnostics = [
+        ...(input.workspace?.activeYamlDiagnostics ?? []),
+        ...(input.workspace?.validationDiagnostics ?? []),
+    ];
+    const diagnosticMessages = diagnostics.slice(0, 4).map(diagnostic => {
+        const fix = diagnostic.fix ? ` Fix: ${diagnostic.fix}` : '';
+        return `- ${diagnostic.path ? `${diagnostic.path}: ` : ''}${diagnostic.message}${fix}`;
+    });
+    const docHighlights = input.docResults.slice(0, 3).map(result => `- ${result.chunk.title} (${result.chunk.section}${result.chunk.subsection ? ` > ${result.chunk.subsection}` : ''})`);
+    const lines = [
+        'Safety review:',
+        ...violations.map(violation => `- ${violation.note}`),
+        '',
+        'Diagnosis:',
+    ];
+    if (input.workspace?.activeYamlParseError || input.questionYaml.parseError) {
+        lines.push(`- Verified parse error: ${input.workspace?.activeYamlParseError ?? input.questionYaml.parseError}`);
+    }
+    else if (diagnosticMessages.length) {
+        lines.push(...diagnosticMessages);
+    }
+    else {
+        lines.push('- I cannot verify a concrete YAML error from the current diagnostics.');
+    }
+    lines.push('', 'Why it happens:');
+    if (docHighlights.length) {
+        lines.push('- The available documentation focuses on the following relevant sections:');
+        lines.push(...docHighlights);
+    }
+    else {
+        lines.push('- I cannot verify the needed documentation context strongly enough to justify the original draft answer.');
+    }
+    lines.push('', 'How to fix:');
+    if (diagnosticMessages.length) {
+        lines.push('- Apply the deterministic fixes listed in the diagnostics before changing unrelated sections.');
+    }
+    else {
+        lines.push('- Re-run the analysis after adding more explicit documentation context or a deterministic validation finding.');
+    }
+    lines.push('', 'Recommended YAML:');
+    lines.push(meta.patchSafety === 'verified'
+        ? 'Use the documented YAML form shown in the retrieved sections above.'
+        : "I can't verify a safe YAML patch from the current diagnostics and documentation.");
+    return lines.join('\n');
+}
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 function shouldExposeWorkspaceSource(intent, workspace) {
     if (intent !== 'support') {
         return true;
     }
-    return Boolean(workspace.generatedYaml ||
+    return Boolean(workspace.activeYamlText ||
+        workspace.generatedYaml ||
         workspace.generationError ||
+        (workspace.validationDiagnostics?.length ?? 0) > 0 ||
+        (workspace.activeYamlDiagnostics?.length ?? 0) > 0 ||
         (workspace.validationErrors?.length ?? 0) > 0 ||
         (workspace.validationWarnings?.length ?? 0) > 0);
+}
+function formatDiagnosticForRetrieval(diagnostic) {
+    return [diagnostic.code, diagnostic.path, diagnostic.message, diagnostic.fix]
+        .filter(Boolean)
+        .join(' ');
+}
+function formatDiagnostics(diagnostics) {
+    return diagnostics
+        .slice(0, MAX_LIST_ITEMS)
+        .map((diagnostic, index) => {
+        const parts = [
+            `${index + 1}. [${diagnostic.severity}] ${diagnostic.code}`,
+            diagnostic.path ? `path=${diagnostic.path}` : null,
+            diagnostic.message,
+            diagnostic.fix ? `Fix: ${diagnostic.fix}` : null,
+        ].filter(Boolean);
+        return parts.join(' | ');
+    })
+        .join('\n');
 }
 function toDocumentationSource(result) {
     return {
@@ -101722,8 +102635,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.KnowledgeBase = void 0;
-const fs = __importStar(__webpack_require__(50));
-const path = __importStar(__webpack_require__(36));
+const fs = __importStar(__webpack_require__(51));
+const path = __importStar(__webpack_require__(37));
 // ── Hybrid search weights ────────────────────────────────────────────────────
 /**
  * Final score = VECTOR_WEIGHT × vectorScore + KEYWORD_WEIGHT × keywordScore
@@ -102076,7 +102989,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDataSource = getDataSource;
 exports.initializeDatabase = initializeDatabase;
 exports.testDatabaseConnection = testDatabaseConnection;
-const typeorm_1 = __webpack_require__(42);
+const typeorm_1 = __webpack_require__(43);
 const vscode = __importStar(__webpack_require__(2));
 const logicalChannels_1 = __webpack_require__(615);
 const hardwareChannels_1 = __webpack_require__(627);
@@ -102725,9 +103638,9 @@ exports.createVerify = function createVerify(opts) {
 var Buffer = (__webpack_require__(218).Buffer);
 var DataStream = __webpack_require__(684);
 var jwa = __webpack_require__(685);
-var Stream = __webpack_require__(71);
+var Stream = __webpack_require__(72);
 var toString = __webpack_require__(689);
-var util = __webpack_require__(95);
+var util = __webpack_require__(96);
 
 function base64url(string, encoding) {
   return Buffer
@@ -102812,8 +103725,8 @@ module.exports = SignStream;
 
 /*global module, process*/
 var Buffer = (__webpack_require__(218).Buffer);
-var Stream = __webpack_require__(71);
-var util = __webpack_require__(95);
+var Stream = __webpack_require__(72);
+var util = __webpack_require__(96);
 
 function DataStream(data) {
   this.buffer = null;
@@ -102874,7 +103787,7 @@ module.exports = DataStream;
 var Buffer = (__webpack_require__(218).Buffer);
 var crypto = __webpack_require__(9);
 var formatEcdsa = __webpack_require__(686);
-var util = __webpack_require__(95);
+var util = __webpack_require__(96);
 
 var MSG_INVALID_ALGORITHM = '"%s" is not a valid algorithm.\n  Supported algorithms are:\n  "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512" and "none".'
 var MSG_INVALID_SECRET = 'secret must be a string or buffer';
@@ -103435,9 +104348,9 @@ module.exports = function toString(obj) {
 var Buffer = (__webpack_require__(218).Buffer);
 var DataStream = __webpack_require__(684);
 var jwa = __webpack_require__(685);
-var Stream = __webpack_require__(71);
+var Stream = __webpack_require__(72);
 var toString = __webpack_require__(689);
-var util = __webpack_require__(95);
+var util = __webpack_require__(96);
 var JWS_REGEX = /^[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.([a-zA-Z0-9\-_]+)?$/;
 
 function isObject(thing) {
@@ -109892,7 +110805,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.hardwareChannelFactories = exports.logicalChannelFactories = void 0;
 const logicalChannels_1 = __webpack_require__(615);
 const hardwareChannels_1 = __webpack_require__(627);
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 exports.logicalChannelFactories = {
     [enums_1.LogicalChannelSubclass.CAN]: (id, name) => new logicalChannels_1.CANChannel(id, name),
     [enums_1.LogicalChannelSubclass.LIN]: (id, name) => new logicalChannels_1.LINChannel(id, name),
@@ -110083,7 +110996,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConfigImporter = void 0;
 const vscode = __importStar(__webpack_require__(2));
-const path = __importStar(__webpack_require__(36));
+const path = __importStar(__webpack_require__(37));
 const YamlParser_1 = __webpack_require__(759);
 /**
  * ConfigImporter handles file I/O for importing YAML config files.
@@ -110160,7 +111073,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.YamlParser = void 0;
 const yaml = __importStar(__webpack_require__(11));
-const enums_1 = __webpack_require__(38);
+const enums_1 = __webpack_require__(39);
 class YamlParser {
     parse(yamlText, sourceName = 'imported') {
         const warnings = [];

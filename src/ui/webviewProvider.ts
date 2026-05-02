@@ -24,8 +24,7 @@ export class WebviewProvider {
   ) {
     const storageService = new StorageService(context);
     const tokenStorage   = new TokenStorage(context);
-    const apiKey = vscode.workspace.getConfiguration('channelConfig').get<string>('geminiApiKey') || '';
-    const aiValidator = new AIValidator(apiKey);
+    const aiValidator = new AIValidator();
     this.handler = new MessageHandler(storageService, tokenStorage, aiValidator, extensionUri);
 
     this._panel = vscode.window.createWebviewPanel(

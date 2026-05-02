@@ -11,7 +11,7 @@ export default function GeneratePanel() {
 
   return (
     <div>
-      <h2 style={T.pageTitle}>Generate & Validate</h2>
+      <h2 style={T.pageTitle}>Generate & Analyze</h2>
 
       <ActionsCard generating={generating} aiValidating={aiValidating} yamlContent={yamlContent} frameworkData={frameworkData} send={send} />
 

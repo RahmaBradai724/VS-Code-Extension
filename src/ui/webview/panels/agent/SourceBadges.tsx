@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { AgentSource } from '../../types';
+import { AgentResponseMeta, AgentSource } from '../../types';
 import { tokens } from '../../theme';
 import { Icons } from '../../components/icons';
 
 interface SourceBadgesProps {
   sources: AgentSource[];
+  meta?: AgentResponseMeta;
 }
 
-export function SourceBadges({ sources }: SourceBadgesProps) {
+export function SourceBadges({ sources, meta }: SourceBadgesProps) {
   const [open, setOpen] = useState(false);
   if (!sources.length) { return null; }
 
@@ -16,6 +17,20 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
 
   return (
     <div style={{ marginTop: 6 }}>
+      {meta && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+          <span style={badgeStyle(meta.confidence === 'high' ? '#34d399' : meta.confidence === 'medium' ? '#fbbf24' : '#f87171')}>
+            confidence: {meta.confidence}
+          </span>
+          <span style={badgeStyle('#60a5fa')}>
+            basis: {meta.verification}
+          </span>
+          <span style={badgeStyle(meta.patchSafety === 'verified' ? '#34d399' : meta.patchSafety === 'blocked' ? '#f87171' : '#94a3b8')}>
+            patch: {meta.patchSafety}
+          </span>
+        </div>
+      )}
+
       <button
         onClick={() => setOpen(value => !value)}
         style={{
@@ -141,6 +156,25 @@ export function SourceBadges({ sources }: SourceBadgesProps) {
           ))}
         </ul>
       )}
+
+      {meta?.notes?.length ? (
+        <div style={{ marginTop: 6, fontSize: 11, color: tokens.fgMuted, lineHeight: 1.45 }}>
+          {meta.notes.slice(0, 3).map((note, index) => (
+            <div key={index}>- {note}</div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function badgeStyle(color: string): React.CSSProperties {
+  return {
+    fontSize: 10,
+    borderRadius: 999,
+    padding: '2px 8px',
+    background: `${color}1A`,
+    border: `1px solid ${color}66`,
+    color,
+  };
 }

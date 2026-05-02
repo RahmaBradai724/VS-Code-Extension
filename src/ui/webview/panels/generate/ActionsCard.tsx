@@ -40,12 +40,12 @@ export function ActionsCard({ generating, aiValidating, yamlContent, frameworkDa
           onClick={() => send('runAIValidation')}
           title={!yamlContent ? 'Generate a config first' : ''}
         >
-          {aiValidating ? 'Validating…' : 'Run AI Validation'}
+          {aiValidating ? 'Analyzing…' : 'Analyze Configuration'}
         </button>
       </div>
       {!yamlContent && (
         <p style={{ ...T.label, marginTop: '12px', marginBottom: 0, fontStyle: 'italic', opacity: 0.6 }}>
-          Generate a configuration first to enable AI validation.
+          Generate a configuration first to enable validation analysis.
         </p>
       )}
     </div>

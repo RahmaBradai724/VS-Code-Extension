@@ -118,6 +118,7 @@ export function reducer(state: AppState, action: AppAction): AppState {
         role: 'assistant' as const,
         content: state.agentStreamingText,
         sources: action.sources,
+        meta: action.meta,
       };
       return {
         ...state,

@@ -106,7 +106,7 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
           break;
 
         case 'agentDone':
-          dispatch({ type: 'AGENT_DONE', sources: msg.sources ?? [] });
+          dispatch({ type: 'AGENT_DONE', sources: msg.sources ?? [], meta: msg.meta ?? undefined });
           break;
 
         case 'agentError':

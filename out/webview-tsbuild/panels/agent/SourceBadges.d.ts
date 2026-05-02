@@ -1,7 +1,8 @@
 import React from 'react';
-import { AgentSource } from '../../types';
+import { AgentResponseMeta, AgentSource } from '../../types';
 interface SourceBadgesProps {
     sources: AgentSource[];
+    meta?: AgentResponseMeta;
 }
-export declare function SourceBadges({ sources }: SourceBadgesProps): React.JSX.Element | null;
+export declare function SourceBadges({ sources, meta }: SourceBadgesProps): React.JSX.Element | null;
 export {};

@@ -46,7 +46,7 @@ export function Bubble({ msg, streamingText, userAvatar, agentAvatar }: BubblePr
         }}
       >
         {content || <span style={{ opacity: 0.4 }}>…</span>}
-        {!isUser && msg.sources && <SourceBadges sources={msg.sources} />}
+        {!isUser && msg.sources && <SourceBadges sources={msg.sources} meta={msg.meta} />}
       </div>
       {isUser && (
         <img src={userAvatar} alt="You" style={{ width: 32, height: 32, borderRadius: '50%', marginLeft: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }} />

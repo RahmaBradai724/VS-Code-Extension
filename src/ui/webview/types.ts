@@ -94,6 +94,15 @@ export interface AiResult {
   errors: string[];
   warnings: string[];
   suggestions: string[];
+  diagnostics?: Array<{
+    code: string;
+    severity: 'error' | 'warning' | 'suggestion';
+    source: 'configuration' | 'mapping' | 'yaml' | 'generation';
+    message: string;
+    path?: string;
+    fix?: string;
+    evidence?: string;
+  }>;
 }
 
 export interface LogicalChannel {
@@ -157,11 +166,19 @@ export interface AgentSource {
   summary?:    string;
 }
 
+export interface AgentResponseMeta {
+  confidence: 'high' | 'medium' | 'low';
+  verification: 'diagnostics' | 'documentation' | 'mixed' | 'limited';
+  patchSafety: 'verified' | 'blocked' | 'not-needed';
+  notes: string[];
+}
+
 export interface AgentMessage {
   role: 'user' | 'assistant';
   content: string;
   /** Section sources (only on assistant messages) */
   sources?: AgentSource[];
+  meta?: AgentResponseMeta;
   /** True while the message is still being streamed */
   streaming?: boolean;
 }
@@ -191,7 +208,7 @@ export type AppAction =
   | { type: 'AUTH_ERROR'; error: string | null }
   | { type: 'AGENT_USER_MSG'; content: string }
   | { type: 'AGENT_CHUNK'; token: string }
-  | { type: 'AGENT_DONE'; sources: AgentMessage['sources'] }
+  | { type: 'AGENT_DONE'; sources: AgentMessage['sources']; meta?: AgentMessage['meta'] }
   | { type: 'AGENT_ERROR'; error: string }
   | { type: 'AGENT_CLEAR' }
   | { type: 'SET_FRAMEWORK_SECTION'; section: FrameworkSection | null };

@@ -57,6 +57,7 @@ export default function AgentPanel() {
   }
 
   const suggestions = [
+    'Analyze the YAML file I am editing and tell me what to change.',
     'What does the Id field mean in Channels?',
     'How do I configure a PCAP tracer in FrameworkConfig?',
     'Why can my current configuration not generate YAML?',
@@ -121,7 +122,7 @@ export default function AgentPanel() {
               MTF Support Agent
             </div>
             <div style={{ fontSize: 12, color: tokens.fgMuted, marginBottom: 24 }}>
-              Ask about fields, sections, validation errors, or the YAML generated from the current configuration.
+              Ask about fields, sections, validation errors, or the current YAML open in the editor for targeted repair guidance.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
               {suggestions.map((suggestion, index) => (

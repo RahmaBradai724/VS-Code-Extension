@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageHandler = void 0;
 const vscode = __importStar(require("vscode"));
 const yaml = __importStar(require("js-yaml"));
+const net_1 = require("net");
 const path = __importStar(require("path"));
 const models_1 = require("../models");
 const channelManager_1 = require("../services/channelManager");
@@ -425,19 +426,18 @@ class MessageHandler {
             webview.postMessage({ command: 'error', message: 'No configuration loaded.' });
             return;
         }
-        try {
-            const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
-            const yamlContent = generator.generate();
-            const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
-            const result = await this.aiValidator.runAIValidation(this.currentConfig, mappings, yamlContent);
-            webview.postMessage({ command: 'aiValidationResult', data: result });
-        }
-        catch {
-            // Fall back to local validation
-            const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
-            const result = this.aiValidator.validate(this.currentConfig, mappings);
-            webview.postMessage({ command: 'aiValidationResult', data: result });
-        }
+        const generator = new configGenerator_1.ConfigGenerator(this.currentConfig, this.mappingManager);
+        const yamlContent = (() => {
+            try {
+                return generator.generate();
+            }
+            catch {
+                return '';
+            }
+        })();
+        const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
+        const result = await this.aiValidator.runAIValidation(this.currentConfig, mappings, yamlContent);
+        webview.postMessage({ command: 'aiValidationResult', data: result });
     }
     // ── Misc handlers ───────────────────────────────────────────────────────
     async _applyYamlEdit(message, webview) {
@@ -694,12 +694,13 @@ class MessageHandler {
                 this.kb = KnowledgeBase_1.KnowledgeBase.load(resourcesDir);
             }
             const agent = new RoutedMtfAgent_1.RoutedMtfAgent(this.kb, this.ollama);
-            const workspaceContext = this._buildAgentWorkspaceContext();
-            const { sources } = await agent.ask(question, workspaceContext, (token) => {
+            const workspaceContext = await this._buildAgentWorkspaceContext();
+            const { sources, meta } = await agent.ask(question, workspaceContext, (token) => {
                 webview.postMessage({ command: 'agentChunk', token });
             });
             webview.postMessage({
                 command: 'agentDone',
+                meta,
                 sources: sources.map(r => ({
                     section: r.section,
                     subsection: r.subsection,
@@ -717,9 +718,13 @@ class MessageHandler {
             webview.postMessage({ command: 'agentError', message: e.message });
         }
     }
-    _buildAgentWorkspaceContext() {
-        if (!this.currentConfig) {
+    async _buildAgentWorkspaceContext() {
+        const activeYamlContext = await this._readAgentYamlContext();
+        if (!this.currentConfig && !activeYamlContext) {
             return undefined;
+        }
+        if (!this.currentConfig) {
+            return activeYamlContext;
         }
         const mappings = this.mappingManager.getMappingsByConfigId(this.currentConfig.id);
         const localValidation = this.aiValidator.validate(this.currentConfig, mappings);
@@ -733,6 +738,7 @@ class MessageHandler {
             generationError = error?.message || 'Unknown YAML generation error.';
         }
         const generationValidationErrors = generator.preGenerationValidate();
+        const generationDiagnostics = this._buildGenerationDiagnostics(generationValidationErrors);
         const validationErrors = [...new Set([
                 ...generationValidationErrors,
                 ...localValidation.errors,
@@ -751,8 +757,493 @@ class MessageHandler {
             validationErrors,
             validationWarnings: localValidation.warnings,
             validationSuggestions: localValidation.suggestions,
+            validationDiagnostics: [...localValidation.diagnostics, ...generationDiagnostics],
             generationError,
+            ...activeYamlContext,
         };
+    }
+    async _readAgentYamlContext() {
+        const yamlDocument = await this._resolveAgentYamlDocument();
+        if (!yamlDocument) {
+            return undefined;
+        }
+        const analysis = this._analyzeYamlDocument(yamlDocument.text);
+        return {
+            activeYamlPath: vscode.workspace.asRelativePath(yamlDocument.uri, false),
+            activeYamlSource: yamlDocument.source,
+            activeYamlText: yamlDocument.text,
+            activeYamlParseError: analysis.parseError,
+            activeYamlTopLevelKeys: analysis.topLevelKeys,
+            activeYamlNestedKeys: analysis.nestedKeys,
+            activeYamlStructuralFindings: analysis.structuralFindings,
+            activeYamlDiagnostics: analysis.diagnostics,
+        };
+    }
+    async _resolveAgentYamlDocument() {
+        const activeDocument = vscode.window.activeTextEditor?.document;
+        if (activeDocument && this._isAgentYamlDocument(activeDocument)) {
+            return {
+                uri: activeDocument.uri,
+                text: activeDocument.getText(),
+                source: 'active_editor',
+            };
+        }
+        const mtfFiles = await vscode.workspace.findFiles('**/MTF.yaml', '**/node_modules/**', 1);
+        if (!mtfFiles.length) {
+            return undefined;
+        }
+        const document = await vscode.workspace.openTextDocument(mtfFiles[0]);
+        return {
+            uri: document.uri,
+            text: document.getText(),
+            source: 'workspace_file',
+        };
+    }
+    _isAgentYamlDocument(document) {
+        if (document.uri.scheme !== 'file') {
+            return false;
+        }
+        const lowerPath = document.uri.fsPath.toLowerCase();
+        return document.languageId === 'yaml' || lowerPath.endsWith('.yaml') || lowerPath.endsWith('.yml');
+    }
+    _analyzeYamlDocument(text) {
+        try {
+            const parsed = yaml.load(text);
+            const { topLevelKeys, nestedKeys } = this._collectYamlKeys(parsed);
+            const diagnostics = this._buildYamlStructuralDiagnostics(parsed);
+            return {
+                topLevelKeys,
+                nestedKeys,
+                structuralFindings: diagnostics.map(diagnostic => diagnostic.message),
+                diagnostics,
+            };
+        }
+        catch (error) {
+            const fallbackKeys = this._extractYamlKeyCandidates(text);
+            const parseError = error?.message || 'Unable to parse the active YAML file.';
+            return {
+                parseError,
+                topLevelKeys: fallbackKeys,
+                nestedKeys: fallbackKeys,
+                structuralFindings: [],
+                diagnostics: [{
+                        code: 'yaml.parse_error',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: parseError,
+                        path: 'yaml',
+                        fix: 'Fix the YAML syntax error first so the file can be parsed before deeper validation.',
+                    }],
+            };
+        }
+    }
+    _collectYamlKeys(parsed) {
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return { topLevelKeys: [], nestedKeys: [] };
+        }
+        const root = parsed;
+        const topLevelKeys = Object.keys(root);
+        const nestedKeySet = new Set();
+        this._visitYamlNode(root, nestedKeySet);
+        return {
+            topLevelKeys,
+            nestedKeys: [...nestedKeySet].slice(0, 40),
+        };
+    }
+    _visitYamlNode(node, nestedKeySet) {
+        if (Array.isArray(node)) {
+            for (const item of node) {
+                this._visitYamlNode(item, nestedKeySet);
+            }
+            return;
+        }
+        if (!node || typeof node !== 'object') {
+            return;
+        }
+        for (const [key, value] of Object.entries(node)) {
+            nestedKeySet.add(key);
+            this._visitYamlNode(value, nestedKeySet);
+        }
+    }
+    _extractYamlKeyCandidates(text) {
+        const matches = text.match(/^[ \t]*([A-Za-z_][A-Za-z0-9_-]*)\s*:/gm) ?? [];
+        const keys = matches
+            .map(match => match.replace(/^[ \t]*/, '').replace(/:.*/, ''))
+            .filter(Boolean);
+        return [...new Set(keys)].slice(0, 40);
+    }
+    _buildYamlStructuralDiagnostics(parsed) {
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return [{
+                    code: 'yaml.root.invalid_type',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: 'The YAML root must be a mapping of top-level sections.',
+                    path: 'yaml',
+                    fix: 'Start the file with top-level keys such as Channels, Mappings, and FrameworkConfig.',
+                }];
+        }
+        const root = parsed;
+        const diagnostics = [];
+        const channels = this._getYamlMapping(root.Channels);
+        const channelNames = new Set(Object.keys(channels));
+        const frameworkConfig = this._getYamlMapping(root.FrameworkConfig);
+        const tracers = this._getYamlMapping(frameworkConfig.Tracing);
+        const tracerNames = new Set(Object.keys(tracers));
+        const canonicalKeys = new Map([
+            ['channels', 'Channels'],
+            ['mappings', 'Mappings'],
+            ['frameworkconfig', 'FrameworkConfig'],
+        ]);
+        for (const [key, canonical] of canonicalKeys) {
+            const hasCanonical = Object.prototype.hasOwnProperty.call(root, canonical);
+            const actualKey = Object.keys(root).find(candidate => candidate.toLowerCase() === key);
+            if (actualKey && actualKey !== canonical && !hasCanonical) {
+                diagnostics.push({
+                    code: 'yaml.top_level.casing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Rename top-level key '${actualKey}' to '${canonical}' to match the expected MTF casing.`,
+                    path: actualKey,
+                    fix: `Replace '${actualKey}:' with '${canonical}:'.`,
+                });
+            }
+        }
+        if (root.Channels !== undefined && (typeof root.Channels !== 'object' || root.Channels === null || Array.isArray(root.Channels))) {
+            diagnostics.push({
+                code: 'yaml.channels.invalid_type',
+                severity: 'error',
+                source: 'yaml',
+                message: "'Channels' should be a mapping where each channel name contains its fields.",
+                path: 'Channels',
+                fix: 'Change Channels to an object mapping like Channels: { CAN1: { Id: 1 } }.',
+            });
+        }
+        if (root.Mappings !== undefined && (typeof root.Mappings !== 'object' || root.Mappings === null)) {
+            diagnostics.push({
+                code: 'yaml.mappings.invalid_type',
+                severity: 'error',
+                source: 'yaml',
+                message: "'Mappings' should be a mapping of mapping groups and entries.",
+                path: 'Mappings',
+                fix: 'Change Mappings to an object whose keys group mapping entries.',
+            });
+        }
+        if (root.FrameworkConfig !== undefined && (typeof root.FrameworkConfig !== 'object' || root.FrameworkConfig === null || Array.isArray(root.FrameworkConfig))) {
+            diagnostics.push({
+                code: 'yaml.framework.invalid_type',
+                severity: 'error',
+                source: 'yaml',
+                message: "'FrameworkConfig' should be an object that contains framework sections such as 'PublisherConfig'.",
+                path: 'FrameworkConfig',
+                fix: 'Wrap framework values under an object like FrameworkConfig: { PublisherConfig: ... }.',
+            });
+        }
+        const NAME_RE = /^[A-Za-z_][A-Za-z0-9_\-]*$/;
+        for (const [channelName, channelValue] of Object.entries(channels)) {
+            if (!NAME_RE.test(channelName)) {
+                diagnostics.push({
+                    code: 'yaml.channel.name.invalid_format',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel name '${channelName}' is invalid. Channel names must start with a letter or underscore and contain no spaces.`,
+                    path: `Channels.${channelName}`,
+                    fix: 'Rename the channel to use only letters, digits, underscores, or hyphens.',
+                });
+            }
+            const channel = this._getYamlMapping(channelValue);
+            if (!channel.Type) {
+                diagnostics.push({
+                    code: 'yaml.channel.type.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel '${channelName}' is missing the required 'Type' field.`,
+                    path: `Channels.${channelName}.Type`,
+                    fix: 'Add the documented channel type, such as CAN, LIN, ETHERNET, or FR.',
+                });
+            }
+            if (channel.Id === undefined) {
+                diagnostics.push({
+                    code: 'yaml.channel.id.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel '${channelName}' is missing the required 'Id' field.`,
+                    path: `Channels.${channelName}.Id`,
+                    fix: 'Assign a unique positive integer Id to the channel.',
+                });
+            }
+            if (channel.TracerName && tracerNames.size > 0 && !tracerNames.has(String(channel.TracerName))) {
+                diagnostics.push({
+                    code: 'yaml.channel.tracer.unknown',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Channel '${channelName}' references tracer '${channel.TracerName}', which is not defined under FrameworkConfig.Tracing.`,
+                    path: `Channels.${channelName}.TracerName`,
+                    fix: 'Define the tracer under FrameworkConfig.Tracing or update TracerName to an existing tracer key.',
+                });
+            }
+        }
+        for (const [tracerName, tracerValue] of Object.entries(tracers)) {
+            const tracer = this._getYamlMapping(tracerValue);
+            if (!tracer.Type) {
+                diagnostics.push({
+                    code: 'yaml.tracing.type.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `Tracer '${tracerName}' is missing the required 'Type' field.`,
+                    path: `FrameworkConfig.Tracing.${tracerName}.Type`,
+                    fix: 'Set the tracer Type to a documented value such as ASCII or PCAP.',
+                });
+            }
+            const extension = tracer.LoggerConfiguration?.FileConfig?.Extension;
+            if (tracer.Type === 'ASCII' && typeof extension === 'string' && extension && extension !== '.asc') {
+                diagnostics.push({
+                    code: 'yaml.tracing.ascii.extension_suspicious',
+                    severity: 'warning',
+                    source: 'yaml',
+                    message: `ASCII tracer '${tracerName}' uses extension '${extension}'. The documentation example uses '.asc'.`,
+                    path: `FrameworkConfig.Tracing.${tracerName}.LoggerConfiguration.FileConfig.Extension`,
+                    fix: 'Use .asc unless you have documentation supporting a different ASCII trace extension.',
+                });
+            }
+            if (tracer.Type === 'PCAP' && !tracer.LoggingType) {
+                diagnostics.push({
+                    code: 'yaml.tracing.pcap.logging_type_missing',
+                    severity: 'warning',
+                    source: 'yaml',
+                    message: `PCAP tracer '${tracerName}' does not define 'LoggingType'.`,
+                    path: `FrameworkConfig.Tracing.${tracerName}.LoggingType`,
+                    fix: 'Set LoggingType to a documented value such as MultipleAdapterMode, PerformanceMode, or StandardMode if supported in your version.',
+                });
+            }
+        }
+        const mappings = this._getYamlMapping(root.Mappings);
+        const cmDevices = this._getYamlMapping(this._getYamlMapping(mappings.CM).Devices);
+        for (const [deviceLabel, deviceValue] of Object.entries(cmDevices)) {
+            const device = this._getYamlMapping(deviceValue);
+            const basePath = `Mappings.CM.Devices.${deviceLabel}`;
+            if (device.Id === undefined) {
+                diagnostics.push({
+                    code: 'yaml.cm.id.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `CM device '${deviceLabel}' is missing the required 'Id' field.`,
+                    path: `${basePath}.Id`,
+                    fix: 'Set Id to the last byte of the CM IP address as documented.',
+                });
+            }
+            if (!device.Type) {
+                diagnostics.push({
+                    code: 'yaml.cm.type.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `CM device '${deviceLabel}' is missing the required 'Type' field.`,
+                    path: `${basePath}.Type`,
+                    fix: 'Set Type to a documented CM type such as CAN_Combo or LIN_Combo.',
+                });
+            }
+            const buses = this._getYamlMapping(device.Buses ?? device.Busses);
+            if (Object.keys(buses).length === 0) {
+                diagnostics.push({
+                    code: 'yaml.cm.buses.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `CM device '${deviceLabel}' is missing the required 'Buses' mapping.`,
+                    path: `${basePath}.Buses`,
+                    fix: 'Add a Buses section that maps each logical channel name to a HWChannel.',
+                });
+            }
+            for (const [busName, busValue] of Object.entries(buses)) {
+                const bus = this._getYamlMapping(busValue);
+                if (channelNames.size > 0 && !channelNames.has(busName)) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.unknown_channel',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' does not match any logical channel defined under Channels.`,
+                        path: `${basePath}.Buses.${busName}`,
+                        fix: 'Use the exact logical channel name from the Channels section.',
+                    });
+                }
+                if (bus.HWChannel === undefined) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.hwchannel.missing',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' is missing the required 'HWChannel' field.`,
+                        path: `${basePath}.Buses.${busName}.HWChannel`,
+                        fix: 'Set HWChannel to the numeric channel ID configured in the CM web interface.',
+                    });
+                }
+                else if (!this._isNumericScalar(bus.HWChannel)) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.hwchannel.invalid',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' uses non-numeric HWChannel '${bus.HWChannel}'.`,
+                        path: `${basePath}.Buses.${busName}.HWChannel`,
+                        fix: 'Use the numeric CM channel ID shown in the CM web interface.',
+                    });
+                }
+                if (bus.OperationMode && !['Normal', 'Spy', 'TxOnly', 'RxOnly'].includes(String(bus.OperationMode))) {
+                    diagnostics.push({
+                        code: 'yaml.cm.bus.operation_mode.invalid',
+                        severity: 'warning',
+                        source: 'yaml',
+                        message: `CM bus '${busName}' uses unsupported OperationMode '${bus.OperationMode}'.`,
+                        path: `${basePath}.Buses.${busName}.OperationMode`,
+                        fix: 'Use one of the documented values: Normal, Spy, TxOnly, or RxOnly.',
+                    });
+                }
+            }
+        }
+        const pcapMappings = this._getYamlMapping(mappings.PCAP);
+        for (const [adapterLabel, adapterValue] of Object.entries(pcapMappings)) {
+            const adapter = this._getYamlMapping(this._getYamlMapping(adapterValue).Adapter);
+            const basePath = `Mappings.PCAP.${adapterLabel}.Adapter`;
+            if (!adapter.Name) {
+                diagnostics.push({
+                    code: 'yaml.pcap.name.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `PCAP adapter '${adapterLabel}' is missing the required 'Name' field.`,
+                    path: `${basePath}.Name`,
+                    fix: 'Set Name to the logical Ethernet channel assigned to this adapter.',
+                });
+            }
+            else if (channelNames.size > 0 && !channelNames.has(String(adapter.Name))) {
+                diagnostics.push({
+                    code: 'yaml.pcap.name.unknown_channel',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `PCAP adapter '${adapterLabel}' references logical channel '${adapter.Name}', which is not defined under Channels.`,
+                    path: `${basePath}.Name`,
+                    fix: 'Use the exact Ethernet channel name from the Channels section.',
+                });
+            }
+            if (!adapter.FriendlyName && !adapter.Interface) {
+                diagnostics.push({
+                    code: 'yaml.pcap.adapter_locator.missing',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `PCAP adapter '${adapterLabel}' is missing both 'FriendlyName' and 'Interface'.`,
+                    path: basePath,
+                    fix: 'Provide FriendlyName or Interface so MTF can identify the network adapter.',
+                });
+            }
+        }
+        const publisherGroups = frameworkConfig.PublisherConfig?.ChannelsGroups;
+        if (Array.isArray(publisherGroups)) {
+            publisherGroups.forEach((group, groupIndex) => {
+                if (!Array.isArray(group)) {
+                    return;
+                }
+                group.forEach((channelName, channelIndex) => {
+                    if (channelNames.size > 0 && typeof channelName === 'string' && !channelNames.has(channelName)) {
+                        diagnostics.push({
+                            code: 'yaml.publisher.channel_group.unknown_channel',
+                            severity: 'error',
+                            source: 'yaml',
+                            message: `PublisherConfig.ChannelsGroups references unknown channel '${channelName}'.`,
+                            path: `FrameworkConfig.PublisherConfig.ChannelsGroups.${groupIndex}.${channelIndex}`,
+                            fix: 'Use only channel names defined under Channels.',
+                        });
+                    }
+                });
+            });
+        }
+        const channelToEcus = this._getYamlMapping(frameworkConfig.EthernetConfig?.ChannelToEcusMapping);
+        for (const channelName of Object.keys(channelToEcus)) {
+            if (channelNames.size > 0 && !channelNames.has(channelName)) {
+                diagnostics.push({
+                    code: 'yaml.channel_to_ecus.unknown_channel',
+                    severity: 'error',
+                    source: 'yaml',
+                    message: `ChannelToEcusMapping references unknown channel '${channelName}'.`,
+                    path: `FrameworkConfig.EthernetConfig.ChannelToEcusMapping.${channelName}`,
+                    fix: 'Use only channel names defined under Channels.',
+                });
+            }
+        }
+        const topologyConfig = frameworkConfig.EthernetConfig?.EthernetTopology?.TopologyConfig;
+        if (Array.isArray(topologyConfig)) {
+            topologyConfig.forEach((entry, entryIndex) => {
+                const topologyEntry = this._getYamlMapping(entry);
+                const entryPath = `FrameworkConfig.EthernetConfig.EthernetTopology.TopologyConfig.${entryIndex}`;
+                const srcMacAdr = topologyEntry.SrcMacAdr;
+                if (typeof srcMacAdr === 'string' && srcMacAdr && !this._isValidMacAddress(srcMacAdr)) {
+                    diagnostics.push({
+                        code: 'yaml.ethernet_topology.src_mac.invalid',
+                        severity: 'error',
+                        source: 'yaml',
+                        message: `Topology entry '${topologyEntry.EcuName || entryIndex}' uses invalid SrcMacAdr '${srcMacAdr}'.`,
+                        path: `${entryPath}.SrcMacAdr`,
+                        fix: 'Use a MAC address with six hexadecimal byte pairs, for example AA:BB:CC:DD:EE:FF.',
+                    });
+                }
+                const srcIpList = Array.isArray(topologyEntry.SrcIpList) ? topologyEntry.SrcIpList : [];
+                srcIpList.forEach((ip, ipIndex) => {
+                    if (typeof ip === 'string' && !this._isValidIpAddress(ip)) {
+                        diagnostics.push({
+                            code: 'yaml.ethernet_topology.src_ip.invalid',
+                            severity: 'error',
+                            source: 'yaml',
+                            message: `Topology entry '${topologyEntry.EcuName || entryIndex}' uses invalid source IP '${ip}'.`,
+                            path: `${entryPath}.SrcIpList.${ipIndex}`,
+                            fix: 'Use a valid IPv4 or IPv6 address.',
+                        });
+                    }
+                });
+                const dstIpMappings = Array.isArray(topologyEntry.Vlans?.DstIpVlanMapping)
+                    ? topologyEntry.Vlans.DstIpVlanMapping
+                    : [];
+                dstIpMappings.forEach((mapping, mappingIndex) => {
+                    const dstIp = this._getYamlMapping(mapping).DstIp;
+                    if (typeof dstIp === 'string' && !this._isValidIpAddress(dstIp)) {
+                        diagnostics.push({
+                            code: 'yaml.ethernet_topology.dst_ip.invalid',
+                            severity: 'error',
+                            source: 'yaml',
+                            message: `Topology entry '${topologyEntry.EcuName || entryIndex}' uses invalid destination IP '${dstIp}'.`,
+                            path: `${entryPath}.Vlans.DstIpVlanMapping.${mappingIndex}.DstIp`,
+                            fix: 'Use a valid IPv4 or IPv6 address.',
+                        });
+                    }
+                });
+            });
+        }
+        return diagnostics;
+    }
+    _getYamlMapping(value) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return {};
+        }
+        return value;
+    }
+    _isNumericScalar(value) {
+        if (typeof value === 'number') {
+            return Number.isFinite(value);
+        }
+        if (typeof value === 'string') {
+            return /^\d+$/.test(value.trim());
+        }
+        return false;
+    }
+    _isValidMacAddress(value) {
+        return /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(value);
+    }
+    _isValidIpAddress(value) {
+        return (0, net_1.isIP)(value) !== 0;
+    }
+    _buildGenerationDiagnostics(errors) {
+        return errors.map((message, index) => ({
+            code: `generation.blocker.${index + 1}`,
+            severity: 'error',
+            source: 'generation',
+            message,
+            path: 'generation',
+            fix: 'Resolve this generator precondition before asking the agent to produce a corrected YAML block.',
+        }));
     }
 }
 exports.MessageHandler = MessageHandler;

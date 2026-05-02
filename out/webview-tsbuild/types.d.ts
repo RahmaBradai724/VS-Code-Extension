@@ -58,6 +58,15 @@ export interface AiResult {
     errors: string[];
     warnings: string[];
     suggestions: string[];
+    diagnostics?: Array<{
+        code: string;
+        severity: 'error' | 'warning' | 'suggestion';
+        source: 'configuration' | 'mapping' | 'yaml' | 'generation';
+        message: string;
+        path?: string;
+        fix?: string;
+        evidence?: string;
+    }>;
 }
 export interface LogicalChannel {
     id: string;
@@ -117,10 +126,17 @@ export interface AgentSource {
     sourceType?: 'documentation' | 'workspace';
     summary?: string;
 }
+export interface AgentResponseMeta {
+    confidence: 'high' | 'medium' | 'low';
+    verification: 'diagnostics' | 'documentation' | 'mixed' | 'limited';
+    patchSafety: 'verified' | 'blocked' | 'not-needed';
+    notes: string[];
+}
 export interface AgentMessage {
     role: 'user' | 'assistant';
     content: string;
     sources?: AgentSource[];
+    meta?: AgentResponseMeta;
     streaming?: boolean;
 }
 export type AppAction = {
@@ -202,6 +218,7 @@ export type AppAction = {
 } | {
     type: 'AGENT_DONE';
     sources: AgentMessage['sources'];
+    meta?: AgentMessage['meta'];
 } | {
     type: 'AGENT_ERROR';
     error: string;
