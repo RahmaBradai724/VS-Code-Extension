@@ -100,6 +100,31 @@ const cases = [
     },
     mustContain: ['CM stands for Capture Module.'],
   },
+  {
+    id: 'small-talk-does-not-get-hijacked-by-diagnostics',
+    input: {
+      answer: 'Hello! How can I help you with your MTF configuration today?',
+      intent: 'small_talk',
+      question: 'hello',
+      workspace: {
+        ...baseWorkspace,
+        validationErrors: ['Mappings section is missing'],
+        validationDiagnostics: [
+          {
+            code: 'mapping.missing',
+            severity: 'error',
+            source: 'configuration',
+            message: 'Mappings section is missing.',
+          },
+        ],
+      },
+      questionYaml: { topLevelKeys: [], nestedKeys: [] },
+      docResults: [],
+      exactFieldNames: [],
+      sources: [],
+    },
+    mustContain: ['Hello! How can I help you with your MTF configuration today?'],
+  },
 ];
 
 let failures = 0;

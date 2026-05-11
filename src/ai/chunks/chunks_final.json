@@ -197,7 +197,8 @@
       "mtf_config_009",
       "mtf_config_011",
       "mtf_config_013",
-      "mtf_config_014"
+      "mtf_config_014",
+      "mtf_config_041"
     ],
     "summary": "The Mappings section links logical channels to physical devices: CM, BTS-Revo, PCAP adapters, power supplies, serial ports, relay boards, etc.",
     "importance": "high"
@@ -226,9 +227,47 @@
       "mtf_config_009",
       "mtf_config_011",
       "mtf_config_013",
-      "mtf_config_014"
+      "mtf_config_014",
+      "mtf_config_041"
     ],
     "summary": "Mappings section structure: top-level device types (CM, BTS-Revo, PCAP, Power Supply, Serial, VirtualDevices) each containing device-specific sub-sections.",
+    "importance": "high"
+  },
+  {
+    "chunk_id": "mtf_config_041",
+    "section": "Section 2: Mappings",
+    "subsection": "Validation Rules",
+    "title": "Section 2: Mappings – Validation Rules (Compatibility, CM Subtype, Duplicate Protection, Tracer References)",
+    "content": "The extension enforces mapping validation rules in code before or during configuration validation. These rules are not generic guidance; they reflect the current validator behavior.\n\n**Rule 1 - Protocol compatibility**: The logical channel category must be compatible with the hardware category. The current compatibility table is:\n- CAN, CANFD -> CAN_INTERFACE\n- ETHERNET -> ETHERNET_ADAPTER\n- LIN -> CAN_INTERFACE or SERIAL_PORT\n- FLEXRAY, FR -> CAN_INTERFACE or ETHERNET_ADAPTER\n- IOINPUT, IOOUTPUT -> RELAY_BOARD, HID_RELAY, ANALOG_DEVICE, BTS_REVO, HH_LOAD\n- SERIAL, IOSERIAL -> SERIAL_PORT\n- TE_ANALOG -> TE_ANALOG\n- PS -> GENESYS_PS or MANSON_PS\n- BRIDGE -> TUNTAP_BRIDGE\n\nWhen this rule fails, the validator reports a protocol mismatch and includes the compatible hardware types in the error message.\n\n**Rule 2 - CM device subtype**: Capture Module mappings apply an extra subtype rule. `CAN_Combo` supports only CAN, CANFD, FR, and FLEXRAY logical channels. `LIN_Combo` supports only LIN logical channels.\n\n**Rule 3 - One logical channel to one hardware channel**: A logical channel can appear in only one mapping. Trying to add a second mapping for the same logical channel is rejected immediately by the mapping manager.\n\n**Rule 4 - No duplicate logical-hardware pair**: The same logical channel and hardware channel pair cannot be added twice. Duplicate pairs are blocked when a mapping is created, and duplicate records are also reported by validation.\n\n**Rule 5 - Tracer reference integrity**: During configuration validation, each `TracerName` used by a logical channel must exist in `FrameworkConfig` tracers. If a channel references a tracer that is not defined, validation reports an error for that channel.",
+    "keywords": [
+      "mapping validation",
+      "compatibility rules",
+      "protocol mismatch",
+      "CM type mismatch",
+      "CAN_Combo",
+      "LIN_Combo",
+      "duplicate mapping",
+      "logical channel",
+      "hardware channel",
+      "TracerName",
+      "FrameworkConfig",
+      "TUNTAP_BRIDGE",
+      "GENESYS_PS",
+      "MANSON_PS",
+      "BTS_REVO",
+      "CAN_INTERFACE",
+      "ETHERNET_ADAPTER",
+      "SERIAL_PORT"
+    ],
+    "source_url": "",
+    "relatedIds": [
+      "mtf_config_005",
+      "mtf_config_007",
+      "mtf_config_008",
+      "mtf_config_009",
+      "mtf_config_024"
+    ],
+    "summary": "Mapping validation rules enforced by the extension: protocol compatibility, CAN_Combo vs LIN_Combo, one logical-to-one hardware mapping, duplicate-pair protection, and TracerName referential integrity.",
     "importance": "high"
   },
   {

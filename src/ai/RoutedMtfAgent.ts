@@ -3,7 +3,7 @@ import { ValidationDiagnostic } from './LocalValidator';
 import { OllamaClient, ChatMessage } from './mtf/OllamaClient';
 import { KnowledgeBase, SearchResult } from './mtf/KnowledgeBase';
 
-export type AgentIntent = 'support' | 'error_analysis' | 'mixed';
+export type AgentIntent = 'support' | 'error_analysis' | 'mixed' | 'small_talk';
 
 export interface AgentWorkspaceContext {
   configurationName?: string;
@@ -109,6 +109,14 @@ const ERROR_PATTERNS = [
   /line \d+/,
 ];
 
+const SMALL_TALK_PATTERNS = [
+  /^(hi|hello|hey|yo|hiya)\b/i,
+  /^(good\s+(morning|afternoon|evening))\b/i,
+  /^(thanks|thank you|thx)\b/i,
+  /^(how are you|what's up|whats up)\b/i,
+  /^(ok|okay|cool|nice|great)\b/i,
+];
+
 const EXACT_FIELD_ALIASES: Array<{ canonical: string; patterns: RegExp[] }> = [
   { canonical: 'CM', patterns: [/\bcm\b/i, /\bcapture\s+module\b/i] },
   { canonical: 'Id', patterns: [/\bid\b/i, /\bidentifier\b/i] },
@@ -147,22 +155,26 @@ export class RoutedMtfAgent {
     signal?: AbortSignal,
   ): Promise<RoutedAgentResponse> {
     const questionYaml = extractQuestionYaml(question);
+    const smallTalk = isSmallTalkQuestion(question, questionYaml);
+    const diagnosticsRelevant = shouldUseDiagnosticContext(question, workspace, questionYaml, smallTalk);
     const intent = classifyIntent(question, workspace, questionYaml);
     const exactFieldNames = extractExactFieldNames(question);
     const exactFieldQuestion = isExactFieldQuestion(question, questionYaml, exactFieldNames);
-    const retrievalQuery = buildRetrievalQuery(question, workspace, questionYaml);
-    const docResults = await this.retrieveRelevantDocs(retrievalQuery, exactFieldQuestion, exactFieldNames);
+    const retrievalQuery = buildRetrievalQuery(question, workspace, questionYaml, diagnosticsRelevant);
+    const docResults = smallTalk
+      ? []
+      : await this.retrieveRelevantDocs(retrievalQuery, exactFieldQuestion, exactFieldNames);
 
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: buildSystemPrompt(intent, docResults, workspace, questionYaml, exactFieldNames),
+        content: buildSystemPrompt(intent, docResults, workspace, questionYaml, exactFieldNames, diagnosticsRelevant),
       },
       { role: 'user', content: question },
     ];
 
     const sources = [
-      ...buildWorkspaceSources(intent, workspace, questionYaml),
+      ...buildWorkspaceSources(intent, workspace, questionYaml, diagnosticsRelevant),
       ...docResults.map(toDocumentationSource),
     ];
 
@@ -178,7 +190,7 @@ export class RoutedMtfAgent {
       sources,
     });
 
-    streamAgentAnswer(guarded.answer, onChunk);
+    await streamAgentAnswer(guarded.answer, onChunk);
 
     return { answer: guarded.answer, sources, intent, meta: guarded.meta };
   }
@@ -232,10 +244,13 @@ function classifyIntent(
   workspace: AgentWorkspaceContext | undefined,
   questionYaml: QuestionYamlContext,
 ): AgentIntent {
+  if (isSmallTalkQuestion(question, questionYaml)) { return 'small_talk'; }
+
   const lowered = question.toLowerCase();
   let supportScore = 0;
   let errorScore = 0;
   const referencesCurrentYaml = /\b(?:current|active|this|my)\s+ya?ml\b|\bcurrent\s+file\b|\bopen\s+file\b/.test(lowered);
+  const diagnosticsRelevant = shouldUseDiagnosticContext(question, workspace, questionYaml, false);
 
   for (const pattern of SUPPORT_PATTERNS) {
     if (pattern.test(lowered)) { supportScore++; }
@@ -246,13 +261,15 @@ function classifyIntent(
 
   if (questionYaml.yamlText) { errorScore += 3; }
   if (questionYaml.parseError) { errorScore += 3; }
-  if ((workspace?.validationErrors?.length ?? 0) > 0) { errorScore += 2; }
-  if ((workspace?.validationDiagnostics?.length ?? 0) > 0) { errorScore += 1; }
-  if (workspace?.generationError) { errorScore += 2; }
-  if (workspace?.activeYamlParseError) { errorScore += 3; }
-  if ((workspace?.activeYamlStructuralFindings?.length ?? 0) > 0) { errorScore += 2; }
-  if ((workspace?.activeYamlDiagnostics?.length ?? 0) > 0) { errorScore += 1; }
-  if (referencesCurrentYaml && workspace?.activeYamlText) { errorScore += 2; }
+  if (diagnosticsRelevant) {
+    if ((workspace?.validationErrors?.length ?? 0) > 0) { errorScore += 2; }
+    if ((workspace?.validationDiagnostics?.length ?? 0) > 0) { errorScore += 1; }
+    if (workspace?.generationError) { errorScore += 2; }
+    if (workspace?.activeYamlParseError) { errorScore += 3; }
+    if ((workspace?.activeYamlStructuralFindings?.length ?? 0) > 0) { errorScore += 2; }
+    if ((workspace?.activeYamlDiagnostics?.length ?? 0) > 0) { errorScore += 1; }
+    if (referencesCurrentYaml && workspace?.activeYamlText) { errorScore += 2; }
+  }
 
   const asksAboutDocs = /\b(field|section|keyword|documentation|meaning)\b/.test(lowered);
   if (asksAboutDocs) { supportScore += 2; }
@@ -266,26 +283,29 @@ function buildRetrievalQuery(
   question: string,
   workspace: AgentWorkspaceContext | undefined,
   questionYaml: QuestionYamlContext,
+  includeDiagnostics: boolean,
 ): string {
   const parts: string[] = [question];
 
-  if (workspace?.validationErrors?.length) {
-    parts.push(workspace.validationErrors.slice(0, 4).join(' '));
-  }
-  if (workspace?.validationDiagnostics?.length) {
-    parts.push(workspace.validationDiagnostics.slice(0, 5).map(formatDiagnosticForRetrieval).join(' '));
-  }
-  if (workspace?.generationError) {
-    parts.push(workspace.generationError);
-  }
-  if (workspace?.activeYamlParseError) {
-    parts.push(workspace.activeYamlParseError);
-  }
-  if (workspace?.activeYamlStructuralFindings?.length) {
-    parts.push(workspace.activeYamlStructuralFindings.slice(0, 6).join(' '));
-  }
-  if (workspace?.activeYamlDiagnostics?.length) {
-    parts.push(workspace.activeYamlDiagnostics.slice(0, 5).map(formatDiagnosticForRetrieval).join(' '));
+  if (includeDiagnostics) {
+    if (workspace?.validationErrors?.length) {
+      parts.push(workspace.validationErrors.slice(0, 4).join(' '));
+    }
+    if (workspace?.validationDiagnostics?.length) {
+      parts.push(workspace.validationDiagnostics.slice(0, 5).map(formatDiagnosticForRetrieval).join(' '));
+    }
+    if (workspace?.generationError) {
+      parts.push(workspace.generationError);
+    }
+    if (workspace?.activeYamlParseError) {
+      parts.push(workspace.activeYamlParseError);
+    }
+    if (workspace?.activeYamlStructuralFindings?.length) {
+      parts.push(workspace.activeYamlStructuralFindings.slice(0, 6).join(' '));
+    }
+    if (workspace?.activeYamlDiagnostics?.length) {
+      parts.push(workspace.activeYamlDiagnostics.slice(0, 5).map(formatDiagnosticForRetrieval).join(' '));
+    }
   }
   if (questionYaml.parseError) {
     parts.push(questionYaml.parseError);
@@ -330,9 +350,10 @@ function buildSystemPrompt(
   workspace: AgentWorkspaceContext | undefined,
   questionYaml: QuestionYamlContext,
   exactFieldNames: string[],
+  includeDiagnostics: boolean,
 ): string {
   const docContext = buildDocumentationContext(docResults);
-  const diagnosticsContext = buildDiagnosticsContext(workspace, questionYaml);
+  const diagnosticsContext = buildDiagnosticsContext(workspace, questionYaml, includeDiagnostics);
   const fieldFocus = exactFieldNames.length
     ? `Field focus: ${exactFieldNames.join(', ')}`
     : 'Field focus: none';
@@ -366,6 +387,7 @@ Core rules:
 - Keep the answer practical and easy to follow.
 
 Response style:
+- For small talk or greetings: answer briefly and naturally. Do not mention diagnostics, YAML, mappings, or documentation unless the user asks about them.
 - For support questions: explain the field or section, then give a short YAML example only when it matches the retrieved documentation context. If the docs mention the term but do not define it, say that explicitly.
 - For error analysis: use this structure exactly: Diagnosis, Why it happens, How to fix, Recommended YAML.
 - For mixed questions: start with Diagnosis if there is a real error, then explain the relevant documentation, then finish with Recommended YAML.
@@ -408,8 +430,13 @@ function buildDocumentationContext(results: SearchResult[]): string {
 function buildDiagnosticsContext(
   workspace: AgentWorkspaceContext | undefined,
   questionYaml: QuestionYamlContext,
+  includeDiagnostics: boolean,
 ): string {
   const parts: string[] = [];
+
+  if (!includeDiagnostics) {
+    return 'Diagnostics context intentionally suppressed because the user did not ask for YAML or error analysis.';
+  }
 
   if (workspace) {
     parts.push(`Active configuration: ${workspace.configurationName || 'Unnamed configuration'}`);
@@ -498,8 +525,13 @@ function buildWorkspaceSources(
   intent: AgentIntent,
   workspace: AgentWorkspaceContext | undefined,
   questionYaml: QuestionYamlContext,
+  includeDiagnostics: boolean,
 ): AgentEvidenceSource[] {
   const sources: AgentEvidenceSource[] = [];
+
+  if (!includeDiagnostics) {
+    return sources;
+  }
 
   if (workspace && shouldExposeWorkspaceSource(intent, workspace)) {
     const summary = [
@@ -557,11 +589,25 @@ function buildWorkspaceSources(
   return sources;
 }
 
-function streamAgentAnswer(answer: string, onChunk: (token: string) => void): void {
-  const chunkSize = 48;
+async function streamAgentAnswer(answer: string, onChunk: (token: string) => void): Promise<void> {
+  const chunkSize = 18;
   for (let index = 0; index < answer.length; index += chunkSize) {
-    onChunk(answer.slice(index, index + chunkSize));
+    const chunk = answer.slice(index, index + chunkSize);
+    onChunk(chunk);
+    if (index + chunkSize < answer.length) {
+      await delay(getTypingDelayMs(chunk));
+    }
   }
+}
+
+function getTypingDelayMs(chunk: string): number {
+  if (/[.!?]\s*$/.test(chunk)) { return 110; }
+  if (/[,;:]\s*$/.test(chunk)) { return 70; }
+  return 28;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export interface AgentGuardInput {
@@ -797,6 +843,7 @@ function escapeRegExp(value: string): string {
 }
 
 function shouldExposeWorkspaceSource(intent: AgentIntent, workspace: AgentWorkspaceContext): boolean {
+  if (intent === 'small_talk') { return false; }
   if (intent !== 'support') { return true; }
   return Boolean(
     workspace.activeYamlText ||
@@ -807,6 +854,35 @@ function shouldExposeWorkspaceSource(intent: AgentIntent, workspace: AgentWorksp
     (workspace.validationErrors?.length ?? 0) > 0 ||
     (workspace.validationWarnings?.length ?? 0) > 0,
   );
+}
+
+function isSmallTalkQuestion(question: string, questionYaml: QuestionYamlContext): boolean {
+  if (questionYaml.yamlText || questionYaml.parseError) { return false; }
+
+  const trimmed = question.trim();
+  if (!trimmed) { return false; }
+  if (trimmed.length > 80) { return false; }
+
+  return SMALL_TALK_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
+function shouldUseDiagnosticContext(
+  question: string,
+  workspace: AgentWorkspaceContext | undefined,
+  questionYaml: QuestionYamlContext,
+  smallTalk: boolean,
+): boolean {
+  if (smallTalk) { return false; }
+  if (questionYaml.yamlText || questionYaml.parseError) { return true; }
+
+  const lowered = question.toLowerCase();
+  if (ERROR_PATTERNS.some(pattern => pattern.test(lowered))) { return true; }
+  if (/\b(?:current|active|this|my)\s+ya?ml\b|\bcurrent\s+file\b|\bopen\s+file\b/.test(lowered)) { return true; }
+  if (/\b(mappings?|logical|hardware|framework\s*config|configuration)\b/.test(lowered) && /\b(problem|issue|fix|wrong|missing|invalid|analy(?:s|z)e|review)\b/.test(lowered)) {
+    return true;
+  }
+
+  return false;
 }
 
 function formatDiagnosticForRetrieval(diagnostic: ValidationDiagnostic): string {

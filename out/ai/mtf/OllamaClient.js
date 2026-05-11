@@ -10,7 +10,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaClient = void 0;
 class OllamaClient {
-    constructor(base = 'http://localhost:11434', embedModel = 'nomic-embed-text', chatModel = 'llama3.2') {
+    constructor(base = 'http://localhost:11434', embedModel = 'nomic-embed-text', chatModel = 'qwen3:1.7b') {
         this.base = base;
         this.embedModel = embedModel;
         this.chatModel = chatModel;

@@ -16,7 +16,7 @@ export class OllamaClient {
   constructor(
     private readonly base: string = 'http://localhost:11434',
     private readonly embedModel: string = 'nomic-embed-text',
-    private readonly chatModel: string = 'llama3.2',
+    private readonly chatModel: string = 'qwen3:1.7b',
   ) {}
 
   // ── Public API ──────────────────────────────────────────────────────────
