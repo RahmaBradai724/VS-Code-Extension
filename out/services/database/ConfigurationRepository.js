@@ -14,6 +14,20 @@ const ChannelEcuMapping_1 = require("../../models/framework/ChannelEcuMapping");
 const PCAPTracer_1 = require("../../models/framework/PCAPTracer");
 const ASCIITracer_1 = require("../../models/framework/ASCIITracer");
 const DataSourceProvider_1 = require("./DataSourceProvider");
+/** Converts a raw AppLayerPorts value into a PortEntry array.
+ *  Accepts: undefined | number | number[] | (number | number[])[] */
+function normalisePortList(val) {
+    if (val == null) {
+        return undefined;
+    }
+    if (Array.isArray(val)) {
+        return val;
+    }
+    if (typeof val === 'number') {
+        return [val];
+    }
+    return undefined;
+}
 const LOGICAL_MAP = {
     'FlexRayChannel': logicalChannels_1.FlexRayChannel,
     'SerialChannel': logicalChannels_1.SerialChannel,
@@ -150,11 +164,11 @@ class ConfigurationRepository {
                         fwEntity.ethernetConfig.appLayerPortsConfig = new AppLayerPortsConfig_1.AppLayerPortsConfig();
                     }
                     const a = ec.appLayerPorts;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.nPdu = a.NPdu != null ? Number(a.NPdu) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.someIp = a.SomeIp != null ? Number(a.SomeIp) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.udpNm = a.UDPNM != null ? Number(a.UDPNM) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.dlt = a.DLT != null ? Number(a.DLT) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.someIpSD = a.SomeIpSD != null ? Number(a.SomeIpSD) : undefined;
+                    fwEntity.ethernetConfig.appLayerPortsConfig.nPdu = normalisePortList(a.NPdu);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.someIp = normalisePortList(a.SomeIp);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.udpNm = normalisePortList(a.UDPNM);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.dlt = normalisePortList(a.DLT);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.someIpSD = normalisePortList(a.SomeIpSD);
                 }
                 // EthernetTopology → dedicated table
                 if (ec.ethernetTopology !== undefined) {

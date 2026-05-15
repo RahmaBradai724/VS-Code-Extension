@@ -2814,13 +2814,150 @@ class MessageHandler {
             filters: { YAML: ['yaml', 'yml'] },
             canSelectMany: false,
         });
-        if (uris && uris[0]) {
-            const content = await vscode.workspace.fs.readFile(uris[0]);
+        if (!uris || !uris[0]) {
+            return;
+        }
+        const fileName = path.basename(uris[0].fsPath);
+        try {
+            const fileContent = await vscode.workspace.fs.readFile(uris[0]);
+            const yamlText = Buffer.from(fileContent).toString('utf8');
+            // 1. Syntax check — js-yaml throws on bad indentation / syntax
+            let parsed;
+            try {
+                parsed = yaml.load(yamlText);
+            }
+            catch (syntaxErr) {
+                webview.postMessage({
+                    command: 'importedConfig',
+                    fileName,
+                    validation: {
+                        isValid: false,
+                        errors: [syntaxErr.message],
+                        warnings: [],
+                        suggestions: [],
+                        diagnostics: [{ code: 'yaml.syntax-error', severity: 'error', source: 'yaml', message: syntaxErr.message }],
+                    },
+                });
+                return;
+            }
+            // 2. MTF structural validation
+            const validation = this._validateMtfYaml(parsed, fileName);
+            webview.postMessage({ command: 'importedConfig', fileName, validation });
+        }
+        catch (err) {
             webview.postMessage({
                 command: 'importedConfig',
-                content: Buffer.from(content).toString('utf8'),
+                fileName,
+                validation: { isValid: false, errors: [err.message], warnings: [], suggestions: [], diagnostics: [] },
             });
         }
+    }
+    /** Validates a parsed MTF YAML object against the expected MTF schema. */
+    _validateMtfYaml(parsed, fileName) {
+        const diagnostics = [];
+        const VALID_TYPES = ['CAN', 'CANFD', 'LIN', 'ETHERNET', 'FR', 'SERIAL', 'IO', 'PS'];
+        const VALID_TRACER_TYPES = ['ASCII', 'PCAP', 'PCAPNG', 'MDF4'];
+        if (!parsed || typeof parsed !== 'object') {
+            diagnostics.push({ code: 'yaml.empty', severity: 'error', source: 'yaml', message: 'YAML content is empty or not an object.', fix: 'Provide a valid MTF configuration YAML.' });
+            return this._buildValidationResult(diagnostics);
+        }
+        // ── Channels ──────────────────────────────────────────────────────────
+        if (!parsed.Channels || typeof parsed.Channels !== 'object') {
+            diagnostics.push({ code: 'mtf.channels.missing', severity: 'error', source: 'yaml', message: 'Missing required "Channels" section.', path: 'Channels', fix: 'Add a "Channels" section with at least one logical channel definition.' });
+        }
+        else {
+            for (const [name, ch] of Object.entries(parsed.Channels)) {
+                if (ch?.Id == null) {
+                    diagnostics.push({ code: 'channel.id.missing', severity: 'error', source: 'yaml', message: `Channel "${name}" is missing a required "Id" field.`, path: `Channels.${name}.Id`, fix: 'Add a unique integer Id to this channel.' });
+                }
+                else if (!Number.isInteger(ch.Id) || ch.Id <= 0) {
+                    diagnostics.push({ code: 'channel.id.invalid', severity: 'error', source: 'yaml', message: `Channel "${name}" has an invalid Id "${ch.Id}". Must be a positive integer.`, path: `Channels.${name}.Id`, fix: 'Use a positive integer Id such as 1, 2, or 3.' });
+                }
+                if (!ch?.Type) {
+                    diagnostics.push({ code: 'channel.type.missing', severity: 'warning', source: 'yaml', message: `Channel "${name}" is missing a "Type" field.`, path: `Channels.${name}.Type`, fix: `Set Type to one of: ${VALID_TYPES.join(', ')}.` });
+                }
+            }
+            // Check for duplicate Ids
+            const idMap = new Map();
+            for (const [name, ch] of Object.entries(parsed.Channels)) {
+                if (ch?.Id != null) {
+                    const arr = idMap.get(ch.Id) ?? [];
+                    arr.push(name);
+                    idMap.set(ch.Id, arr);
+                }
+            }
+            for (const [id, names] of idMap) {
+                if (names.length > 1) {
+                    diagnostics.push({ code: 'channel.id.duplicate', severity: 'error', source: 'yaml', message: `Duplicate Id ${id} used by channels: ${names.join(', ')}.`, path: 'Channels[*].Id', fix: 'Assign a unique Id to each channel.' });
+                }
+            }
+        }
+        // ── Mappings ──────────────────────────────────────────────────────────
+        const channelNames = new Set(Object.keys(parsed.Channels || {}));
+        if (!parsed.Mappings || typeof parsed.Mappings !== 'object') {
+            diagnostics.push({ code: 'mtf.mappings.missing', severity: 'error', source: 'yaml', message: 'Missing required "Mappings" section.', path: 'Mappings', fix: 'Add a "Mappings" section with CM, BTS, or PCAP subsections.' });
+        }
+        else {
+            const { CM, BTS, PCAP } = parsed.Mappings;
+            if (!CM && !BTS && !PCAP) {
+                diagnostics.push({ code: 'mtf.mappings.empty', severity: 'warning', source: 'yaml', message: 'Mappings has no recognized subsections (CM, BTS, PCAP).', path: 'Mappings', fix: 'Add at least one CM, BTS, or PCAP mapping block.' });
+            }
+            // CM — cross-check Buses channel names
+            if (CM?.Devices) {
+                for (const [devId, device] of Object.entries(CM.Devices)) {
+                    for (const busName of Object.keys(device?.Buses ?? {})) {
+                        if (channelNames.size > 0 && !channelNames.has(busName)) {
+                            diagnostics.push({ code: 'mapping.channel.unknown', severity: 'error', source: 'yaml', message: `CM Device ${devId} Buses references unknown channel "${busName}".`, path: `Mappings.CM.Devices.${devId}.Buses.${busName}`, fix: `"${busName}" must match a name defined in the Channels section.` });
+                        }
+                    }
+                }
+            }
+            // BTS — cross-check Buses channel names
+            if (BTS?.Boards) {
+                for (const [boardIdx, board] of Object.entries(BTS.Boards)) {
+                    for (const busName of Object.keys(board?.Buses ?? {})) {
+                        if (channelNames.size > 0 && !channelNames.has(busName)) {
+                            diagnostics.push({ code: 'mapping.channel.unknown', severity: 'error', source: 'yaml', message: `BTS Board ${boardIdx} Buses references unknown channel "${busName}".`, path: `Mappings.BTS.Boards.${boardIdx}.Buses.${busName}`, fix: `"${busName}" must match a name defined in the Channels section.` });
+                        }
+                    }
+                }
+            }
+            // PCAP — cross-check Adapter.Name
+            if (PCAP) {
+                for (const [adapterIdx, entry] of Object.entries(PCAP)) {
+                    const adapterName = entry?.Adapter?.Name;
+                    if (adapterName && channelNames.size > 0 && !channelNames.has(adapterName)) {
+                        diagnostics.push({ code: 'mapping.channel.unknown', severity: 'error', source: 'yaml', message: `PCAP ${adapterIdx} Adapter.Name references unknown channel "${adapterName}".`, path: `Mappings.PCAP.${adapterIdx}.Adapter.Name`, fix: `"${adapterName}" must match a name defined in the Channels section.` });
+                    }
+                }
+            }
+        }
+        // ── FrameworkConfig (optional) ────────────────────────────────────────
+        if (parsed.FrameworkConfig) {
+            const fc = parsed.FrameworkConfig;
+            const tracerNames = new Set(Object.keys(fc.Tracing || {}));
+            // Tracer type check
+            for (const [tracerName, tracer] of Object.entries(fc.Tracing ?? {})) {
+                if (!tracer?.Type) {
+                    diagnostics.push({ code: 'tracer.type.missing', severity: 'warning', source: 'yaml', message: `Tracer "${tracerName}" is missing a "Type" field.`, path: `FrameworkConfig.Tracing.${tracerName}.Type`, fix: `Set Type to one of: ${VALID_TRACER_TYPES.join(', ')}.` });
+                }
+            }
+            // Channels that reference a tracer must point to a defined one
+            if (tracerNames.size > 0) {
+                for (const [chName, ch] of Object.entries(parsed.Channels ?? {})) {
+                    if (ch?.TracerName && !tracerNames.has(ch.TracerName)) {
+                        diagnostics.push({ code: 'channel.tracer.unknown', severity: 'warning', source: 'yaml', message: `Channel "${chName}" references undefined tracer "${ch.TracerName}".`, path: `Channels.${chName}.TracerName`, fix: `Define "${ch.TracerName}" in FrameworkConfig.Tracing or correct the tracer name.` });
+                    }
+                }
+            }
+        }
+        return this._buildValidationResult(diagnostics);
+    }
+    _buildValidationResult(diagnostics) {
+        const errors = diagnostics.filter(d => d.severity === 'error').map(d => d.message);
+        const warnings = diagnostics.filter(d => d.severity === 'warning').map(d => d.message);
+        const suggestions = diagnostics.filter(d => d.fix).map(d => d.path ? `${d.path}: ${d.fix}` : d.fix);
+        return { isValid: errors.length === 0, errors, warnings, suggestions, diagnostics };
     }
     // ── Shared helpers ────────────────────────────────────────────────────────
     /** Merges frameworkData from a webview message into the current config's frameworkConfig. */

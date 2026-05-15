@@ -52,6 +52,8 @@ const AuthService_1 = require("../services/auth/AuthService");
 const UserRepository_1 = require("../services/database/UserRepository");
 const ConfigurationRepository_1 = require("../services/database/ConfigurationRepository");
 const autoLoadState_1 = require("./autoLoadState");
+const hardwareDiscovery_1 = require("../services/hardwareDiscovery");
+const YamlParser_1 = require("../services/config/YamlParser");
 /**
  * Owns all mutable runtime state and handles every webview message command.
  * Extracted from WebviewProvider to keep that class small.
@@ -67,6 +69,8 @@ class MessageHandler {
         /** Cached agent resources — lazy-initialised on first agentAsk call */
         this.ollama = new OllamaClient_1.OllamaClient();
         this.kb = null;
+        /** Lazy-initialised hardware discovery service */
+        this.discoveryService = null;
         this.channelManager = new channelManager_1.ChannelManager();
         this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
         const jwtSecret = this.tokenStorage.getOrCreateJwtSecret();
@@ -107,6 +111,24 @@ class MessageHandler {
             case 'openUrl': return this._openUrl(message);
             case 'agentCheckOllama': return this._agentCheckOllama(webview);
             case 'agentAsk': return this._agentAsk(message, webview);
+            case 'discoverHardware': return this._discoverHardware(webview);
+        }
+    }
+    // ── Hardware discovery ──────────────────────────────────────────────────
+    async _discoverHardware(webview) {
+        if (!this.discoveryService) {
+            this.discoveryService = new hardwareDiscovery_1.HardwareDiscoveryService(this.extensionUri);
+        }
+        try {
+            const result = await this.discoveryService.discover();
+            webview.postMessage({ command: 'hardwareDiscoveryResult', data: result });
+        }
+        catch (err) {
+            webview.postMessage({
+                command: 'hardwareDiscoveryResult',
+                data: { capture_modules: [], ethernet_adapters: [], timestamp: new Date().toISOString() },
+                error: String(err?.message ?? err),
+            });
         }
     }
     // ── Auth handlers ───────────────────────────────────────────────────────
@@ -573,12 +595,36 @@ class MessageHandler {
             filters: { YAML: ['yaml', 'yml'] },
             canSelectMany: false,
         });
-        if (uris && uris[0]) {
-            const content = await vscode.workspace.fs.readFile(uris[0]);
-            webview.postMessage({
-                command: 'importedConfig',
-                content: Buffer.from(content).toString('utf8'),
-            });
+        if (!uris || !uris[0]) {
+            return;
+        }
+        try {
+            const fileContent = await vscode.workspace.fs.readFile(uris[0]);
+            const yamlText = Buffer.from(fileContent).toString('utf8');
+            const parser = new YamlParser_1.YamlParser();
+            const { config: parsed, warnings } = parser.parse(yamlText, path.basename(uris[0].fsPath));
+            const raw = { ...parsed, userId: this.loggedInUserId };
+            if (!raw.id) {
+                raw.id = raw.configId || `config_${Date.now()}`;
+            }
+            this.storageService.saveRaw(raw);
+            await (0, databaseService_1.saveConfigurationToDb)(raw.id, raw.name, this.loggedInUserId, JSON.stringify(raw)).catch((e) => console.warn('[importConfig] DB insert failed:', e?.message));
+            this.currentConfig = new models_1.Configuration(raw.id, raw.name, raw.userId);
+            this.currentConfig.logicalChannels = raw.logicalChannels || [];
+            this.currentConfig.hardwareChannels = raw.hardwareChannels || [];
+            this.currentConfig.mappings = raw.mappings || [];
+            this.currentConfig.frameworkConfig = raw.frameworkConfig || {};
+            this._rebuildManagers(this.currentConfig);
+            const all = this.storageService.getAllConfigurations();
+            const mine = all.filter((c) => Number(c.userId) === this.loggedInUserId);
+            webview.postMessage({ command: 'configurationsLoaded', data: mine });
+            webview.postMessage({ command: 'configurationLoaded', data: raw });
+            if (warnings.length > 0) {
+                vscode.window.showWarningMessage(`YAML imported with warnings:\n${warnings.join('\n')}`);
+            }
+        }
+        catch (err) {
+            webview.postMessage({ command: 'error', message: `Import failed: ${err.message}` });
         }
     }
     // ── Shared helpers ────────────────────────────────────────────────────────

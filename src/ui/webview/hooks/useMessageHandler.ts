@@ -78,9 +78,17 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
           dispatch({ type: 'SET_AI_RESULT', result: msg.data });
           break;
 
-        case 'importedConfig':
-          notify('info', 'YAML imported successfully.');
+        case 'importedConfig': {
+          const v = msg.validation;
+          dispatch({ type: 'SET_AI_RESULT', result: v });
+          dispatch({ type: 'SET_PAGE', page: 'generate' });
+          if (v.isValid) {
+            notify('success', `"${msg.fileName}" is valid — no errors found.`);
+          } else {
+            notify('error', `"${msg.fileName}" has ${v.errors.length} error(s).`);
+          }
           break;
+        }
 
         case 'yamlApplied':
           dispatch({ type: 'CONFIG_LOADED', data: msg.data });

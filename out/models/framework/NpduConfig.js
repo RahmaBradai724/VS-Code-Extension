@@ -17,7 +17,7 @@ let NpduConfig = class NpduConfig {
         if (this.manageVlansInCom !== undefined)
             out.ManageVlansInCom = this.manageVlansInCom;
         if (this.restrictNPduChannelsInCom !== undefined)
-            out.RestrictNPduChannelsInCom = this.restrictNPduChannelsInCom;
+            out.RestrictedNPduChannelsInCom = this.restrictNPduChannelsInCom;
         if (this.ipMacTable?.length)
             out.IPMacTable = this.ipMacTable;
         if (this.vlans)

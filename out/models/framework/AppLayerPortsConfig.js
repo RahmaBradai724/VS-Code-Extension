@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppLayerPortsConfig = void 0;
 const typeorm_1 = require("typeorm");
-/** Stores MTF AppLayerPorts – each field is a single port number */
+/** Stores MTF AppLayerPorts – each field is a list of ports and/or port ranges */
 let AppLayerPortsConfig = class AppLayerPortsConfig {
     toYAML() {
         const out = {};
@@ -53,24 +53,24 @@ __decorate([
     __metadata("design:type", Number)
 ], AppLayerPortsConfig.prototype, "frameworkConfigId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "nPdu", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "someIp", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "udpNm", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "dlt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "someIpSD", void 0);
 exports.AppLayerPortsConfig = AppLayerPortsConfig = __decorate([
     (0, typeorm_1.Entity)('app_layer_ports_configs')
