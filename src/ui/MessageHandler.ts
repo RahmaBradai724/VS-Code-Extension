@@ -19,6 +19,7 @@ import { TokenStorage } from '../services/auth/TokenStorage';
 import { UserRepository } from '../services/database/UserRepository';
 import { ConfigurationRepository } from '../services/database/ConfigurationRepository';
 import { consumeAutoLoad } from './autoLoadState';
+import { HardwareDiscoveryService } from '../services/hardwareDiscovery';
 
 /**
  * Owns all mutable runtime state and handles every webview message command.
@@ -38,6 +39,9 @@ export class MessageHandler {
   /** Cached agent resources — lazy-initialised on first agentAsk call */
   private readonly ollama = new OllamaClient();
   private kb: KnowledgeBase | null = null;
+
+  /** Lazy-initialised hardware discovery service */
+  private discoveryService: HardwareDiscoveryService | null = null;
 
   constructor(
     private readonly storageService: StorageService,
@@ -89,6 +93,25 @@ export class MessageHandler {
       case 'openUrl':                 return this._openUrl(message);
       case 'agentCheckOllama':        return this._agentCheckOllama(webview);
       case 'agentAsk':                return this._agentAsk(message, webview);
+      case 'discoverHardware':         return this._discoverHardware(webview);
+    }
+  }
+
+  // ── Hardware discovery ──────────────────────────────────────────────────
+
+  private async _discoverHardware(webview: vscode.Webview): Promise<void> {
+    if (!this.discoveryService) {
+      this.discoveryService = new HardwareDiscoveryService(this.extensionUri);
+    }
+    try {
+      const result = await this.discoveryService.discover();
+      webview.postMessage({ command: 'hardwareDiscoveryResult', data: result });
+    } catch (err: any) {
+      webview.postMessage({
+        command: 'hardwareDiscoveryResult',
+        data: { capture_modules: [], ethernet_adapters: [], timestamp: new Date().toISOString() },
+        error: String(err?.message ?? err),
+      });
     }
   }
 

@@ -192,13 +192,34 @@ interface Props {
   handleAdd: () => void;
   handleCancelForm: () => void;
   adapterFriendlyNames?: string[];
+  /** CM devices discovered via cmconfig topology */
+  discoveredCaptureModules?: Array<{ id: number; name: string; ip: string; product_family: string }>;
+  /** Ethernet adapters discovered via cmconfig topology */
+  discoveredEthernetAdapters?: Array<{ friendly_name: string; description: string }>;
 }
 
-export function AddChannelForm({ form, nameError, setField, setSubclass, setExtra, handleAdd, handleCancelForm, adapterFriendlyNames = [] }: Props) {
+export function AddChannelForm({ form, nameError, setField, setSubclass, setExtra, handleAdd, handleCancelForm,
+  adapterFriendlyNames = [], discoveredCaptureModules = [], discoveredEthernetAdapters = [] }: Props) {
   const rawExtraFields = HARDWARE_EXTRA_FIELDS[form.subclass] ?? [];
   const extraFields = rawExtraFields.map(f => {
     if (f.key === 'physicalAdapterName' && adapterFriendlyNames.length > 0) {
       return { ...f, type: 'select' as const, options: ['', ...adapterFriendlyNames] };
+    }
+    // CM ID → dropdown with discovered devices
+    if (f.key === 'cmId' && discoveredCaptureModules.length > 0) {
+      const opts = discoveredCaptureModules.map(cm => ({
+        value: String(cm.id),
+        label: `${cm.id}  –  ${cm.ip}  (${cm.name || cm.product_family})`,
+      }));
+      return { ...f, type: 'select' as const, options: [{ value: '', label: '— select device —' }, ...opts] };
+    }
+    // EthernetAdapter friendlyName → dropdown with discovered adapters
+    if (f.key === 'friendlyName' && discoveredEthernetAdapters.length > 0) {
+      const opts = discoveredEthernetAdapters.map(a => ({
+        value: a.friendly_name,
+        label: a.friendly_name + (a.description ? `  (${a.description})` : ''),
+      }));
+      return { ...f, type: 'select' as const, options: [{ value: '', label: '— select adapter —' }, ...opts] };
     }
     return f;
   });

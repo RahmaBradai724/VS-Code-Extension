@@ -1,22 +1,78 @@
 Channels:
-  can:
+  ethernet:
     Id: 1
-    Type: CAN
-    Protocol: canfd
-    LoggingName: logging
+    Type: ETHERNET
+    LoggingName: logs
+    TracerName: tracer logical channel
     Alias:
-      - alias1
-      - alias2
+      - aliases
+    ApplicationProtocol: XCP
 Mappings:
-  CM:
-    Devices:
-      1:
-        Id: 60
-        Type: CAN_Combo
-        Buses:
-          can:
-            HWChannel: 600
-            OperationMode: Normal
+  PCAP:
+    1:
+      Adapter:
+        Name: ethernet
+        FriendlyName: Ethernet
+        Interface: ensp
+        BufferSize: 10
+        BpfFilter: 192.168.1.1
+        Timeout: 5
+        TimeStampPrecision: Microsecond
+        TimeStampSource: TimeStampHostLowPrecision
+        ImmediateMode: true
+        PcapDeviceMode: Promiscuous
+        UseDataLoggerTimeStamp: true
+        RemoveDataLoggerMetaData: true
+        DataLoggerType: TECMP
+        PacketProcessingActive: true
+        PacketIdentificationActive: true
+        DifferentHandlerForTxAndRx: true
+        TECMPPacketizationActive: true
 FrameworkConfig:
+  Tracing:
+    tracer logical channel:
+      Type: PCAP
+      Timestamp: Microsecond
+      LoggingType: MultipleAdapterMode
+      LoggerConfiguration:
+        BufferConfig:
+          BufferSize: 200
+        FileConfig:
+          BaseFileName: tracer
+          Extension: .pcapng
+          MaxFile: 8
+          MaxFileSize: 500
   PublisherConfig:
     PublisherType: SingleThreaded
+  ConnectedEcus:
+    - ecu1
+    - ecu2
+    - ecu3
+  ServicePack: BMW
+  EthernetConfig:
+    ConsiderOnlyEthernetTopologyEcus: true
+    NPduConfig:
+      ManageVlansInCom: true
+      RestrictedNPduChannelsInCom: true
+      IPMacTable: [[192.168.1.1, 00:00:00:00:00:01], [192.168.1.2, 00:00:00:00:00:39]]
+      VLans:
+        InnerTags:
+          -
+            ID: 68
+            Priority: 2
+            IPList: [192.168.1.1,192.168.1.2,192.168.1.3]
+        OuterTags:
+          -
+            ID: 70
+            Priority: 3
+            IPList: [192.168.1.1,192.168.1.1,192.168.1.1]
+    SomeIPConfig:
+      ServerToClientPortRangeMapping:
+        ServerPorts: [[30501,30599], [30502,30598]]
+        ClientPorts: [[30491,30499], [30492,30498]]
+    AppLayerPorts:
+      NPdu: [3000, [3100, 3200], 3208]
+      SomeIp: [[500, 503], 1000]
+      UDPNM: [4100]
+      DLT: [5000, 5001]
+      SomeIpSD: [30490]

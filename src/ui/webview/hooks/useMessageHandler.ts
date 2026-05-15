@@ -112,6 +112,14 @@ export function useMessageHandler({ dispatch, notify, send }: AppContextValue) {
         case 'agentError':
           dispatch({ type: 'AGENT_ERROR', error: msg.message ?? 'Unknown agent error' });
           break;
+
+        // ── Hardware discovery ─────────────────────────────────────────────
+        case 'hardwareDiscoveryResult':
+          dispatch({ type: 'HARDWARE_DISCOVERY_RESULT', data: msg.data });
+          if (msg.error) {
+            notify('warning', `Hardware discovery: ${msg.error}`);
+          }
+          break;
       }
     };
 

@@ -34,4 +34,7 @@ export const initialState: AppState = {
   agentStreamingText: '',
   // Framework
   frameworkSection: null,
+  // Hardware discovery
+  discoveredHardware: null,
+  hardwareDiscovering: false,
 };

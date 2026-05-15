@@ -749,17 +749,46 @@ export class ConfigGenerator {
       if (ec.considerOnlyEthernetTopologyEcus !== undefined) { ethOut.ConsiderOnlyEthernetTopologyEcus = ec.considerOnlyEthernetTopologyEcus; }
 
       if (ec.npduConfig) {
-        const npduOut = ec.npduConfig.toYAML();
+        const n = ec.npduConfig as any;
+        const npduOut: Record<string, any> = {};
+        const manageVlans   = n.ManageVlansInCom            ?? n.manageVlansInCom;
+        const restrictNPdu  = n.RestrictNPduChannelsInCom   ?? n.restrictNPduChannelsInCom;
+        const ipMacTable    = n.IPMacTable                  ?? n.ipMacTable;
+        const vlans         = n.VLans                       ?? n.vlans;
+        if (manageVlans  !== undefined)  npduOut.ManageVlansInCom            = manageVlans;
+        if (restrictNPdu !== undefined)  npduOut.RestrictedNPduChannelsInCom = restrictNPdu;
+        if (ipMacTable?.length)          npduOut.IPMacTable                  = ipMacTable;
+        if (vlans)                       npduOut.VLans                       = vlans;
         if (Object.keys(npduOut).length) { ethOut.NPduConfig = npduOut; }
       }
 
       if (ec.someIPConfig) {
-        const someipOut = ec.someIPConfig.toYAML();
+        const s = ec.someIPConfig as any;
+        const someipOut: Record<string, any> = {};
+        const stcMap = s.ServerToClientPortRangeMapping ?? s.serverToClientPortRangeMapping;
+        const epImpl = s.EndpointImplementation         ?? s.endpointImplementation;
+        const adName = s.AdapterName                   ?? s.adapterName;
+        if (stcMap) someipOut.ServerToClientPortRangeMapping = stcMap;
+        if (epImpl) someipOut.EndpointImplementation         = epImpl;
+        if (adName) someipOut.AdapterName                    = adName;
         if (Object.keys(someipOut).length) { ethOut.SomeIPConfig = someipOut; }
       }
 
-      if (ec.appLayerPortsConfig) {
-        const alpOut = ec.appLayerPortsConfig.toYAML();
+      // webview stores as 'appLayerPorts'; TypeORM entity is 'appLayerPortsConfig'
+      const alpRaw = ec.appLayerPorts ?? ec.appLayerPortsConfig;
+      if (alpRaw) {
+        const a = alpRaw as any;
+        const alpOut: Record<string, any> = {};
+        const nPdu    = a.NPdu    ?? a.nPdu;
+        const someIp  = a.SomeIp  ?? a.someIp;
+        const udpNm   = a.UDPNM   ?? a.udpNm;
+        const dlt     = a.DLT     ?? a.dlt;
+        const someIpSD = a.SomeIpSD ?? a.someIpSD;
+        if (nPdu    != null) alpOut.NPdu     = nPdu;
+        if (someIp  != null) alpOut.SomeIp   = someIp;
+        if (udpNm   != null) alpOut.UDPNM    = udpNm;
+        if (dlt     != null) alpOut.DLT      = dlt;
+        if (someIpSD != null) alpOut.SomeIpSD = someIpSD;
         if (Object.keys(alpOut).length) { ethOut.AppLayerPorts = alpOut; }
       }
 

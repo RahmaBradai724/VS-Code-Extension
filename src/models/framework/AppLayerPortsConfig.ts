@@ -1,6 +1,9 @@
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-/** Stores MTF AppLayerPorts – each field is a single port number */
+/** One entry in an AppLayerPorts list: a single port number or a [min, max] range. */
+export type PortEntry = number | [number, number];
+
+/** Stores MTF AppLayerPorts – each field is a list of ports and/or port ranges */
 @Entity('app_layer_ports_configs')
 export class AppLayerPortsConfig {
   @PrimaryGeneratedColumn()
@@ -14,20 +17,20 @@ export class AppLayerPortsConfig {
   @Column({ nullable: true })
   frameworkConfigId?: number;
 
-  @Column({ type: 'int', nullable: true })
-  nPdu?: number;
+  @Column({ type: 'jsonb', nullable: true })
+  nPdu?: PortEntry[];
 
-  @Column({ type: 'int', nullable: true })
-  someIp?: number;
+  @Column({ type: 'jsonb', nullable: true })
+  someIp?: PortEntry[];
 
-  @Column({ type: 'int', nullable: true })
-  udpNm?: number;
+  @Column({ type: 'jsonb', nullable: true })
+  udpNm?: PortEntry[];
 
-  @Column({ type: 'int', nullable: true })
-  dlt?: number;
+  @Column({ type: 'jsonb', nullable: true })
+  dlt?: PortEntry[];
 
-  @Column({ type: 'int', nullable: true })
-  someIpSD?: number;
+  @Column({ type: 'jsonb', nullable: true })
+  someIpSD?: PortEntry[];
 
   toYAML(): object {
     const out: Record<string, any> = {};

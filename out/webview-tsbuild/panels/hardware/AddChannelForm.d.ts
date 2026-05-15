@@ -12,6 +12,16 @@ interface Props {
     handleAdd: () => void;
     handleCancelForm: () => void;
     adapterFriendlyNames?: string[];
+    discoveredCaptureModules?: Array<{
+        id: number;
+        name: string;
+        ip: string;
+        product_family: string;
+    }>;
+    discoveredEthernetAdapters?: Array<{
+        friendly_name: string;
+        description: string;
+    }>;
 }
-export declare function AddChannelForm({ form, nameError, setField, setSubclass, setExtra, handleAdd, handleCancelForm, adapterFriendlyNames }: Props): React.JSX.Element;
+export declare function AddChannelForm({ form, nameError, setField, setSubclass, setExtra, handleAdd, handleCancelForm, adapterFriendlyNames, discoveredCaptureModules, discoveredEthernetAdapters }: Props): React.JSX.Element;
 export {};

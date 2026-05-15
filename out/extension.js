@@ -45,7 +45,7 @@ __webpack_require__(1);
 const vscode = __importStar(__webpack_require__(2));
 const webviewProvider_1 = __webpack_require__(3);
 const storageService_1 = __webpack_require__(4);
-const configImporter_1 = __webpack_require__(757);
+const configImporter_1 = __webpack_require__(759);
 const databaseService_1 = __webpack_require__(675);
 const autoLoadState_1 = __webpack_require__(755);
 async function activate(context) {
@@ -1682,7 +1682,7 @@ const storageService_1 = __webpack_require__(4);
 const aiValidator_1 = __webpack_require__(6);
 const TokenStorage_1 = __webpack_require__(8);
 const MessageHandler_1 = __webpack_require__(10);
-const webviewHtml_1 = __webpack_require__(756);
+const webviewHtml_1 = __webpack_require__(758);
 /**
  * PanelProvider manages a singleton full-editor-tab WebviewPanel.
  * Call PanelProvider.open() to create or reveal it.
@@ -2272,6 +2272,7 @@ const AuthService_1 = __webpack_require__(679);
 const UserRepository_1 = __webpack_require__(677);
 const ConfigurationRepository_1 = __webpack_require__(678);
 const autoLoadState_1 = __webpack_require__(755);
+const hardwareDiscovery_1 = __webpack_require__(756);
 /**
  * Owns all mutable runtime state and handles every webview message command.
  * Extracted from WebviewProvider to keep that class small.
@@ -2287,6 +2288,8 @@ class MessageHandler {
         /** Cached agent resources — lazy-initialised on first agentAsk call */
         this.ollama = new OllamaClient_1.OllamaClient();
         this.kb = null;
+        /** Lazy-initialised hardware discovery service */
+        this.discoveryService = null;
         this.channelManager = new channelManager_1.ChannelManager();
         this.mappingManager = new mappingManager_1.MappingManager(this.channelManager);
         const jwtSecret = this.tokenStorage.getOrCreateJwtSecret();
@@ -2327,6 +2330,24 @@ class MessageHandler {
             case 'openUrl': return this._openUrl(message);
             case 'agentCheckOllama': return this._agentCheckOllama(webview);
             case 'agentAsk': return this._agentAsk(message, webview);
+            case 'discoverHardware': return this._discoverHardware(webview);
+        }
+    }
+    // ── Hardware discovery ──────────────────────────────────────────────────
+    async _discoverHardware(webview) {
+        if (!this.discoveryService) {
+            this.discoveryService = new hardwareDiscovery_1.HardwareDiscoveryService(this.extensionUri);
+        }
+        try {
+            const result = await this.discoveryService.discover();
+            webview.postMessage({ command: 'hardwareDiscoveryResult', data: result });
+        }
+        catch (err) {
+            webview.postMessage({
+                command: 'hardwareDiscoveryResult',
+                data: { capture_modules: [], ethernet_adapters: [], timestamp: new Date().toISOString() },
+                error: String(err?.message ?? err),
+            });
         }
     }
     // ── Auth handlers ───────────────────────────────────────────────────────
@@ -99192,7 +99213,7 @@ let NpduConfig = class NpduConfig {
         if (this.manageVlansInCom !== undefined)
             out.ManageVlansInCom = this.manageVlansInCom;
         if (this.restrictNPduChannelsInCom !== undefined)
-            out.RestrictNPduChannelsInCom = this.restrictNPduChannelsInCom;
+            out.RestrictedNPduChannelsInCom = this.restrictNPduChannelsInCom;
         if (this.ipMacTable?.length)
             out.IPMacTable = this.ipMacTable;
         if (this.vlans)
@@ -99331,7 +99352,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppLayerPortsConfig = void 0;
 const typeorm_1 = __webpack_require__(43);
-/** Stores MTF AppLayerPorts – each field is a single port number */
+/** Stores MTF AppLayerPorts – each field is a list of ports and/or port ranges */
 let AppLayerPortsConfig = class AppLayerPortsConfig {
     toYAML() {
         const out = {};
@@ -99373,24 +99394,24 @@ __decorate([
     __metadata("design:type", Number)
 ], AppLayerPortsConfig.prototype, "frameworkConfigId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "nPdu", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "someIp", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "udpNm", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "dlt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
-    __metadata("design:type", Number)
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
 ], AppLayerPortsConfig.prototype, "someIpSD", void 0);
 exports.AppLayerPortsConfig = AppLayerPortsConfig = __decorate([
     (0, typeorm_1.Entity)('app_layer_ports_configs')
@@ -101604,19 +101625,60 @@ class ConfigGenerator {
                 ethOut.ConsiderOnlyEthernetTopologyEcus = ec.considerOnlyEthernetTopologyEcus;
             }
             if (ec.npduConfig) {
-                const npduOut = ec.npduConfig.toYAML();
+                const n = ec.npduConfig;
+                const npduOut = {};
+                const manageVlans = n.ManageVlansInCom ?? n.manageVlansInCom;
+                const restrictNPdu = n.RestrictNPduChannelsInCom ?? n.restrictNPduChannelsInCom;
+                const ipMacTable = n.IPMacTable ?? n.ipMacTable;
+                const vlans = n.VLans ?? n.vlans;
+                if (manageVlans !== undefined)
+                    npduOut.ManageVlansInCom = manageVlans;
+                if (restrictNPdu !== undefined)
+                    npduOut.RestrictedNPduChannelsInCom = restrictNPdu;
+                if (ipMacTable?.length)
+                    npduOut.IPMacTable = ipMacTable;
+                if (vlans)
+                    npduOut.VLans = vlans;
                 if (Object.keys(npduOut).length) {
                     ethOut.NPduConfig = npduOut;
                 }
             }
             if (ec.someIPConfig) {
-                const someipOut = ec.someIPConfig.toYAML();
+                const s = ec.someIPConfig;
+                const someipOut = {};
+                const stcMap = s.ServerToClientPortRangeMapping ?? s.serverToClientPortRangeMapping;
+                const epImpl = s.EndpointImplementation ?? s.endpointImplementation;
+                const adName = s.AdapterName ?? s.adapterName;
+                if (stcMap)
+                    someipOut.ServerToClientPortRangeMapping = stcMap;
+                if (epImpl)
+                    someipOut.EndpointImplementation = epImpl;
+                if (adName)
+                    someipOut.AdapterName = adName;
                 if (Object.keys(someipOut).length) {
                     ethOut.SomeIPConfig = someipOut;
                 }
             }
-            if (ec.appLayerPortsConfig) {
-                const alpOut = ec.appLayerPortsConfig.toYAML();
+            // webview stores as 'appLayerPorts'; TypeORM entity is 'appLayerPortsConfig'
+            const alpRaw = ec.appLayerPorts ?? ec.appLayerPortsConfig;
+            if (alpRaw) {
+                const a = alpRaw;
+                const alpOut = {};
+                const nPdu = a.NPdu ?? a.nPdu;
+                const someIp = a.SomeIp ?? a.someIp;
+                const udpNm = a.UDPNM ?? a.udpNm;
+                const dlt = a.DLT ?? a.dlt;
+                const someIpSD = a.SomeIpSD ?? a.someIpSD;
+                if (nPdu != null)
+                    alpOut.NPdu = nPdu;
+                if (someIp != null)
+                    alpOut.SomeIp = someIp;
+                if (udpNm != null)
+                    alpOut.UDPNM = udpNm;
+                if (dlt != null)
+                    alpOut.DLT = dlt;
+                if (someIpSD != null)
+                    alpOut.SomeIpSD = someIpSD;
                 if (Object.keys(alpOut).length) {
                     ethOut.AppLayerPorts = alpOut;
                 }
@@ -103244,6 +103306,20 @@ const ChannelEcuMapping_1 = __webpack_require__(655);
 const PCAPTracer_1 = __webpack_require__(647);
 const ASCIITracer_1 = __webpack_require__(648);
 const DataSourceProvider_1 = __webpack_require__(676);
+/** Converts a raw AppLayerPorts value into a PortEntry array.
+ *  Accepts: undefined | number | number[] | (number | number[])[] */
+function normalisePortList(val) {
+    if (val == null) {
+        return undefined;
+    }
+    if (Array.isArray(val)) {
+        return val;
+    }
+    if (typeof val === 'number') {
+        return [val];
+    }
+    return undefined;
+}
 const LOGICAL_MAP = {
     'FlexRayChannel': logicalChannels_1.FlexRayChannel,
     'SerialChannel': logicalChannels_1.SerialChannel,
@@ -103380,11 +103456,11 @@ class ConfigurationRepository {
                         fwEntity.ethernetConfig.appLayerPortsConfig = new AppLayerPortsConfig_1.AppLayerPortsConfig();
                     }
                     const a = ec.appLayerPorts;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.nPdu = a.NPdu != null ? Number(a.NPdu) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.someIp = a.SomeIp != null ? Number(a.SomeIp) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.udpNm = a.UDPNM != null ? Number(a.UDPNM) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.dlt = a.DLT != null ? Number(a.DLT) : undefined;
-                    fwEntity.ethernetConfig.appLayerPortsConfig.someIpSD = a.SomeIpSD != null ? Number(a.SomeIpSD) : undefined;
+                    fwEntity.ethernetConfig.appLayerPortsConfig.nPdu = normalisePortList(a.NPdu);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.someIp = normalisePortList(a.SomeIp);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.udpNm = normalisePortList(a.UDPNM);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.dlt = normalisePortList(a.DLT);
+                    fwEntity.ethernetConfig.appLayerPortsConfig.someIpSD = normalisePortList(a.SomeIpSD);
                 }
                 // EthernetTopology → dedicated table
                 if (ec.ethernetTopology !== undefined) {
@@ -110944,6 +111020,184 @@ function consumeAutoLoad() {
 
 "use strict";
 
+/**
+ * HardwareDiscoveryService
+ * ========================
+ * Calls `hardware_discovery.py` (which wraps `cmconfig topology`) and returns
+ * structured information about the connected hardware:
+ *
+ *  - Capture Modules (CM CAN Combo, etc.)  → valid cmId values + device info
+ *  - Host Network Adapters (NetAdapter)    → friendly names for EthernetAdapter
+ *
+ * The Python script is shipped under `scripts/hardware_discovery.py`.
+ * It requires `cmconfig==1.10.0` installed in the active Python environment.
+ */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HardwareDiscoveryService = void 0;
+const vscode = __importStar(__webpack_require__(2));
+const path = __importStar(__webpack_require__(37));
+const child_process_1 = __webpack_require__(757);
+const util_1 = __webpack_require__(96);
+const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
+// ── Service ─────────────────────────────────────────────────────────────────
+class HardwareDiscoveryService {
+    constructor(extensionUri) {
+        this.extensionUri = extensionUri;
+        this.scriptPath = path.join(extensionUri.fsPath, 'scripts', 'hardware_discovery.py');
+    }
+    /**
+     * Run hardware discovery and return the parsed result.
+     *
+     * Resolves with an empty result (no error thrown) when cmconfig finds
+     * no devices, so callers can always safely destructure the result.
+     *
+     * @param timeoutMs  Max time to wait for the Python process (default 20 s)
+     */
+    async discover(timeoutMs = 20000) {
+        const python = await this._resolvePythonExecutable();
+        let stdout;
+        try {
+            const result = await execFileAsync(python, [this.scriptPath, '--json'], {
+                timeout: timeoutMs,
+                windowsHide: true,
+            });
+            stdout = result.stdout.trim();
+        }
+        catch (err) {
+            // The script exits with code 1 when cmconfig fails; stdout still contains
+            // a valid JSON error envelope – try to parse it anyway.
+            stdout = (err.stdout ?? '').trim();
+            if (!stdout) {
+                throw new Error(`hardware_discovery.py failed: ${err.message ?? err}`);
+            }
+        }
+        let parsed;
+        try {
+            parsed = JSON.parse(stdout);
+        }
+        catch {
+            throw new Error(`hardware_discovery.py returned non-JSON output: ${stdout.slice(0, 200)}`);
+        }
+        if (parsed.error) {
+            // Script ran but cmconfig errored (e.g. not installed). Return empty.
+            console.warn('[HardwareDiscovery]', parsed.error);
+            return this._empty();
+        }
+        return {
+            capture_modules: parsed.capture_modules ?? [],
+            ethernet_adapters: parsed.ethernet_adapters ?? [],
+            timestamp: new Date().toISOString(),
+        };
+    }
+    /** Return only the list of valid CM device IDs present on the network. */
+    async getValidCmIds(timeoutMs = 20000) {
+        const result = await this.discover(timeoutMs);
+        return result.capture_modules.map(cm => cm.id);
+    }
+    /** Return only the list of friendly adapter names on this host. */
+    async getEthernetAdapterNames(timeoutMs = 20000) {
+        const result = await this.discover(timeoutMs);
+        return result.ethernet_adapters
+            .map(a => a.friendly_name)
+            .filter(Boolean);
+    }
+    // ── Private helpers ───────────────────────────────────────────────────────
+    _empty() {
+        return { capture_modules: [], ethernet_adapters: [], timestamp: new Date().toISOString() };
+    }
+    /**
+     * Resolve the Python executable to use.
+     * Priority:
+     *   1. VS Code Python extension's selected interpreter
+     *   2. `.venv/Scripts/python.exe` / `.venv/bin/python` next to the extension
+     *   3. `python` / `python3` on PATH
+     */
+    async _resolvePythonExecutable() {
+        // 1. Ask the VS Code Python extension
+        try {
+            const pythonExt = vscode.extensions.getExtension('ms-python.python');
+            if (pythonExt) {
+                await pythonExt.activate();
+                const api = pythonExt.exports;
+                const envPath = api?.environments?.getActiveEnvironmentPath?.()?.path ??
+                    api?.environment?.getActiveEnvironmentPath?.()?.path;
+                if (envPath)
+                    return envPath;
+            }
+        }
+        catch {
+            // Python extension not available – fall through
+        }
+        // 2. Check for a .venv in the workspace root
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (workspaceRoot) {
+            const candidates = [
+                path.join(workspaceRoot, '.venv', 'Scripts', 'python.exe'),
+                path.join(workspaceRoot, '.venv', 'bin', 'python'),
+            ];
+            for (const c of candidates) {
+                if (await this._exists(c))
+                    return c;
+            }
+        }
+        // 3. Fallback to system python
+        return process.platform === 'win32' ? 'python' : 'python3';
+    }
+    _exists(filePath) {
+        return new Promise(resolve => {
+            Promise.resolve().then(() => __importStar(__webpack_require__(51))).then(fs => resolve(fs.existsSync(filePath)));
+        });
+    }
+}
+exports.HardwareDiscoveryService = HardwareDiscoveryService;
+
+
+/***/ }),
+/* 757 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("child_process");
+
+/***/ }),
+/* 758 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -111019,7 +111273,7 @@ function getHtmlForWebview(webview, extensionUri) {
 
 
 /***/ }),
-/* 757 */
+/* 759 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -111027,12 +111281,12 @@ function getHtmlForWebview(webview, extensionUri) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConfigImporter = void 0;
 // Barrel  re-exports from config/ subfolder.
-var ConfigImporter_1 = __webpack_require__(758);
+var ConfigImporter_1 = __webpack_require__(760);
 Object.defineProperty(exports, "ConfigImporter", ({ enumerable: true, get: function () { return ConfigImporter_1.ConfigImporter; } }));
 
 
 /***/ }),
-/* 758 */
+/* 760 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -111074,7 +111328,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConfigImporter = void 0;
 const vscode = __importStar(__webpack_require__(2));
 const path = __importStar(__webpack_require__(37));
-const YamlParser_1 = __webpack_require__(759);
+const YamlParser_1 = __webpack_require__(761);
 /**
  * ConfigImporter handles file I/O for importing YAML config files.
  * SRP: file I/O and VS Code dialog only — YAML parsing delegated to YamlParser.
@@ -111109,7 +111363,7 @@ exports.ConfigImporter = ConfigImporter;
 
 
 /***/ }),
-/* 759 */
+/* 761 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";

@@ -29,8 +29,8 @@ export class NpduConfig {
 
   toYAML(): object {
     const out: Record<string, any> = {};
-    if (this.manageVlansInCom !== undefined)           out.ManageVlansInCom          = this.manageVlansInCom;
-    if (this.restrictNPduChannelsInCom !== undefined)  out.RestrictNPduChannelsInCom = this.restrictNPduChannelsInCom;
+    if (this.manageVlansInCom !== undefined)           out.ManageVlansInCom             = this.manageVlansInCom;
+    if (this.restrictNPduChannelsInCom !== undefined)  out.RestrictedNPduChannelsInCom  = this.restrictNPduChannelsInCom;
     if (this.ipMacTable?.length)                       out.IPMacTable                = this.ipMacTable;
     if (this.vlans)                                    out.VLans                     = this.vlans;
     return out;

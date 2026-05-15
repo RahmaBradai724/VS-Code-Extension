@@ -148,6 +148,10 @@ export function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, agentMessages: [], agentLoading: false, agentStreamingText: '' };
     case 'SET_FRAMEWORK_SECTION':
       return { ...state, frameworkSection: action.section };
+    case 'HARDWARE_DISCOVERY_START':
+      return { ...state, hardwareDiscovering: true };
+    case 'HARDWARE_DISCOVERY_RESULT':
+      return { ...state, discoveredHardware: action.data, hardwareDiscovering: false };
     default:
       return state;
   }

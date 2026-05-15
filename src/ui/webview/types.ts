@@ -126,6 +126,34 @@ export interface HardwareChannel {
   [key: string]: any;
 }
 
+// ── Hardware discovery types ─────────────────────────────────────────────
+
+export interface DiscoveredCaptureModule {
+  id: number;
+  product_family: string;
+  product_id: number | null;
+  product_name: string | null;
+  sw_version: string | null;
+  name: string;
+  ip: string;
+  mac: string;
+  host_adapter: { name: string; ip: string; mac: string } | null;
+}
+
+export interface DiscoveredEthernetAdapter {
+  friendly_name: string;
+  description: string;
+  ip: string;
+  mac: string;
+  ports?: Array<{ linkup: boolean; speed: number; name: string }>;
+}
+
+export interface HardwareDiscoveryData {
+  capture_modules: DiscoveredCaptureModule[];
+  ethernet_adapters: DiscoveredEthernetAdapter[];
+  timestamp: string;
+}
+
 export interface AppState {
   page: Page;
   configs: any[];
@@ -152,6 +180,9 @@ export interface AppState {
   agentStreamingText: string;
   // Framework
   frameworkSection: FrameworkSection | null;
+  // Hardware discovery
+  discoveredHardware: HardwareDiscoveryData | null;
+  hardwareDiscovering: boolean;
 }
 
 export interface AgentSource {
@@ -211,7 +242,9 @@ export type AppAction =
   | { type: 'AGENT_DONE'; sources: AgentMessage['sources']; meta?: AgentMessage['meta'] }
   | { type: 'AGENT_ERROR'; error: string }
   | { type: 'AGENT_CLEAR' }
-  | { type: 'SET_FRAMEWORK_SECTION'; section: FrameworkSection | null };
+  | { type: 'SET_FRAMEWORK_SECTION'; section: FrameworkSection | null }
+  | { type: 'HARDWARE_DISCOVERY_START' }
+  | { type: 'HARDWARE_DISCOVERY_RESULT'; data: HardwareDiscoveryData };
 
 export interface SelectOption {
   value: string;

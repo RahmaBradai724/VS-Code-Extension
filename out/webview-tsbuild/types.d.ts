@@ -87,6 +87,37 @@ export interface HardwareChannel {
     subclass: string;
     [key: string]: any;
 }
+export interface DiscoveredCaptureModule {
+    id: number;
+    product_family: string;
+    product_id: number | null;
+    product_name: string | null;
+    sw_version: string | null;
+    name: string;
+    ip: string;
+    mac: string;
+    host_adapter: {
+        name: string;
+        ip: string;
+        mac: string;
+    } | null;
+}
+export interface DiscoveredEthernetAdapter {
+    friendly_name: string;
+    description: string;
+    ip: string;
+    mac: string;
+    ports?: Array<{
+        linkup: boolean;
+        speed: number;
+        name: string;
+    }>;
+}
+export interface HardwareDiscoveryData {
+    capture_modules: DiscoveredCaptureModule[];
+    ethernet_adapters: DiscoveredEthernetAdapter[];
+    timestamp: string;
+}
 export interface AppState {
     page: Page;
     configs: any[];
@@ -114,6 +145,8 @@ export interface AppState {
     agentLoading: boolean;
     agentStreamingText: string;
     frameworkSection: FrameworkSection | null;
+    discoveredHardware: HardwareDiscoveryData | null;
+    hardwareDiscovering: boolean;
 }
 export interface AgentSource {
     section: string;
@@ -227,6 +260,11 @@ export type AppAction = {
 } | {
     type: 'SET_FRAMEWORK_SECTION';
     section: FrameworkSection | null;
+} | {
+    type: 'HARDWARE_DISCOVERY_START';
+} | {
+    type: 'HARDWARE_DISCOVERY_RESULT';
+    data: HardwareDiscoveryData;
 };
 export interface SelectOption {
     value: string;

@@ -1,5 +1,6 @@
 .venv
-scripts
+scripts/**
+!scripts/hardware_discovery.py
 src
 tsconfig.json
 webpack.webview.config.js
